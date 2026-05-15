@@ -1,0 +1,63 @@
+name: Visual regression - carrier V2
+
+# Suite visual aislada. Compara contra baselines versionados.
+# La actualizacion de baselines requiere ejecucion manual con flag update.
+on:
+  schedule:
+    - cron: '30 7 * * *'  # nightly 07:30 UTC
+  workflow_dispatch:
+    inputs:
+      update_baselines:
+        description: 'Actualizar baselines (solo permitido en test)'
+        required: true
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ENV: test  # baselines viven en test
+      CI: 'true'
+      HEADLESS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run visual specs
+        env:
+          BASE_URL: ${{ secrets.CARRIER_V2_BASE_URL_TEST }}
+          USER_CARRIER: ${{ secrets.CARRIER_V2_USER_TEST }}
+          PASS_CARRIER: ${{ secrets.CARRIER_V2_PASS_TEST }}
+        run: |
+          if [ "${{ inputs.update_baselines }}" = "true" ]; then
+            npm run test:visual:update
+          else
+            npm run test:visual
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-test-report
+          path: evidence/test/
+          retention-days: 14
+
+      - name: Commit updated baselines (solo workflow_dispatch + update=true)
+        if: inputs.update_baselines == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "magiis-qa-bot"
+          git config user.email "qa-bot@magiis.com"
+          git add tests/specs/visual/__screenshots__/
+          git commit -m "chore(visual): update baselines [skip ci]" || echo "No changes"
+          git push

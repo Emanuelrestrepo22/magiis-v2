@@ -1,0 +1,50 @@
+name: Smoke - carrier V2
+
+# Suite minima @P1 para feedback rapido en PRs y nightly.
+on:
+  pull_request:
+    paths:
+      - 'tests/**'
+      - 'playwright.config.ts'
+      - 'global-setup.ts'
+      - 'package.json'
+  schedule:
+    - cron: '0 6 * * *'  # nightly 06:00 UTC
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [test]  # PRs corren solo test; smoke prod va por workflow separado
+    env:
+      ENV: ${{ matrix.env }}
+      CI: 'true'
+      HEADLESS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run smoke specs (@P1)
+        env:
+          BASE_URL: ${{ secrets.CARRIER_V2_BASE_URL_TEST }}
+          USER_CARRIER: ${{ secrets.CARRIER_V2_USER_TEST }}
+          PASS_CARRIER: ${{ secrets.CARRIER_V2_PASS_TEST }}
+        run: npm run test:smoke
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.env }}-report
+          path: evidence/${{ matrix.env }}/
+          retention-days: 7

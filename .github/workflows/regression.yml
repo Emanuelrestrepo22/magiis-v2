@@ -1,0 +1,52 @@
+name: Regression - carrier V2
+
+# Suite completa funcional. Corre en test y uat por nightly y on-demand.
+on:
+  schedule:
+    - cron: '0 7 * * *'  # nightly 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Environment'
+        required: true
+        default: 'test'
+        type: choice
+        options: [test, uat]
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        env: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.env)) || fromJSON('["test", "uat"]') }}
+    env:
+      ENV: ${{ matrix.env }}
+      CI: 'true'
+      HEADLESS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run regression (excluye @visual)
+        env:
+          BASE_URL: ${{ matrix.env == 'uat' && secrets.CARRIER_V2_BASE_URL_UAT || secrets.CARRIER_V2_BASE_URL_TEST }}
+          USER_CARRIER: ${{ matrix.env == 'uat' && secrets.CARRIER_V2_USER_UAT || secrets.CARRIER_V2_USER_TEST }}
+          PASS_CARRIER: ${{ matrix.env == 'uat' && secrets.CARRIER_V2_PASS_UAT || secrets.CARRIER_V2_PASS_TEST }}
+        run: npx playwright test --grep-invert @visual
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-${{ matrix.env }}-report
+          path: evidence/${{ matrix.env }}/
+          retention-days: 14

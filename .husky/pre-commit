@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Pre-commit: lint+format archivos modificados + typecheck global.
+npx lint-staged
+npm run typecheck

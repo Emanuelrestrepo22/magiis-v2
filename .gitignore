@@ -1,0 +1,47 @@
+# MCP / secrets - NUNCA commitear
+.mcp.json
+.env
+.env.local
+.env.*.local
+.env.test
+.env.uat
+.env.prod
+# .env.example SI se commitea (plantilla publica sin secretos)
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+.playwright/
+*.spec.ts.bak
+
+# Visual regression baselines (decision pending)
+# tests/**/screenshots/
+
+# Refs (clones read-only de repos V1/V2)
+refs/v1/
+refs/v2/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Coverage / reports
+coverage/
+.nyc_output/
+*.log
+
+# Worktrees
+.claude/worktrees/

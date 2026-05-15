@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# commit-msg: enforcement del formato del CLAUDE.md global via commitlint.
+npx --no-install commitlint --edit "$1"

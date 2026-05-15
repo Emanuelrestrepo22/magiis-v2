@@ -1,0 +1,52 @@
+{
+  "name": "magiis-carrier-v2-e2e",
+  "version": "0.1.0",
+  "description": "Framework Playwright + TypeScript para automatizar pruebas frontend de la migracion del portal carrier MAGIIS de Angular 8 a Angular 18",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:test": "cross-env ENV=test playwright test",
+    "test:uat": "cross-env ENV=uat playwright test",
+    "test:prod": "cross-env ENV=prod playwright test",
+    "test:smoke": "cross-env ENV=test playwright test --grep @P1",
+    "test:visual": "cross-env ENV=test playwright test tests/specs/visual",
+    "test:visual:update": "cross-env ENV=test playwright test tests/specs/visual --update-snapshots",
+    "test:a11y": "cross-env ENV=test playwright test --grep @a11y",
+    "report": "playwright show-report",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "validate:env": "tsx tests/utils/envSchema.ts",
+    "prepare": "husky"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@faker-js/faker": "^9.3.0",
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.17.0",
+    "eslint-plugin-playwright": "^2.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "zod": "^3.24.1"
+  },
+  "lint-staged": {
+    "*.ts": ["eslint --fix", "prettier --write"],
+    "*.{json,md,yml,yaml}": ["prettier --write"]
+  }
+}

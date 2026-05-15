@@ -1,0 +1,13 @@
+{
+  "_comment": "Plantilla de usuarios de prueba. Copiar a users.json y NO commitear. Las credenciales reales viven en .env.<entorno>.",
+  "carrier_test": {
+    "username": "from-env-USER_CARRIER",
+    "password": "from-env-PASS_CARRIER",
+    "displayName": "Carrier QA Test"
+  },
+  "carrier_uat": {
+    "username": "from-env-USER_CARRIER",
+    "password": "from-env-PASS_CARRIER",
+    "displayName": "Carrier QA UAT"
+  }
+}
