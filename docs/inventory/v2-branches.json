@@ -1,0 +1,1152 @@
+﻿[
+    {
+        "branch":  "feature/MX-5715",
+        "mx":  "MX-5715",
+        "suffix":  "(sin-suffix)",
+        "sha":  "e001e202",
+        "committed":  "2026-05-18T10:37:38.000-03:00",
+        "author":  "Jorge Rankov",
+        "title":  "MX-5715 Fallback metaApp en envs preprod/uat/prod",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5732",
+        "mx":  "MX-5732",
+        "suffix":  "(sin-suffix)",
+        "sha":  "7aeefc63",
+        "committed":  "2026-05-17T10:28:10.000-03:00",
+        "author":  "Jorge Rankov",
+        "title":  "MX-5732 Sprint 8 FE: overview cards + top-routes + consent history + DKIM dinÃ¡mico + AB cancel",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5725-client-create",
+        "mx":  "MX-5725",
+        "suffix":  "client-create",
+        "sha":  "08b01e4a",
+        "committed":  "2026-05-14T11:03:29.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "fix(MX-5726): rework mutual exclusion using (change) + setValue emitEvent:false",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5735",
+        "mx":  "MX-5735",
+        "suffix":  "(sin-suffix)",
+        "sha":  "ce3c1d5e",
+        "committed":  "2026-05-12T17:41:32.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "refactor: remove unused LabelAddClient import and method from MultiRegionService",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5727-client-contractor-list",
+        "mx":  "MX-5727",
+        "suffix":  "client-contractor-list",
+        "sha":  "b31e6f1b",
+        "committed":  "2026-05-12T15:48:19.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "fix(MX-5727): update empty state translation key in client and contractor lists",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5724-client-list",
+        "mx":  "MX-5724",
+        "suffix":  "client-list",
+        "sha":  "90c78b61",
+        "committed":  "2026-05-11T17:50:08.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "fix(MX-5724): add table_header_client_type to en-us.json",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5712",
+        "mx":  "MX-5712",
+        "suffix":  "(sin-suffix)",
+        "sha":  "c605831c",
+        "committed":  "2026-05-11T14:17:20.000-03:00",
+        "author":  "Erno",
+        "title":  "feat(channels): add Channels section to carrier sidebar",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5717-integrations-ivr",
+        "mx":  "MX-5717",
+        "suffix":  "integrations-ivr",
+        "sha":  "fa485dfd",
+        "committed":  "2026-05-07T15:55:06.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5717): implement IvrIntegrationComponent",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5601-owner-report",
+        "mx":  "MX-5601",
+        "suffix":  "owner-report",
+        "sha":  "fa2cafb8",
+        "committed":  "2026-05-07T12:15:24.000-03:00",
+        "author":  "Cristian",
+        "title":  "MX-5601 igualar alto de cards KPI con min-height uniforme",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5713",
+        "mx":  "MX-5713",
+        "suffix":  "(sin-suffix)",
+        "sha":  "1b3e23f0",
+        "committed":  "2026-05-06T12:52:58.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "Actualizar versiÃ³n a 2.0.3 en package.json y footer; mejorar tÃ­tulo de breadcrumbs en new-trip.component.html",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5694-integrations-whatsapp-business",
+        "mx":  "MX-5694",
+        "suffix":  "integrations-whatsapp-business",
+        "sha":  "de72e0c8",
+        "committed":  "2026-05-06T11:24:47.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5694): implement WhatsappBusinessIntegrationComponent",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5670-integrations-csv",
+        "mx":  "MX-5670",
+        "suffix":  "integrations-csv",
+        "sha":  "9659e256",
+        "committed":  "2026-05-05T16:03:33.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5670): implement ViewIntegrationComponent (Logs de aplicaciÃ³n)",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5699-owner-liquidation-detail",
+        "mx":  "MX-5699",
+        "suffix":  "owner-liquidation-detail",
+        "sha":  "48ff5cef",
+        "committed":  "2026-04-27T12:00:23.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "feat(settlements): add OwnerLiquidationDetailComponent for MX-5699",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5605-report-vehicles-ranking",
+        "mx":  "MX-5605",
+        "suffix":  "report-vehicles-ranking",
+        "sha":  "bc70a4de",
+        "committed":  "2026-04-27T11:56:51.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5605): segunda revision",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5697-owner-liquidation-create",
+        "mx":  "MX-5697",
+        "suffix":  "owner-liquidation-create",
+        "sha":  "0813b5b4",
+        "committed":  "2026-04-24T12:54:43.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(MX-5699): fix 5 GAPs in owner-liquidation-detail mode",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5630-settings-travel-fare-rules",
+        "mx":  "MX-5630",
+        "suffix":  "settings-travel-fare-rules",
+        "sha":  "7cdfe6fa",
+        "committed":  "2026-04-23T18:20:58.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5630): segunda revision",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5197-client-list",
+        "mx":  "MX-5197",
+        "suffix":  "client-list",
+        "sha":  "36bdb477",
+        "committed":  "2026-04-23T15:57:20.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "feat(MX-5197): unify client list with type filter + polish",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5629-reports-corporate-services",
+        "mx":  "MX-5629",
+        "suffix":  "reports-corporate-services",
+        "sha":  "1217285a",
+        "committed":  "2026-04-23T14:21:35.000-03:00",
+        "author":  "darcknico",
+        "title":  "fix(MX-5629): segunda revision",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5170-client-edit",
+        "mx":  "MX-5170",
+        "suffix":  "client-edit",
+        "sha":  "605231ff",
+        "committed":  "2026-04-23T13:28:22.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "chore(MX-5170): GAP-008 remove dead toaster-container comment",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5627-settings-transport-types",
+        "mx":  "MX-5627",
+        "suffix":  "settings-transport-types",
+        "sha":  "61580d40",
+        "committed":  "2026-04-23T11:59:30.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5627): segunda revision",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5696-owner-liquidation-history",
+        "mx":  "MX-5696",
+        "suffix":  "owner-liquidation-history",
+        "sha":  "6f313b90",
+        "committed":  "2026-04-23T11:46:34.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(MX-5696): migrate owner-liquidation-history page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5195-client-contractor",
+        "mx":  "MX-5195",
+        "suffix":  "client-contractor",
+        "sha":  "298379eb",
+        "committed":  "2026-04-23T11:37:48.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "fix(MX-5195): use correct i18n keys for confirmation messages and loading states",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5695-owner-checking-account-detail",
+        "mx":  "MX-5695",
+        "suffix":  "owner-checking-account-detail",
+        "sha":  "16c543e9",
+        "committed":  "2026-04-22T18:39:24.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(MX-5695): migrate owner-checking-account-detail page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5625-checking-accounts-owners",
+        "mx":  "MX-5625",
+        "suffix":  "checking-accounts-owners",
+        "sha":  "333cb139",
+        "committed":  "2026-04-22T17:03:14.000-03:00",
+        "author":  "darcknico",
+        "title":  "fix(MX-5625): segunda revision",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5624-owner-liquidation",
+        "mx":  "MX-5624",
+        "suffix":  "owner-liquidation",
+        "sha":  "aeaef016",
+        "committed":  "2026-04-22T15:25:57.000-03:00",
+        "author":  "darcknico",
+        "title":  "fix(MX-5624) segunda revision",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5692-driver-checking-account",
+        "mx":  "MX-5692",
+        "suffix":  "driver-checking-account",
+        "sha":  "b751a906",
+        "committed":  "2026-04-22T11:49:48.000-03:00",
+        "author":  "Cristian",
+        "title":  "fix(MX-5692): fix modal cancel and form validation binding in driver-checking-account",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5690-driver-advances-list",
+        "mx":  "MX-5690",
+        "suffix":  "driver-advances-list",
+        "sha":  "f214628f",
+        "committed":  "2026-04-21T21:20:14.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "fix(MX-5690): fix grid load using userId + add refresh button (ACT-010)",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5610-settings-parameters",
+        "mx":  "MX-5610",
+        "suffix":  "settings-parameters",
+        "sha":  "754f31e0",
+        "committed":  "2026-04-21T20:13:11.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "fix(MX-5610): remove 13 phantom UI blocks inherited from v1 HTML comments",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5690-pay-drivers-advancements",
+        "mx":  "MX-5690",
+        "suffix":  "pay-drivers-advancements",
+        "sha":  "f7ea368e",
+        "committed":  "2026-04-21T18:04:16.000-03:00",
+        "author":  "Cristian",
+        "title":  "fix(auth-interceptor): exclude assets/i18n from auth check [MX-5690]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5614-zones",
+        "mx":  "MX-5614",
+        "suffix":  "zones",
+        "sha":  "897e0ac2",
+        "committed":  "2026-04-21T15:49:34.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5614): migrate zones configuration page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5628-travel-fare-list",
+        "mx":  "MX-5628",
+        "suffix":  "travel-fare-list",
+        "sha":  "f8c63b17",
+        "committed":  "2026-04-21T15:26:06.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5628): migrate travel-fare-list to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5603-checking-accounts-drivers",
+        "mx":  "MX-5603",
+        "suffix":  "checking-accounts-drivers",
+        "sha":  "6ef7c96f",
+        "committed":  "2026-04-21T11:55:43.000-03:00",
+        "author":  "Cristian",
+        "title":  "fix(i18n): fix translation keys not loading for checking-accounts-drivers [MX-5603]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5608-affiliate-os-agreement-received",
+        "mx":  "MX-5608",
+        "suffix":  "affiliate-os-agreement-received",
+        "sha":  "f446a8f0",
+        "committed":  "2026-04-21T11:29:23.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "fix(MX-5608): add search label below input to align with select captions",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5626-affiliate-os-agreement-requested",
+        "mx":  "MX-5626",
+        "suffix":  "affiliate-os-agreement-requested",
+        "sha":  "6982b5e6",
+        "committed":  "2026-04-20T18:13:54.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "feat(MX-5626): apply V2 Table Standard to affiliate-os-agreement-requested",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5619-areas",
+        "mx":  "MX-5619",
+        "suffix":  "areas",
+        "sha":  "aa793c2a",
+        "committed":  "2026-04-20T17:41:37.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5619): migrate areas settings page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5683-owner-edit",
+        "mx":  "MX-5683",
+        "suffix":  "owner-edit",
+        "sha":  "435eddb9",
+        "committed":  "2026-04-20T15:20:56.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(owner-edit): implement edit mode for FormOwnerComponent [MX-5683]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5623-contractor-liquidation",
+        "mx":  "MX-5623",
+        "suffix":  "contractor-liquidation",
+        "sha":  "f92454c6",
+        "committed":  "2026-04-20T14:06:38.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5623): migrate contractor-liquidation page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5679-travel-dashboard",
+        "mx":  "MX-5679",
+        "suffix":  "travel-dashboard",
+        "sha":  "535238c0",
+        "committed":  "2026-04-20T12:43:46.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "fix(MX-5679): column visibility on tab 0 + add missing row icons",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5680-owner-add",
+        "mx":  "MX-5680",
+        "suffix":  "owner-add",
+        "sha":  "36d3b51f",
+        "committed":  "2026-04-20T12:30:14.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(owner-add): implement FormOwnerComponent â Alta Propietarios [MX-5680]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5631-travel-mapper",
+        "mx":  "MX-5631",
+        "suffix":  "travel-mapper",
+        "sha":  "93c9c181",
+        "committed":  "2026-04-20T11:59:54.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "fix(MX-5631): replace per-tab click handlers with ngbNav navChange event",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5622-travel-create",
+        "mx":  "MX-5622",
+        "suffix":  "travel-create",
+        "sha":  "f21096d7",
+        "committed":  "2026-04-17T23:03:54.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "feat(travel-create): implement progressive disclosure for vehicle selection based on origin and destination inputs",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5678-integrations-mailchimp",
+        "mx":  "MX-5678",
+        "suffix":  "integrations-mailchimp",
+        "sha":  "ee5cfab8",
+        "committed":  "2026-04-17T21:02:41.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(integrations-mailchimp): complete migration to Angular 18 [MX-5678]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5677-integrations-signal",
+        "mx":  "MX-5677",
+        "suffix":  "integrations-signal",
+        "sha":  "3a43feba",
+        "committed":  "2026-04-17T19:50:19.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(integrations-signal): complete migration to Angular 18 [MX-5677]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5676-integrations-whatsapp",
+        "mx":  "MX-5676",
+        "suffix":  "integrations-whatsapp",
+        "sha":  "57ad3f08",
+        "committed":  "2026-04-17T19:10:50.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(integrations-whatsapp): complete migration to Angular 18 [MX-5676]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5675-integrations-social-media",
+        "mx":  "MX-5675",
+        "suffix":  "integrations-social-media",
+        "sha":  "d9b7ec38",
+        "committed":  "2026-04-17T18:29:45.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(integrations-social-media): complete migration to Angular 18 [MX-5675]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5671-integrations-plugin-web-reservation",
+        "mx":  "MX-5671",
+        "suffix":  "integrations-plugin-web-reservation",
+        "sha":  "3454208e",
+        "committed":  "2026-04-17T17:44:38.000-03:00",
+        "author":  "Cristian",
+        "title":  "feat(integrations-plugin-web-reservation): complete migration to Angular 18 [MX-5671]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5666-owner-heat-map",
+        "mx":  "MX-5666",
+        "suffix":  "owner-heat-map",
+        "sha":  "96188511",
+        "committed":  "2026-04-17T16:21:31.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5666): migrate owner-heat-map page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5621-melita-ai-branches",
+        "mx":  "MX-5621",
+        "suffix":  "melita-ai-branches",
+        "sha":  "e186d28e",
+        "committed":  "2026-04-17T14:24:12.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5621): implement melita-ai-branches page migration",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5620-settings-profiles",
+        "mx":  "MX-5620",
+        "suffix":  "settings-profiles",
+        "sha":  "5806c492",
+        "committed":  "2026-04-16T19:54:34.000-03:00",
+        "author":  "SanaLaMente",
+        "title":  "fix(MX-5620): fix modal button disabled state and table column widths",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5582-driver-liquidation",
+        "mx":  "MX-5582",
+        "suffix":  "driver-liquidation",
+        "sha":  "9828dbd0",
+        "committed":  "2026-04-16T18:53:56.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5582): migrate driver liquidation page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5607-affiliate-request",
+        "mx":  "MX-5607",
+        "suffix":  "affiliate-request",
+        "sha":  "06bfdd43",
+        "committed":  "2026-04-16T14:28:48.000-03:00",
+        "author":  "Cristian",
+        "title":  "fix(affiliate-request): use [ngValue]=null for filter dropdowns [MX-5607]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5611-settings-services-type",
+        "mx":  "MX-5611",
+        "suffix":  "settings-services-type",
+        "sha":  "b7f8af85",
+        "committed":  "2026-04-16T08:44:48.000-03:00",
+        "author":  "Cristian",
+        "title":  "fix(settings-services-type): fix 3 confirmed test failures [MX-5611]",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5613-branches",
+        "mx":  "MX-5613",
+        "suffix":  "branches",
+        "sha":  "10753c4a",
+        "committed":  "2026-04-15T16:26:26.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5613): migrate branches (Sucursales) page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5604-owner-list",
+        "mx":  "MX-5604",
+        "suffix":  "owner-list",
+        "sha":  "51236049",
+        "committed":  "2026-04-15T14:07:32.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5604): migrate owner-list page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5597-global-integrations",
+        "mx":  "MX-5597",
+        "suffix":  "global-integrations",
+        "sha":  "99187ac7",
+        "committed":  "2026-04-15T13:05:51.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5597): implement global-integrations marketplace page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5596-reports-ranking-clients",
+        "mx":  "MX-5596",
+        "suffix":  "reports-ranking-clients",
+        "sha":  "d4bfa2a7",
+        "committed":  "2026-04-14T17:22:19.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5596): implement reports-ranking-clients migration",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5595-email-templates",
+        "mx":  "MX-5595",
+        "suffix":  "email-templates",
+        "sha":  "f8eba0c1",
+        "committed":  "2026-04-14T16:39:23.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5595): migrate email-templates page (PersonalizaciÃ³n de e-mails)",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5594-affiliate-offering",
+        "mx":  "MX-5594",
+        "suffix":  "affiliate-offering",
+        "sha":  "adaa3076",
+        "committed":  "2026-04-14T15:59:12.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5594): implement affiliate-offering page migration",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5554-affiliate-checking-account",
+        "mx":  "MX-5554",
+        "suffix":  "affiliate-checking-account",
+        "sha":  "31ec0586",
+        "committed":  "2026-04-14T10:14:05.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "fix",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5531-travel-unpaid-list",
+        "mx":  "MX-5531",
+        "suffix":  "travel-unpaid-list",
+        "sha":  "b9248294",
+        "committed":  "2026-04-13T18:46:45.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "Merge branch \u0027feature/MX-5531-travel-unpaid-list\u0027 of gitlab.com:repo.magiis/magiis-fe-carrier-v2 into feature/MX-5531-travel-unpaid-list",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5574-gnet-credit-accounts",
+        "mx":  "MX-5574",
+        "suffix":  "gnet-credit-accounts",
+        "sha":  "7b40dcc9",
+        "committed":  "2026-04-13T16:01:57.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5574): migrate credit accounts page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5564-pay-travels",
+        "mx":  "MX-5564",
+        "suffix":  "pay-travels",
+        "sha":  "cb36f91a",
+        "committed":  "2026-04-13T11:59:48.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5564): add print_surrender_driver PDF and Lato font loading",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5647-affiliate-liquidations-list",
+        "mx":  "MX-5647",
+        "suffix":  "affiliate-liquidations-list",
+        "sha":  "57dd430c",
+        "committed":  "2026-04-10T20:01:16.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5647): migrate affiliate liquidations list page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5646-affiliate-liquidation-detail",
+        "mx":  "MX-5646",
+        "suffix":  "affiliate-liquidation-detail",
+        "sha":  "906a4f72",
+        "committed":  "2026-04-10T20:00:39.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5646): implement affiliate-liquidation-detail page migration",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5609-gnet-farm-out",
+        "mx":  "MX-5609",
+        "suffix":  "gnet-farm-out",
+        "sha":  "c9e3ee1d",
+        "committed":  "2026-04-10T14:49:37.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5609): implement gnet-farm-out page migration",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5602-passenger-liquidation",
+        "mx":  "MX-5602",
+        "suffix":  "passenger-liquidation",
+        "sha":  "0532449b",
+        "committed":  "2026-04-10T14:13:25.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5602): migrate passenger-liquidation page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5615-settings-preferences",
+        "mx":  "MX-5615",
+        "suffix":  "settings-preferences",
+        "sha":  "6434bc18",
+        "committed":  "2026-04-09T18:59:29.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5615): implement settings-preferences page migration",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5529-travel-list",
+        "mx":  "MX-5529",
+        "suffix":  "travel-list",
+        "sha":  "6ef2a2e5",
+        "committed":  "2026-04-09T18:28:28.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5529)",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5633-settings-profiles-access",
+        "mx":  "MX-5633",
+        "suffix":  "settings-profiles-access",
+        "sha":  "962418dd",
+        "committed":  "2026-04-09T18:09:44.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "fix(MX-5633): fix 5 known issues in settings-profiles-access",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5565-reports-transaction-tracking",
+        "mx":  "MX-5565",
+        "suffix":  "reports-transaction-tracking",
+        "sha":  "fd9e3bb3",
+        "committed":  "2026-04-09T17:58:37.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5565): migrate reports-transaction-tracking page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5632-reports-cost-center",
+        "mx":  "MX-5632",
+        "suffix":  "reports-cost-center",
+        "sha":  "8c8e5469",
+        "committed":  "2026-04-09T17:48:23.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5632): migrate reports-cost-center page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5648-affiliate-checking-account-detail",
+        "mx":  "MX-5648",
+        "suffix":  "affiliate-checking-account-detail",
+        "sha":  "daab5042",
+        "committed":  "2026-04-09T15:39:32.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5648): implement affiliate-checking-account-detail migration",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5553-segment-travels",
+        "mx":  "MX-5553",
+        "suffix":  "segment-travels",
+        "sha":  "de65efb2",
+        "committed":  "2026-04-08T19:48:59.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5553): migrate segment-travels report to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5562-reports-cash-flow",
+        "mx":  "MX-5562",
+        "suffix":  "reports-cash-flow",
+        "sha":  "854aa683",
+        "committed":  "2026-04-08T15:36:49.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5562): migrate reports-cash-flow page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5569-reports-documentation",
+        "mx":  "MX-5569",
+        "suffix":  "reports-documentation",
+        "sha":  "cb64e62f",
+        "committed":  "2026-04-08T14:45:08.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5569): migrate reports-documentation page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5575-settings-other-costs",
+        "mx":  "MX-5575",
+        "suffix":  "settings-other-costs",
+        "sha":  "175be4cf",
+        "committed":  "2026-04-08T12:49:03.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5575): migrate other costs page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5600-dashboard",
+        "mx":  "MX-5600",
+        "suffix":  "dashboard",
+        "sha":  "bca8b91d",
+        "committed":  "2026-04-08T11:30:38.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5600): implement Operations Control dashboard (carrier dashboard)",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5563-reports-daily",
+        "mx":  "MX-5563",
+        "suffix":  "reports-daily",
+        "sha":  "99401357",
+        "committed":  "2026-04-08T11:08:06.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5563): migrate reports-daily page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5559-map-viewer",
+        "mx":  "MX-5559",
+        "suffix":  "map-viewer",
+        "sha":  "288767c6",
+        "committed":  "2026-04-07T20:02:13.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5559): implement map-viewer page with Leaflet + Firebase RTDB",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5573-gnet-farm-in",
+        "mx":  "MX-5573",
+        "suffix":  "gnet-farm-in",
+        "sha":  "2872f2ff",
+        "committed":  "2026-04-07T19:04:41.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5573): migrate farm-in page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5593-reports-individual-ca-travels",
+        "mx":  "MX-5593",
+        "suffix":  "reports-individual-ca-travels",
+        "sha":  "d230931d",
+        "committed":  "2026-04-07T17:22:52.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5593): migrate reports-individual-ca-travels page",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5561-reports-debt-aging",
+        "mx":  "MX-5561",
+        "suffix":  "reports-debt-aging",
+        "sha":  "112c3d49",
+        "committed":  "2026-04-07T17:04:10.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5561): migrate reports-debt-aging to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5566-reports-taxes-and-fees",
+        "mx":  "MX-5566",
+        "suffix":  "reports-taxes-and-fees",
+        "sha":  "7cf2adcb",
+        "committed":  "2026-04-07T16:38:13.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5566): migrate reports-taxes-and-fees page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5560-reports-tips",
+        "mx":  "MX-5560",
+        "suffix":  "reports-tips",
+        "sha":  "340da529",
+        "committed":  "2026-04-07T13:49:58.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5560): migrate reports-tips page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5568-reports-payment-flow",
+        "mx":  "MX-5568",
+        "suffix":  "reports-payment-flow",
+        "sha":  "42bbe0d9",
+        "committed":  "2026-04-07T11:44:53.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat(MX-5568): migrate reports-payment-flow page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5571-reports-agency-commissions",
+        "mx":  "MX-5571",
+        "suffix":  "reports-agency-commissions",
+        "sha":  "77508fd3",
+        "committed":  "2026-04-06T17:24:21.000-03:00",
+        "author":  "darcknico",
+        "title":  "fix(MX-5571): icon replacements, calendar button and ng-select fix in report-company-commissions",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5572-travel-quotes",
+        "mx":  "MX-5572",
+        "suffix":  "travel-quotes",
+        "sha":  "fe343103",
+        "committed":  "2026-04-06T16:26:14.000-03:00",
+        "author":  "darcknico",
+        "title":  "feat: add refresh button below table in quotes-list",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5570-surrenders-report",
+        "mx":  "MX-5570",
+        "suffix":  "surrenders-report",
+        "sha":  "c87c69a2",
+        "committed":  "2026-04-06T14:36:36.000-03:00",
+        "author":  "darcknico",
+        "title":  "fix(MX-5570): replace fa icons with mdi equivalents in surrenders-report",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5537-travel-recurring",
+        "mx":  "MX-5537",
+        "suffix":  "travel-recurring",
+        "sha":  "d57134b5",
+        "committed":  "2026-04-01T13:50:48.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "commit recurring web",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5438-reports-daily",
+        "mx":  "MX-5438",
+        "suffix":  "reports-daily",
+        "sha":  "b6041761",
+        "committed":  "2026-03-28T15:12:38.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5438): migrate reports-daily page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5440-reports-documentation",
+        "mx":  "MX-5440",
+        "suffix":  "reports-documentation",
+        "sha":  "a6debb0c",
+        "committed":  "2026-03-28T14:42:22.000-03:00",
+        "author":  "repo.magiis",
+        "title":  "feat(MX-5440): migrate reports-documentation page to Angular 18",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5552-travel-list",
+        "mx":  "MX-5552",
+        "suffix":  "travel-list",
+        "sha":  "a1997a84",
+        "committed":  "2026-03-27T16:08:37.000-03:00",
+        "author":  "darcknico",
+        "title":  "fix(MX-5552): Fix travel-list open issues (permission check, i18n, migration flag)",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5533-atc-profile",
+        "mx":  "MX-5533",
+        "suffix":  "atc-profile",
+        "sha":  "667526c3",
+        "committed":  "2026-03-24T22:10:23.000-03:00",
+        "author":  "sanalamente",
+        "title":  "fix(MX-5533): fix status toggle checkbox revert and warranty check logic",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5497",
+        "mx":  "MX-5497",
+        "suffix":  "(sin-suffix)",
+        "sha":  "995e0eff",
+        "committed":  "2026-03-20T09:34:14.000-03:00",
+        "author":  "sanalamente",
+        "title":  "feat(identity-service): extract permissions from JWT user_access claim if userPrivileges is null",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5641-travel-detail",
+        "mx":  "MX-5641",
+        "suffix":  "travel-detail",
+        "sha":  "91b9a837",
+        "committed":  "2026-03-18T19:35:36.000+00:00",
+        "author":  "Aldo martinez",
+        "title":  "Merge branch \u0027test\u0027 into \u0027release/v2.0.1\u0027",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5195",
+        "mx":  "MX-5195",
+        "suffix":  "(sin-suffix)",
+        "sha":  "fa42e5d4",
+        "committed":  "2026-02-10T16:54:53.000-03:00",
+        "author":  "Omegatroy",
+        "title":  "MX-5195 Se arreglo las traducciones en la tabla de cliente/contractor, Se muestran los botones de ver detalles o eliminar en contractor con el statusCode",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5390",
+        "mx":  "MX-5390",
+        "suffix":  "(sin-suffix)",
+        "sha":  "daf82a36",
+        "committed":  "2026-02-09T18:17:17.000-03:00",
+        "author":  "sanalamente",
+        "title":  "feat(pagination): implement reusable table pagination component and update related components",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5427",
+        "mx":  "MX-5427",
+        "suffix":  "(sin-suffix)",
+        "sha":  "425408be",
+        "committed":  "2026-02-02T11:30:11.000-03:00",
+        "author":  "sanalamente",
+        "title":  "feat: add column resizing functionality to driver and vehicle lists",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5389",
+        "mx":  "MX-5389",
+        "suffix":  "(sin-suffix)",
+        "sha":  "425408be",
+        "committed":  "2026-02-02T11:30:11.000-03:00",
+        "author":  "sanalamente",
+        "title":  "feat: add column resizing functionality to driver and vehicle lists",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5156",
+        "mx":  "MX-5156",
+        "suffix":  "(sin-suffix)",
+        "sha":  "78d4c5e2",
+        "committed":  "2026-01-15T18:42:12.000-03:00",
+        "author":  "darcknico",
+        "title":  "MX-5156 CRUD DRIVER - labels faltantes",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5337",
+        "mx":  "MX-5337",
+        "suffix":  "(sin-suffix)",
+        "sha":  "b7877c14",
+        "committed":  "2026-01-08T14:59:00.000-03:00",
+        "author":  "sanalamente",
+        "title":  "feat(vehicle-report): add VehicleReportService for generating PDF reports of vehicles",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5165",
+        "mx":  "MX-5165",
+        "suffix":  "(sin-suffix)",
+        "sha":  "a0e3bc0a",
+        "committed":  "2025-11-10T11:23:45.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "fix import checking-account-detail",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5170",
+        "mx":  "MX-5170",
+        "suffix":  "(sin-suffix)",
+        "sha":  "2534cb2d",
+        "committed":  "2025-10-22T12:08:34.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "Merge branch \u0027feature/MX-5164\u0027 into release/v2.0.0",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5164",
+        "mx":  "MX-5164",
+        "suffix":  "(sin-suffix)",
+        "sha":  "54ce286a",
+        "committed":  "2025-10-22T12:07:53.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "MX-5164 migrada pantalla de cuentas corrientes de clientes",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5157",
+        "mx":  "MX-5157",
+        "suffix":  "(sin-suffix)",
+        "sha":  "3c4202ed",
+        "committed":  "2025-10-21T10:04:46.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "MX-5157 fix hardcode migrated",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5135",
+        "mx":  "MX-5135",
+        "suffix":  "(sin-suffix)",
+        "sha":  "ad1f6ee9",
+        "committed":  "2025-10-16T12:49:55.000-03:00",
+        "author":  "darcknico",
+        "title":  "MX-5135 FRONT - Migrar Perfiles de Acceso con nueva estructura",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5113_MX-5105",
+        "mx":  "MX-5113",
+        "suffix":  "_MX-5105",
+        "sha":  "f59c6e61",
+        "committed":  "2025-10-07T18:08:51.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "MX-5113 agregado nuevo icon para dropdown melita",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5113",
+        "mx":  "MX-5113",
+        "suffix":  "(sin-suffix)",
+        "sha":  "384c7212",
+        "committed":  "2025-10-02T12:16:08.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "MX-5113 agregado filter de chat y notif en sidebar, y mycompnay con code de menu y entrada de help en topbar",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5105",
+        "mx":  "MX-5105",
+        "suffix":  "(sin-suffix)",
+        "sha":  "022e1a40",
+        "committed":  "2025-09-30T15:17:59.000-03:00",
+        "author":  "darcknico",
+        "title":  "MX-5105 Funcionalidades de I10N y I18n para el translate y moneda -Seteo del archivo I10N cuando inicia pantalla - parte 2",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5100",
+        "mx":  "MX-5100",
+        "suffix":  "(sin-suffix)",
+        "sha":  "87447485",
+        "committed":  "2025-09-30T13:06:14.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "MX-5100 migrado chat, servicios y nuevo look and feel",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-5049",
+        "mx":  "MX-5049",
+        "suffix":  "(sin-suffix)",
+        "sha":  "0ee331ff",
+        "committed":  "2025-09-24T16:52:10.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "MX-5049 filtro de localstorage para angular 5 por carrier",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-4821_update",
+        "mx":  "MX-4821",
+        "suffix":  "_update",
+        "sha":  "ced8de85",
+        "committed":  "2025-09-08T10:41:05.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "MX-4821- avances alta de viaje y ajustes de proyecto y menu",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-4888",
+        "mx":  "MX-4888",
+        "suffix":  "(sin-suffix)",
+        "sha":  "c4ffeec3",
+        "committed":  "2025-08-28T16:46:26.000-03:00",
+        "author":  "darcknico",
+        "title":  "MX-4888 demas listados",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-4470",
+        "mx":  "MX-4470",
+        "suffix":  "(sin-suffix)",
+        "sha":  "16ce2590",
+        "committed":  "2025-06-19T18:07:28.000-03:00",
+        "author":  "darcknico",
+        "title":  "MX-4470 arreglado key de session faltante",
+        "merged":  false
+    },
+    {
+        "branch":  "feature/MX-4821",
+        "mx":  "MX-4821",
+        "suffix":  "(sin-suffix)",
+        "sha":  "40a16ff6",
+        "committed":  "2025-06-17T09:57:51.000-03:00",
+        "author":  "Luis Orellano",
+        "title":  "cambio base url",
+        "merged":  false
+    }
+]
