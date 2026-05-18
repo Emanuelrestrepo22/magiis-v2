@@ -9,9 +9,11 @@ test.describe('@visual @P1 @migration Dashboard carrier V2', () => {
   test('dashboard snapshot estable', async ({ visualPage }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-PENDING-dashboard-visual' });
 
-    await visualPage.goto('/home/carrier/dashboard');
+    // Ruta real V2 (Angular 18 + HashLocationStrategy + baseHref /carrier/).
+    await visualPage.goto('/carrier/#/dashboard');
 
     // Esperar shell completo antes del shot.
+    // El layout vertical V2 renderiza header + sidebar dentro de LayoutComponent.
     await visualPage.getByRole('banner').waitFor({ state: 'visible' });
     await visualPage.getByRole('navigation').waitFor({ state: 'visible' });
 

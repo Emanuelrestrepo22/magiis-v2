@@ -4,14 +4,14 @@ Page Objects del portal carrier V2 (Angular 18). **Un archivo por pantalla migra
 
 ## Convencion de naming
 
-`<NombrePantalla>Page.ts` en PascalCase. Ejemplos:
+`<NombrePantalla>Page.ts` en PascalCase. Ejemplos hipoteticos (a confirmar contra V2 real):
 
-- `DashboardPage.ts`
-- `TripsListPage.ts`
-- `TripDetailPage.ts`
-- `DriversListPage.ts`
-- `VehiclesListPage.ts`
-- `OperationalSettingsPage.ts`
+- `LoginCarrierPage.ts` ✅ existe en V2 (`/carrier/#/auth/login`)
+- `DashboardCarrierPage.ts` ✅ existe en V2 (`/carrier/#/dashboard`, skeleton)
+- `TripsListPage.ts` ⏳ no migrado todavia en `magiis-fe-carrier-v2@main`
+- `DriversListPage.ts` ⏳ no migrado todavia
+- `VehiclesListPage.ts` ⏳ no migrado todavia
+- `OperationalSettingsPage.ts` ⏳ no migrado todavia
 
 Cada page debe:
 
@@ -33,10 +33,10 @@ Cada page debe:
 ## Plantilla base
 
 ```ts
-// tests/pages/carrier-v2/TripsListPage.ts
+// tests/pages/carrier-v2/TripsListPage.ts (PLANTILLA - pantalla aun no migrada en V2)
 /**
  * @jira MX-XXXX
- * @route /home/carrier/trips
+ * @route /carrier/#/trips (estimado - confirmar cuando dev migre el modulo)
  * @priority P1
  * @type both
  */
@@ -57,7 +57,7 @@ export class TripsListPage extends BasePage {
   }
 
   async goto(): Promise<void> {
-    await this.navigate('/home/carrier/trips');
+    await this.navigate('/carrier/#/trips');
     await expect(this.tripsTable).toBeVisible({ timeout: 10_000 });
   }
 
