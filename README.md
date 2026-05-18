@@ -190,7 +190,6 @@ test('@P1 @a11y dashboard cumple WCAG 2.1 AA', async ({ page, scanA11y }) => {
 
 ```
 magiis-carrier-v2-e2e/
-├── .claude/agents/         5 agentes especializados (analyst, prioritizer, draft-gen, ...)
 ├── .env.{test,uat,prod}    3 environments (gitignored)
 ├── .github/workflows/      smoke + regression + visual
 ├── .husky/                 pre-commit + commit-msg hooks

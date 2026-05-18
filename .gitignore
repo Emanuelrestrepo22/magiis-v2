@@ -45,3 +45,12 @@ coverage/
 
 # Worktrees
 .claude/worktrees/
+
+# Tooling interno (agentes, skills, memoria) - no expuesto en el repo publico
+.claude/
+CLAUDE.md
+memory/
+MEMORY.md
+npm-install.log
+evidence/
+storage/

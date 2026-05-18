@@ -230,5 +230,3 @@ Ver `docs/architecture/POM-CONVENTIONS.md`. Reglas clave:
 - `docs/architecture/ENVIRONMENTS.md` - test/uat/prod
 - `docs/architecture/POM-CONVENTIONS.md` - convencion de Page Objects
 - `docs/scope-rules.md` - alcance del proyecto (frontend only)
-- Skill global `playwright-magiis`
-- Skill global `magiis-branch-convention`

@@ -106,12 +106,12 @@ Para automatizar una pantalla migrada nueva (`MX-XXXX`):
 
 ## Branch y commits
 
-Respetar skill global `magiis-branch-convention`:
+Convencion de ramas:
 - `carrier-v2/<feature>` para specs nuevos.
 - `analysis/<topic>` para analisis comparativos.
 - `infra/<change>` para config/CI/setup.
 
-Commits con convencion del CLAUDE.md global:
+Formato de commit (validado via commitlint):
 ```
 <tipo>(<scope>): [MX-XXXX] descripcion corta
 ```
