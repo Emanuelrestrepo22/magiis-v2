@@ -10,3 +10,7 @@
 export { DashboardCarrierPage } from './DashboardCarrierPage.js';
 export { OperationsControlPage } from './OperationsControlPage.js';
 export type { DriverStatusFilter } from './OperationsControlPage.js';
+export { ClientListPage } from './ClientListPage.js';
+export { OwnerListPage } from './OwnerListPage.js';
+export { DriverListPage } from './DriverListPage.js';
+export { VehicleListPage } from './VehicleListPage.js';
