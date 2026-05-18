@@ -8,3 +8,5 @@
 // Pantallas previstas (se sumaran conforme dev migre):
 // - TripsListPage, TripDetailPage, DriversListPage, VehiclesListPage, etc.
 export { DashboardCarrierPage } from './DashboardCarrierPage.js';
+export { OperationsControlPage } from './OperationsControlPage.js';
+export type { DriverStatusFilter } from './OperationsControlPage.js';
