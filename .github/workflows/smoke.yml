@@ -57,7 +57,9 @@ jobs:
           # asi que mapeamos AR -> primaria para que global-setup funcione sin cambios.
           USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
           PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
-        run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --project=carrier-v2-desktop
+        # Smoke = @P1 funcional. Excluye @visual (corre en visual.yml con baseline propio)
+        # y --testIgnore del project en playwright.config.ts si fuera necesario.
+        run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --grep-invert "@visual" --project=carrier-v2-desktop
 
       - uses: actions/upload-artifact@v4
         if: always()
