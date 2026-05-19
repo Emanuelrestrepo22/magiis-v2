@@ -107,4 +107,31 @@ export abstract class BaseListPage extends BasePage {
     await expect(this.previousPageLink).toBeVisible();
     await expect(this.nextPageLink).toBeVisible();
   }
+
+  /**
+   * Click en la primera row de la tabla y captura la URL final post-navegacion.
+   * Util para flujos padre->hijo donde la lista lleva a una pantalla con `:id`.
+   * @returns objeto con la URL final y el ultimo segmento (probable `:id`).
+   */
+  async clickFirstRowAndCaptureUrl(): Promise<{ finalUrl: string; lastSegment: string | null }> {
+    const rows = this.table.locator('tbody tr');
+    await rows.first().click();
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 8_000 }).catch(() => null);
+    const finalUrl = this.page.url();
+    const pathAfterHash = finalUrl.split('#')[1] ?? '';
+    const segments = pathAfterHash.split('/').filter(Boolean);
+    return { finalUrl, lastSegment: segments.length > 0 ? segments[segments.length - 1] : null };
+  }
+
+  /**
+   * Cuenta rows visibles en la tabla. Filtra row de loading status si presente.
+   * Util para `test.skip(rowCount === 0, 'sin datos')` en flujos padre->hijo.
+   */
+  async getDataRowCount(): Promise<number> {
+    const allRows = this.table.locator('tbody tr');
+    const loadingRows = this.table.locator('tbody tr', { hasText: /loading|cargando/i });
+    const total = await allRows.count();
+    const loading = await loadingRows.count();
+    return total - loading;
+  }
 }
