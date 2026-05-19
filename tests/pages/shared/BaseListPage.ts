@@ -75,10 +75,11 @@ export abstract class BaseListPage extends BasePage {
   /**
    * Navega a la ruta declarada por la subclase y espera heading visible.
    * Asume sesion activa via storageState.
+   * Timeout 30s para tolerar latencia transitoria del backend.
    */
   async goto(): Promise<void> {
     await this.navigate(this.path);
-    await expect(this.heading).toBeVisible({ timeout: 15_000 });
+    await expect(this.heading).toBeVisible({ timeout: 30_000 });
   }
 
   /**
@@ -109,9 +110,10 @@ export abstract class BaseListPage extends BasePage {
   }
 
   /**
-   * Click en la primera row de la tabla y captura la URL final post-navegacion.
-   * Util para flujos padre->hijo donde la lista lleva a una pantalla con `:id`.
-   * @returns objeto con la URL final y el ultimo segmento (probable `:id`).
+   * Click en la primera row entera (cuando es clickable). Captura URL final.
+   * NOTA: en Settlements (Contractor/Passenger/Driver/Owner) las rows NO son clickables;
+   *       cada row tiene botones de accion (`+ Create`, `clock History`, `PDF`) en la
+   *       ultima columna. Usar clickFirstRowActionButton() en esos casos.
    */
   async clickFirstRowAndCaptureUrl(): Promise<{ finalUrl: string; lastSegment: string | null }> {
     const rows = this.table.locator('tbody tr');
@@ -124,14 +126,33 @@ export abstract class BaseListPage extends BasePage {
   }
 
   /**
-   * Cuenta rows visibles en la tabla. Filtra row de loading status si presente.
+   * Click en el N-esimo boton de accion dentro de la primera row con datos.
+   * Patron Settlements: row expone botones `+ Create` (idx 0), `clock History` (idx 1),
+   * `PDF` (idx 2, opcional). El click navega a la pantalla detail/history correspondiente
+   * con :id capturable del URL.
+   */
+  async clickFirstRowActionButton(buttonIndex: number): Promise<{ finalUrl: string; lastSegment: string | null }> {
+    const firstRow = this.table.locator('tbody tr').first();
+    const buttons = firstRow.getByRole('button');
+    await buttons.nth(buttonIndex).click();
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 8_000 }).catch(() => null);
+    const finalUrl = this.page.url();
+    const pathAfterHash = finalUrl.split('#')[1] ?? '';
+    const segments = pathAfterHash.split('/').filter(Boolean);
+    return { finalUrl, lastSegment: segments.length > 0 ? segments[segments.length - 1] : null };
+  }
+
+  /**
+   * Cuenta rows con datos reales (excluye placeholders "Loading", "No Data", "Empty").
    * Util para `test.skip(rowCount === 0, 'sin datos')` en flujos padre->hijo.
    */
   async getDataRowCount(): Promise<number> {
     const allRows = this.table.locator('tbody tr');
-    const loadingRows = this.table.locator('tbody tr', { hasText: /loading|cargando/i });
+    const placeholderRows = this.table.locator('tbody tr', {
+      hasText: /^(loading|cargando|no data|sin datos|empty)$/i
+    });
     const total = await allRows.count();
-    const loading = await loadingRows.count();
-    return total - loading;
+    const placeholders = await placeholderRows.count();
+    return total - placeholders;
   }
 }

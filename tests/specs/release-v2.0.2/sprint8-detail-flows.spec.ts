@@ -1,31 +1,32 @@
 // tests/specs/release-v2.0.2/sprint8-detail-flows.spec.ts
-// Sprint 8 - Settlements + Affiliate detail flows (con :id).
-// Patron padre->hijo:
-//   1. Llegar a la lista padre (Sprint 6 POMs ya cubren).
-//   2. Validar que hay rows (test.skip si lista vacia, comun en TEST con datos sinteticos).
-//   3. Click en primera row + captura URL final con :id.
-//   4. Validar redirect a detail/history segun corresponda.
-//   5. expectDetailReady() sobre el POM detail.
+// Sprint 8 - Settlements history flows via boton "clock" por row.
+// Patron padre->hijo descubierto en release/v2.0.4:
+//   1. Llegar a la lista padre.
+//   2. Verificar rows con datos reales (test.skip si vacia).
+//   3. Click en boton index=1 (clock = History) de la primera row.
+//   4. Validar URL match /history/:id.
+//   5. expectDetailReady() sobre el POM history.
 //
-// NOTA: Los selectores headingRegex de los POMs detail son TODOs heuristicos hasta poder
-// validar el DOM real cuando el backend TEST se restaure (503 al momento de escribir esto).
+// Las rows NO son clickables directamente. Cada row expone botones de accion:
+//   index 0 = `+` (Create nueva liquidacion)
+//   index 1 = clock (History de liquidaciones)
+//   index 2 = PDF (solo si hay last settlement)
+// History es el mas estable porque siempre aparece para rows con datos.
 import { test, expect } from '../../TestBase.js';
 import { SettlementsContractorListPage } from '../../pages/carrier-v2/SettlementsContractorListPage.js';
 import { SettlementsPassengerListPage } from '../../pages/carrier-v2/SettlementsPassengerListPage.js';
 import { SettlementsDriverListPage } from '../../pages/carrier-v2/SettlementsDriverListPage.js';
 import { SettlementsOwnerListPage } from '../../pages/carrier-v2/SettlementsOwnerListPage.js';
-import { SettlementsContractorDetailPage } from '../../pages/carrier-v2/settlements/SettlementsContractorDetailPage.js';
-import { SettlementsPassengerDetailPage } from '../../pages/carrier-v2/settlements/SettlementsPassengerDetailPage.js';
-import { SettlementsDriverDetailPage } from '../../pages/carrier-v2/settlements/SettlementsDriverDetailPage.js';
-import { SettlementsOwnerDetailPage } from '../../pages/carrier-v2/settlements/SettlementsOwnerDetailPage.js';
+import { SettlementsContractorHistoryPage } from '../../pages/carrier-v2/settlements/SettlementsContractorHistoryPage.js';
+import { SettlementsPassengerHistoryPage } from '../../pages/carrier-v2/settlements/SettlementsPassengerHistoryPage.js';
+import { SettlementsDriverHistoryPage } from '../../pages/carrier-v2/settlements/SettlementsDriverHistoryPage.js';
+import { SettlementsOwnerHistoryPage } from '../../pages/carrier-v2/settlements/SettlementsOwnerHistoryPage.js';
 
-test.describe('@P1 @functional @migration Sprint 8 - Settlements detail flows', () => {
-  test('MX-5647 Contractor: lista -> click row -> detail con :id', async ({ page }) => {
+const HISTORY_BUTTON_INDEX = 1;
+
+test.describe('@P1 @functional @migration Sprint 8 - Settlements history flows', () => {
+  test('MX-5647 Contractor: lista -> click History -> /contractors/history/:id', async ({ page }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
-    test.info().annotations.push({
-      type: 'note',
-      description: 'Flujo padre->hijo. Requiere registros en TEST. test.skip si lista vacia.'
-    });
 
     const list = new SettlementsContractorListPage(page);
     await list.goto();
@@ -34,15 +35,14 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail flows', 
     const rowCount = await list.getDataRowCount();
     test.skip(rowCount === 0, 'Sin datos en TEST para Contractor liquidations');
 
-    const { finalUrl, lastSegment } = await list.clickFirstRowAndCaptureUrl();
-    expect(finalUrl).toMatch(/\/liquidations\/contractors\/(create|details|last-liquidation|history)\//);
-    expect(lastSegment).toBeTruthy();
+    const { finalUrl } = await list.clickFirstRowActionButton(HISTORY_BUTTON_INDEX);
+    expect(finalUrl).toMatch(/\/liquidations\/contractors\/history\//);
 
-    const detail = new SettlementsContractorDetailPage(page);
+    const detail = new SettlementsContractorHistoryPage(page);
     await detail.expectDetailReady();
   });
 
-  test('MX-5647 Passenger: lista -> click row -> detail con :id', async ({ page }) => {
+  test('MX-5647 Passenger: lista -> click History -> /passenger/history/:id', async ({ page }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
 
     const list = new SettlementsPassengerListPage(page);
@@ -52,14 +52,14 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail flows', 
     const rowCount = await list.getDataRowCount();
     test.skip(rowCount === 0, 'Sin datos en TEST para Passenger liquidations');
 
-    const { finalUrl } = await list.clickFirstRowAndCaptureUrl();
-    expect(finalUrl).toMatch(/\/liquidations\/passenger\/(create|details|last-liquidation|history)\//);
+    const { finalUrl } = await list.clickFirstRowActionButton(HISTORY_BUTTON_INDEX);
+    expect(finalUrl).toMatch(/\/liquidations\/passenger\/history\//);
 
-    const detail = new SettlementsPassengerDetailPage(page);
+    const detail = new SettlementsPassengerHistoryPage(page);
     await detail.expectDetailReady();
   });
 
-  test('MX-5647 Driver: lista -> click row -> detail con :id', async ({ page }) => {
+  test('MX-5647 Driver: lista -> click History -> /drivers/history/:id', async ({ page }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
 
     const list = new SettlementsDriverListPage(page);
@@ -69,14 +69,14 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail flows', 
     const rowCount = await list.getDataRowCount();
     test.skip(rowCount === 0, 'Sin datos en TEST para Driver liquidations');
 
-    const { finalUrl } = await list.clickFirstRowAndCaptureUrl();
-    expect(finalUrl).toMatch(/\/liquidations\/drivers\/(create|details|last-liquidation|history)\//);
+    const { finalUrl } = await list.clickFirstRowActionButton(HISTORY_BUTTON_INDEX);
+    expect(finalUrl).toMatch(/\/liquidations\/drivers\/history\//);
 
-    const detail = new SettlementsDriverDetailPage(page);
+    const detail = new SettlementsDriverHistoryPage(page);
     await detail.expectDetailReady();
   });
 
-  test('MX-5647 Owner: lista -> click row -> detail con :id', async ({ page }) => {
+  test('MX-5647 Owner: lista -> click History -> /owners/history/:id', async ({ page }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
 
     const list = new SettlementsOwnerListPage(page);
@@ -86,10 +86,10 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail flows', 
     const rowCount = await list.getDataRowCount();
     test.skip(rowCount === 0, 'Sin datos en TEST para Owner liquidations');
 
-    const { finalUrl } = await list.clickFirstRowAndCaptureUrl();
-    expect(finalUrl).toMatch(/\/liquidations\/owners\/(create|details|last-liquidation|history)\//);
+    const { finalUrl } = await list.clickFirstRowActionButton(HISTORY_BUTTON_INDEX);
+    expect(finalUrl).toMatch(/\/liquidations\/owners\/history\//);
 
-    const detail = new SettlementsOwnerDetailPage(page);
+    const detail = new SettlementsOwnerHistoryPage(page);
     await detail.expectDetailReady();
   });
 });

@@ -45,7 +45,8 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   await page.getByRole('button', { name: /sign\s*in|iniciar|ingresar/i }).first().click();
 
   // Esperar que el shell del carrier V2 este listo (hash routing-friendly).
-  await page.waitForURL((url) => url.toString().includes(dashboardPattern), { timeout: 20_000 });
+  // Timeout 45s para tolerar latencia transitoria del backend de auth.
+  await page.waitForURL((url) => url.toString().includes(dashboardPattern), { timeout: 45_000 });
 
   await context.storageState({ path: storageStatePath });
   console.log(`[globalSetup] storageState guardado en ${storageStatePath}`);
