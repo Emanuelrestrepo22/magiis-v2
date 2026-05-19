@@ -39,3 +39,13 @@ export { GnetCreditAccountsPage } from './GnetCreditAccountsPage.js';
 
 // Release V2.0.2 - Sprint 4 (P3)
 export { SettingsOtherCostsPage } from './SettingsOtherCostsPage.js';
+
+// Release V2.0.2 - Sprint 5 (desbloqueadas tras analisis release/v2.0.4)
+export { ReportUnpaidTravelsPage } from './ReportUnpaidTravelsPage.js';
+export { ReportSegmentsTravelsPage } from './ReportSegmentsTravelsPage.js';
+
+// Release V2.0.2 - Sprint 6 (Settlements - 4 sublistas de liquidaciones)
+export { SettlementsContractorListPage } from './SettlementsContractorListPage.js';
+export { SettlementsPassengerListPage } from './SettlementsPassengerListPage.js';
+export { SettlementsDriverListPage } from './SettlementsDriverListPage.js';
+export { SettlementsOwnerListPage } from './SettlementsOwnerListPage.js';
