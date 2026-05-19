@@ -38,7 +38,24 @@ export default [
       'playwright/no-wait-for-timeout': 'error',
       'playwright/no-skipped-test': 'warn',
       'playwright/no-focused-test': 'error',
-      'playwright/expect-expect': 'error',
+      // Considera helpers de POM (expectListReady / expectShellReady / expectMapReady)
+      // como assertions validas; internamente todos llaman a expect().
+      'playwright/expect-expect': [
+        'error',
+        {
+          assertFunctionNames: [
+            'expect',
+            'expectListReady',
+            'expectListReadyWithSearch',
+            'expectPaginationReady',
+            'expectShellReady',
+            'expectSkeletonReady',
+            'expectMapReady',
+            'expectTabsReady',
+            'expectMainSectionsReady'
+          ]
+        }
+      ],
       'playwright/missing-playwright-await': 'error',
       'playwright/no-element-handle': 'error',
       'playwright/no-eval': 'error',

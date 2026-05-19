@@ -4,7 +4,7 @@ name: Visual regression - carrier V2
 # La actualizacion de baselines requiere ejecucion manual con flag update.
 on:
   schedule:
-    - cron: '30 7 * * *'  # nightly 07:30 UTC
+    - cron: '30 7 * * *' # nightly 07:30 UTC
   workflow_dispatch:
     inputs:
       update_baselines:
@@ -14,16 +14,27 @@ on:
         type: choice
         options: ['false', 'true']
 
+# Permisos: write para que el step de commit de baselines pueda push a la branch.
+permissions:
+  contents: write
+
 jobs:
   visual:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Environment TEST expone vars (BASE_URL, LOGIN_PATH) y secrets (USER_CARRIER_AR,
+    # PASS_CARRIER_AR) configurados desde GitHub UI.
+    environment: TEST
     env:
-      ENV: test  # baselines viven en test
+      ENV: test # baselines viven en test
       CI: 'true'
       HEADLESS: 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          # ref + token necesarios para que el step de push de baselines pueda commitear.
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -36,9 +47,10 @@ jobs:
 
       - name: Run visual specs
         env:
-          BASE_URL: ${{ secrets.CARRIER_V2_BASE_URL_TEST }}
-          USER_CARRIER: ${{ secrets.CARRIER_V2_USER_TEST }}
-          PASS_CARRIER: ${{ secrets.CARRIER_V2_PASS_TEST }}
+          BASE_URL: ${{ vars.BASE_URL }}
+          LOGIN_PATH: ${{ vars.LOGIN_PATH }}
+          USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
         run: |
           if [ "${{ inputs.update_baselines }}" = "true" ]; then
             npm run test:visual:update
@@ -59,5 +71,9 @@ jobs:
           git config user.name "magiis-qa-bot"
           git config user.email "qa-bot@magiis.com"
           git add tests/specs/visual/__screenshots__/
-          git commit -m "chore(visual): update baselines [skip ci]" || echo "No changes"
-          git push
+          if git diff --cached --quiet; then
+            echo "No baseline changes to commit."
+          else
+            git commit -m "chore(visual): [MX-5711] update baselines [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
