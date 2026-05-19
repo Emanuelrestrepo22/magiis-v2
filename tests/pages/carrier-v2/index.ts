@@ -49,3 +49,12 @@ export { SettlementsContractorListPage } from './SettlementsContractorListPage.j
 export { SettlementsPassengerListPage } from './SettlementsPassengerListPage.js';
 export { SettlementsDriverListPage } from './SettlementsDriverListPage.js';
 export { SettlementsOwnerListPage } from './SettlementsOwnerListPage.js';
+
+// Sprint 7 - 7 reportes adicionales descubiertos en routing release/v2.0.4
+export { ReportTravelsListPage } from './ReportTravelsListPage.js';
+export { ReportRankingDriversPage } from './ReportRankingDriversPage.js';
+export { ReportCostCenterPage } from './ReportCostCenterPage.js';
+export { ReportCorporateServicesPage } from './ReportCorporateServicesPage.js';
+export { ReportIndividualCATravelsPage } from './ReportIndividualCATravelsPage.js';
+export { ReportRankingClientsPage } from './ReportRankingClientsPage.js';
+export { ReportRankingVehiclesPage } from './ReportRankingVehiclesPage.js';
