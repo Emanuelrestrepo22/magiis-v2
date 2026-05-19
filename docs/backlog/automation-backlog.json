@@ -1,0 +1,101 @@
+{
+  "snapshot": "2026-05-19",
+  "source": "sidebar-discovery + docs/inventory/v2-branches.json",
+  "totals": {
+    "done": { "screens": 8, "tests": 20 },
+    "p1Pending": { "screens": 8, "estimatedTests": 25 },
+    "p2": { "screens": 14, "estimatedTests": 35 },
+    "p3": { "screens": 18, "estimatedTests": 30 },
+    "blocked": { "screens": 13, "estimatedTests": null },
+    "outOfScope": { "screens": 7, "estimatedTests": 0 }
+  },
+  "done": [
+    { "screen": "Login carrier", "url": "/carrier/#/auth/login", "mx": ["MX-5711"], "pom": "shared/LoginPage", "tests": 2, "type": "functional" },
+    { "screen": "Smoke shell", "url": "/carrier/#/dashboard", "mx": ["MX-5711"], "pom": "shared/ShellPage", "tests": 1, "type": "functional" },
+    { "screen": "Operations Control", "url": "/carrier/#/dashboard", "mx": ["MX-5711"], "pom": "carrier-v2/OperationsControlPage", "tests": 5, "type": "functional" },
+    { "screen": "Client list", "url": "/carrier/#/client/list", "mx": ["MX-5197", "MX-5724"], "pom": "carrier-v2/ClientListPage", "tests": 3, "type": "functional" },
+    { "screen": "Owner list", "url": "/carrier/#/owner/list", "mx": ["MX-5604"], "pom": "carrier-v2/OwnerListPage", "tests": 2, "type": "functional" },
+    { "screen": "Driver list", "url": "/carrier/#/driver/list", "mx": ["MX-5711"], "pom": "carrier-v2/DriverListPage", "tests": 2, "type": "functional" },
+    { "screen": "Vehicle list", "url": "/carrier/#/vehicle/list", "mx": ["MX-5711"], "pom": "carrier-v2/VehicleListPage", "tests": 3, "type": "functional" },
+    { "screen": "Sidebar carrier", "url": "/carrier/#/dashboard", "mx": ["MX-5711"], "pom": "shared/ShellPage", "tests": 1, "type": "visual" }
+  ],
+  "p1Pending": [
+    { "screen": "Map Viewer", "url": "/carrier/#/map-viewer", "mxBranchSuffix": "map-viewer", "pom": "carrier-v2/MapViewerPage", "estimatedTests": 3, "type": "both", "depends": "leaflet stable" },
+    { "screen": "New Trip", "url": "/carrier/#/travel/create", "mxBranchSuffix": "travel-create", "pom": "carrier-v2/NewTripPage", "estimatedTests": 4, "type": "functional", "depends": "factories/tripFactory" },
+    { "screen": "Trips Dashboard", "url": "/carrier/#/travel/dashboard", "mxBranchSuffix": "travel-dashboard", "pom": "carrier-v2/TripsDashboardPage", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Trip List", "url": "/carrier/#/travel/list", "mxBranchSuffix": "travel-list", "pom": "carrier-v2/TripListPage", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Trip Detail", "url": "/carrier/#/travel/detail", "mxBranchSuffix": "travel-detail", "pom": "carrier-v2/TripDetailPage", "estimatedTests": 4, "type": "functional", "depends": "TripList" },
+    { "screen": "Owner Liquidations", "url": "/carrier/#/liquidations/owners/list", "mxBranchSuffix": "owner-liquidation", "pom": "carrier-v2/OwnerLiquidationsListPage", "estimatedTests": 3, "type": "functional", "depends": "OwnerList" },
+    { "screen": "Driver Liquidations", "url": "/carrier/#/liquidations/drivers/list", "mxBranchSuffix": "driver-liquidation", "pom": "carrier-v2/DriverLiquidationsListPage", "estimatedTests": 3, "type": "functional", "depends": "DriverList" },
+    { "screen": "Credit Accounts — Clients", "url": "/carrier/#/checking-accounts/clients", "mxBranchSuffix": "(no branch dedicated)", "pom": "carrier-v2/ClientCreditAccountsPage", "estimatedTests": 3, "type": "functional", "depends": "ClientList" }
+  ],
+  "p2": [
+    { "screen": "Client Create", "url": "/carrier/#/client/create", "mxBranchSuffix": "client-create", "estimatedTests": 5, "type": "functional" },
+    { "screen": "Client Edit", "url": "/carrier/#/client/edit/:id", "mxBranchSuffix": "client-edit", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Client Contractors list", "url": "/carrier/#/client/contractors", "mxBranchSuffix": "client-contractor-list", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Owner Add", "url": "/carrier/#/owner/add", "mxBranchSuffix": "owner-add", "estimatedTests": 5, "type": "functional" },
+    { "screen": "Owner Edit", "url": "/carrier/#/owner/edit/:id", "mxBranchSuffix": "owner-edit", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Trip Quotes", "url": "/carrier/#/travel/quotes", "mxBranchSuffix": "travel-quotes", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Recurring Trips", "url": "/carrier/#/travel/recurring", "mxBranchSuffix": "travel-recurring", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Mappers", "url": "/carrier/#/travel/mappers", "mxBranchSuffix": "travel-mapper", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Pay travels", "url": "/carrier/#/pay/travels", "mxBranchSuffix": "pay-travels", "estimatedTests": 3, "type": "functional" },
+    { "screen": "Surrenders Report", "url": "/carrier/#/pay/surrenders-report", "mxBranchSuffix": "surrenders-report", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Passenger Liquidations", "url": "/carrier/#/liquidations/passenger/list", "mxBranchSuffix": "passenger-liquidation", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Contractor Liquidations", "url": "/carrier/#/liquidations/contractors/list", "mxBranchSuffix": "contractor-liquidation", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Management Board", "url": "/carrier/#/owner-report", "mxBranchSuffix": "owner-report", "estimatedTests": 3, "type": "both" },
+    { "screen": "Heat Map", "url": "/carrier/#/owner-heat-map", "mxBranchSuffix": "owner-heat-map", "estimatedTests": 2, "type": "both" }
+  ],
+  "p3": [
+    { "screen": "Settings — Parameters", "url": "/carrier/#/settings/parameters", "mxBranchSuffix": "settings-parameters", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Transport Types", "url": "/carrier/#/settings/transportTypes", "mxBranchSuffix": "settings-transport-types", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Services Type", "url": "/carrier/#/settings/servicesType/list", "mxBranchSuffix": "settings-services-type", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Taxes & Fees", "url": "/carrier/#/settings/taxesAndFees", "mxBranchSuffix": "reports-taxes-and-fees", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Other Costs", "url": "/carrier/#/settings/otherCosts", "mxBranchSuffix": "settings-other-costs", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Email Templates", "url": "/carrier/#/settings/email-templates", "mxBranchSuffix": "email-templates", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Branches", "url": "/carrier/#/settings/branches/list", "mxBranchSuffix": "branches", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Travel Fare List", "url": "/carrier/#/settings/travel-fare-list", "mxBranchSuffix": "travel-fare-list", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Travel Fare Rules", "url": "/carrier/#/settings/travel-fare-rules", "mxBranchSuffix": "settings-travel-fare-rules", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Profile Access", "url": "/carrier/#/settings/profiles-access", "mxBranchSuffix": "settings-profiles-access", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Profiles", "url": "/carrier/#/settings/profiles", "mxBranchSuffix": "settings-profiles", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Settings — Preferences", "url": "/carrier/#/settings/preferences", "mxBranchSuffix": "settings-preferences", "estimatedTests": 1, "type": "functional" },
+    { "screen": "AI Branches (Melita)", "url": "/carrier/#/melita/ai-branches", "mxBranchSuffix": "melita-ai-branches", "estimatedTests": 2, "type": "functional" },
+    { "screen": "eAfiliates — Profile", "url": "/carrier/#/affiliate/atc-profile", "mxBranchSuffix": "atc-profile", "estimatedTests": 2, "type": "functional" },
+    { "screen": "eAfiliates — Offering", "url": "/carrier/#/affiliate/offering", "mxBranchSuffix": "affiliate-offering", "estimatedTests": 2, "type": "functional" },
+    { "screen": "eAfiliates — Request", "url": "/carrier/#/affiliate/request", "mxBranchSuffix": "affiliate-request", "estimatedTests": 2, "type": "functional" },
+    { "screen": "eAfiliates — Agreements requested", "url": "/carrier/#/affiliate/os-agreement-requested", "mxBranchSuffix": "affiliate-os-agreement-requested", "estimatedTests": 2, "type": "functional" },
+    { "screen": "Magiis Apps Store", "url": "/carrier/#/integrations/list", "mxBranchSuffix": "integrations-*", "estimatedTests": 2, "type": "functional" }
+  ],
+  "blocked": [
+    { "branch": "reports-agency-commissions", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-cash-flow", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-corporate-services", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-cost-center", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-daily", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-debt-aging", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-documentation", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-individual-ca-travels", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-payment-flow", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-ranking-clients", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-tips", "reason": "URL pendiente confirmar" },
+    { "branch": "reports-transaction-tracking", "reason": "URL pendiente confirmar" },
+    { "branch": "report-vehicles-ranking", "reason": "URL pendiente confirmar" }
+  ],
+  "outOfScope": [
+    { "reason": "Stripe / payment gateways", "policy": "scope-rules.md" },
+    { "reason": "Mobile pax/driver", "policy": "scope-rules.md" },
+    { "reason": "Backend asserts / API testing", "policy": "scope-rules.md" },
+    { "reason": "MAGIIS Book submenus", "url": "#/", "note": "sidebar discovery muestra urls vacias" },
+    { "reason": "Vehicles submenus extra", "url": "#/", "note": "solo Vehicles Management navega" },
+    { "reason": "Trips ultimos 2 items", "url": "#/", "note": "no implementados" },
+    { "reason": "GNET submenu", "note": "agregado redundante de otros modulos" }
+  ],
+  "roadmap": [
+    { "sprint": 1, "status": "done", "focus": "Smoke foundation + listas core", "screensAdded": 8, "testsTotal": 20 },
+    { "sprint": 2, "status": "next", "focus": "Trips end-to-end", "screens": ["Map Viewer", "New Trip", "Trip List", "Trip Detail", "Trips Dashboard"], "expectedDelta": 20 },
+    { "sprint": 3, "status": "planned", "focus": "Settlements + Credit Accounts", "screens": ["Owner Liquidations", "Driver Liquidations", "Client Credit Accounts"], "expectedDelta": 15 },
+    { "sprint": 4, "status": "planned", "focus": "CRUD clientes / propietarios", "screens": ["Client Create", "Client Edit", "Owner Add", "Owner Edit", "Client Contractors"], "expectedDelta": 20 },
+    { "sprint": 5, "status": "planned", "focus": "Daily Clearing + Reports core", "screens": ["Pay travels", "Surrenders Report", "Reports priorizados"], "expectedDelta": 15 },
+    { "sprint": 6, "status": "planned", "focus": "Settings + integrations", "screens": ["Configuration submenus", "Apps Store"], "expectedDelta": 25 },
+    { "sprint": 7, "status": "planned", "focus": "Reportes detallados + eAfiliates", "screens": ["Backlog restante"], "expectedDelta": 20 }
+  ]
+}
