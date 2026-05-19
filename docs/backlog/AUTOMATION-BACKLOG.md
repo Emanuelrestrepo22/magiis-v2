@@ -56,13 +56,14 @@ Pantallas críticas para operación diaria, alto tráfico, valor de regresión a
 | # | Pantalla | URL V2 | MX inventario | POM propuesto | Tests estimados | Tipo | Dependencia |
 |---|---|---|---|---|---|---|---|
 | 1 | Map Viewer | `/carrier/#/map-viewer` | MX-?-map-viewer | `MapViewerPage` | 3 (render, filtros, leyenda) | both | leaflet stable |
-| 2 | New Trip | `/carrier/#/travel/create` | MX-?-travel-create | `NewTripPage` | 4 (form open, addr autocomplete, vehicle select, submit) | functional | factories/tripFactory |
-| 3 | Trips Dashboard | `/carrier/#/travel/dashboard` | MX-?-travel-dashboard | `TripsDashboardPage` | 3 (heading, filters, table) | functional | — |
-| 4 | Trip List | `/carrier/#/travel/list` | MX-?-travel-list | `TripListPage` | 3 (heading, search, pagination) | functional | — |
-| 5 | Trip Detail | `/carrier/#/travel/detail` | MX-?-travel-detail | `TripDetailPage` | 4 (header, datos finales, presupuestados, mapa) | functional | TripList |
-| 6 | Owner Liquidations | `/carrier/#/liquidations/owners/list` | MX-?-owner-liquidation | `OwnerLiquidationsListPage` | 3 (heading, filtros, totales) | functional | OwnerList |
-| 7 | Driver Liquidations | `/carrier/#/liquidations/drivers/list` | MX-?-driver-liquidation | `DriverLiquidationsListPage` | 3 (heading, filtros, totales) | functional | DriverList |
-| 8 | Credit Accounts — Clients | `/carrier/#/checking-accounts/clients` | MX-?-checking-accounts | `ClientCreditAccountsPage` | 3 (heading, search, table) | functional | ClientList |
+| 2 | New Trip | `/carrier/#/travel/create` | MX-?-travel-create | `NewTripPage` | 4-5 (form open, validation, addr autocomplete, payment method, submit) | functional | factories/tripFactory |
+| 3 | Trips Dashboard (gestion) | `/carrier/#/travel/dashboard` | MX-?-travel-dashboard | `TripsDashboardPage` | 4 (heading, filters, table, paginacion) | functional | — |
+| 4 | Trip Detail | `/carrier/#/travel/dashboard` + click row | MX-?-travel-detail | `TripDetailPage` | 4 (header, datos finales, presupuestados, mapa) | functional | TripsDashboard |
+| 5 | Owner Liquidations | `/carrier/#/liquidations/owners/list` | MX-?-owner-liquidation | `OwnerLiquidationsListPage` | 3 (heading, filtros, totales) | functional | OwnerList |
+| 6 | Driver Liquidations | `/carrier/#/liquidations/drivers/list` | MX-?-driver-liquidation | `DriverLiquidationsListPage` | 3 (heading, filtros, totales) | functional | DriverList |
+| 7 | Credit Accounts — Clients | `/carrier/#/checking-accounts/clients` | MX-?-checking-accounts | `ClientCreditAccountsPage` | 3 (heading, search, table) | functional | ClientList |
+
+> **Hallazgo discovery 2026-05-19**: `/carrier/#/travel/list` y `/carrier/#/travel/detail` rebotan a dashboard. Las pantallas reales son `travel/dashboard` (gestion = lista) y trip detail se abre haciendo click en una row del dashboard. Sprint 2 reducido de 8 a 7 pantallas P1.
 
 ---
 
