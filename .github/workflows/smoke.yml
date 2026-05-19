@@ -53,7 +53,8 @@ jobs:
           BASE_URL: ${{ secrets.CARRIER_V2_BASE_URL_TEST }}
           USER_CARRIER: ${{ secrets.CARRIER_V2_USER_TEST }}
           PASS_CARRIER: ${{ secrets.CARRIER_V2_PASS_TEST }}
-          NODE_OPTIONS: '--use-system-ca'
+        # NODE_OPTIONS=--use-system-ca solo aplica en Windows local detras de proxy SSL
+        # corporativo. En Linux CI no es necesario (Node usa el bundled CA store).
         run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --project=carrier-v2-desktop
 
       - uses: actions/upload-artifact@v4
