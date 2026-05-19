@@ -15,7 +15,7 @@ on:
       - 'infra/**'
       - 'analysis/**'
   schedule:
-    - cron: '0 6 * * *'  # nightly 06:00 UTC
+    - cron: '0 6 * * *' # nightly 06:00 UTC
   workflow_dispatch:
     inputs:
       grep:
@@ -28,12 +28,11 @@ jobs:
   smoke-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        env: [test]  # PRs corren solo test; smoke prod va por workflow separado
+    # Environment TEST expone vars (BASE_URL, LOGIN_PATH) y secrets
+    # (USER_CARRIER_AR, PASS_CARRIER_AR) configurados desde GitHub UI.
+    environment: TEST
     env:
-      ENV: ${{ matrix.env }}
+      ENV: test
       CI: 'true'
       HEADLESS: 'true'
     steps:
@@ -50,16 +49,19 @@ jobs:
 
       - name: Run smoke specs (@P1 por defecto, override via dispatch input)
         env:
-          BASE_URL: ${{ secrets.CARRIER_V2_BASE_URL_TEST }}
-          USER_CARRIER: ${{ secrets.CARRIER_V2_USER_TEST }}
-          PASS_CARRIER: ${{ secrets.CARRIER_V2_PASS_TEST }}
-        # NODE_OPTIONS=--use-system-ca solo aplica en Windows local detras de proxy SSL
-        # corporativo. En Linux CI no es necesario (Node usa el bundled CA store).
+          # Variables publicas del environment TEST.
+          BASE_URL: ${{ vars.BASE_URL }}
+          LOGIN_PATH: ${{ vars.LOGIN_PATH }}
+          # Credenciales region AR (las primarias EEUU no estan cargadas en CI).
+          # runtime.ts usa USER_CARRIER/PASS_CARRIER (sin sufijo) como primaria;
+          # asi que mapeamos AR -> primaria para que global-setup funcione sin cambios.
+          USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
         run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --project=carrier-v2-desktop
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-${{ matrix.env }}-report
-          path: evidence/${{ matrix.env }}/
+          name: smoke-test-report
+          path: evidence/test/
           retention-days: 7
