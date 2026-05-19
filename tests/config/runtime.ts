@@ -27,7 +27,7 @@ export type CarrierV2RuntimeConfig = {
 
 // Defaults alineados al portal carrier V2 real (apps-test.magiis.com/carrier/#/auth/login).
 const DEFAULT_LOGIN_PATH = '/carrier/#/auth/login';
-const DEFAULT_DASHBOARD_PATTERN = '/carrier/#/home';
+const DEFAULT_DASHBOARD_PATTERN = '/carrier/#/dashboard';
 
 function normalizeEnvValue(value: string | undefined): string | undefined {
   // Variables vacias se tratan como ausentes para que apliquen los defaults.

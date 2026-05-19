@@ -1,6 +1,6 @@
 # Reglas de alcance — magiis-carrier-v2-e2e
 
-> Estas reglas son **inmutables** para este proyecto. Cualquier agente, persona o proceso que opere sobre este repositorio debe respetarlas.
+> Estas reglas son **inmutables** para este proyecto. Cualquier persona o proceso que opere sobre este repositorio debe respetarlas.
 
 ## 1. Solo frontend
 
@@ -54,19 +54,17 @@ Las 25 pantallas del MX-4820 se priorizarán en base a complejidad y criticidad 
 
 ## 6. Convención de commits
 
-Respetar la convención del perfil global Emanuel Restrepo:
+Formato validado por commitlint en `commitlint.config.js`:
 
 ```
-<tipo>(<scope>): [TC-ID] descripción corta
+<tipo>(<scope>): [MX-XXXX] descripción corta
 ```
 
 Ejemplos en este proyecto:
 - `feat(carrier-v2/login): [MX-XXXX] spec visual+funcional pantalla login migrada`
-- `docs(inventory): [MX-4820] poblar inventario de 25 pantallas finalizadas`
+- `docs(inventory): [MX-5711] poblar inventario de pantallas migradas`
 
 ## 7. Convención de ramas
-
-Respetar `magiis-branch-convention` (skill global):
 
 - `carrier-v2/<feature>` para specs del portal carrier V2.
 - `analysis/<topic>` para análisis comparativos.

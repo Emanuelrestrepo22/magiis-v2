@@ -8,19 +8,31 @@ on:
       - 'playwright.config.ts'
       - 'global-setup.ts'
       - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - 'carrier-v2/**'
+      - 'infra/**'
+      - 'analysis/**'
   schedule:
-    - cron: '0 6 * * *'  # nightly 06:00 UTC
+    - cron: '0 6 * * *' # nightly 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: 'Patron --grep (default @P1)'
+        required: false
+        default: '@P1'
+        type: string
 
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        env: [test]  # PRs corren solo test; smoke prod va por workflow separado
+    # Environment TEST expone vars (BASE_URL, LOGIN_PATH) y secrets
+    # (USER_CARRIER_AR, PASS_CARRIER_AR) configurados desde GitHub UI.
+    environment: TEST
     env:
-      ENV: ${{ matrix.env }}
+      ENV: test
       CI: 'true'
       HEADLESS: 'true'
     steps:
@@ -35,16 +47,23 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      - name: Run smoke specs (@P1)
+      - name: Run smoke specs (@P1 por defecto, override via dispatch input)
         env:
-          BASE_URL: ${{ secrets.CARRIER_V2_BASE_URL_TEST }}
-          USER_CARRIER: ${{ secrets.CARRIER_V2_USER_TEST }}
-          PASS_CARRIER: ${{ secrets.CARRIER_V2_PASS_TEST }}
-        run: npm run test:smoke
+          # Variables publicas del environment TEST.
+          BASE_URL: ${{ vars.BASE_URL }}
+          LOGIN_PATH: ${{ vars.LOGIN_PATH }}
+          # Credenciales region AR (las primarias EEUU no estan cargadas en CI).
+          # runtime.ts usa USER_CARRIER/PASS_CARRIER (sin sufijo) como primaria;
+          # asi que mapeamos AR -> primaria para que global-setup funcione sin cambios.
+          USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
+        # Smoke = @P1 funcional. Excluye @visual (corre en visual.yml con baseline propio)
+        # y --testIgnore del project en playwright.config.ts si fuera necesario.
+        run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --grep-invert "@visual" --project=carrier-v2-desktop
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-${{ matrix.env }}-report
-          path: evidence/${{ matrix.env }}/
+          name: smoke-test-report
+          path: evidence/test/
           retention-days: 7
