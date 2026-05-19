@@ -9,8 +9,11 @@ import { getEnvFile, SUPPORTED_ENVS } from '../config/runtime.js';
 const envSchema = z.object({
   ENV: z.enum(SUPPORTED_ENVS),
   BASE_URL: z.string().url('BASE_URL debe ser una URL valida (http/https)'),
-  LOGIN_PATH: z.string().min(1, 'LOGIN_PATH no puede estar vacio'),
-  DASHBOARD_URL_PATTERN: z.string().min(1, 'DASHBOARD_URL_PATTERN no puede estar vacio'),
+  // LOGIN_PATH y DASHBOARD_URL_PATTERN son opcionales: runtime.ts aplica defaults
+  // (/carrier/#/auth/login y /carrier/#/dashboard) si no estan configurados.
+  // Esto permite que CI usuarios solo seteen BASE_URL + credenciales.
+  LOGIN_PATH: z.string().min(1).optional(),
+  DASHBOARD_URL_PATTERN: z.string().min(1).optional(),
   USER_CARRIER: z.string().email('USER_CARRIER debe ser un email valido'),
   PASS_CARRIER: z.string().min(1, 'PASS_CARRIER no puede estar vacio'),
 
