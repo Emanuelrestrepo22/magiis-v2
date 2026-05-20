@@ -49,8 +49,13 @@ jobs:
         env:
           BASE_URL: ${{ vars.BASE_URL }}
           LOGIN_PATH: ${{ vars.LOGIN_PATH }}
-          USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
-          PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
+          # Primaria: US. AR/FR disponibles para baselines region-especificos a futuro.
+          USER_CARRIER: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_US: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
         run: |
           if [ "${{ inputs.update_baselines }}" = "true" ]; then
             npm run test:visual:update
