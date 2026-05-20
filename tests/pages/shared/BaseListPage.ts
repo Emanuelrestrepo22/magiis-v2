@@ -67,7 +67,9 @@ export abstract class BaseListPage extends BasePage {
 
     this.table = page.getByRole('table').first();
 
-    this.pageSizeText = page.getByText(/show \d+|mostrar \d+/i).first();
+    // Pagination "Show" label real: `<label>{{ 'table_footer_common.show' | translate }} <ng-select>...</ng-select></label>`
+    // El numero esta dentro del ng-select, no inline en el texto. Anclamos al label que envuelve "Show".
+    this.pageSizeText = page.locator('label.d-inline-flex').filter({ hasText: /show|mostrar/i }).first();
     this.previousPageLink = page.getByRole('link', { name: /^previous$|^anterior$/i });
     this.nextPageLink = page.getByRole('link', { name: /^next$|^siguiente$/i });
   }
@@ -143,16 +145,41 @@ export abstract class BaseListPage extends BasePage {
   }
 
   /**
+   * Click en el ULTIMO boton de accion dentro de la primera row con datos.
+   * Util cuando el numero de botones varia por tipo de row (ej. Affiliate CC IN vs OUT).
+   * En Affiliate CC el ultimo boton siempre es "Details" -> navega a checking-account-detail/:id.
+   *
+   * Filtra la primera row CON botones (descarta placeholders Loading/No Data que no tienen botones).
+   */
+  async clickFirstRowLastActionButton(): Promise<{ finalUrl: string; lastSegment: string | null }> {
+    const firstActionRow = this.table
+      .locator('tbody tr')
+      .filter({ has: this.page.locator('button') })
+      .first();
+    const buttons = firstActionRow.getByRole('button');
+    await buttons.last().click();
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 8_000 }).catch(() => null);
+    const finalUrl = this.page.url();
+    const pathAfterHash = finalUrl.split('#')[1] ?? '';
+    const segments = pathAfterHash.split('/').filter(Boolean);
+    return { finalUrl, lastSegment: segments.length > 0 ? segments[segments.length - 1] : null };
+  }
+
+  /**
    * Cuenta rows con datos reales (excluye placeholders "Loading", "No Data", "Empty").
    * Util para `test.skip(rowCount === 0, 'sin datos')` en flujos padre->hijo.
+   *
+   * Criterio: row con datos = row que contiene texto no-vacio Y que NO es placeholder
+   * (Loading / Cargando / No Data / Sin Datos / Empty). Pueden contener ellipsis "..."
+   * o spinners, asi que el match es contiene-substring case-insensitive.
    */
   async getDataRowCount(): Promise<number> {
     const allRows = this.table.locator('tbody tr');
     const placeholderRows = this.table.locator('tbody tr', {
-      hasText: /^(loading|cargando|no data|sin datos|empty)$/i
+      hasText: /loading|cargando|no data|sin datos|empty/i
     });
     const total = await allRows.count();
     const placeholders = await placeholderRows.count();
-    return total - placeholders;
+    return Math.max(0, total - placeholders);
   }
 }

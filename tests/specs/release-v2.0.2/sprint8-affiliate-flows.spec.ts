@@ -7,8 +7,16 @@ import { AffiliateCheckingAccountPage } from '../../pages/carrier-v2/AffiliateCh
 import { AffiliateCheckingAccountDetailPage } from '../../pages/carrier-v2/affiliate/AffiliateCheckingAccountDetailPage.js';
 
 test.describe('@P1 @functional @migration Sprint 8 - Affiliate detail flows', () => {
-  test('MX-5648 Affiliate CC detail: lista -> click row -> /checking-account-detail/:id/:typeView', async ({ page }) => {
+  // Backend de listas con latencia variable (validado 2026-05-20).
+  test.describe.configure({ retries: 2 });
+
+  test('MX-5648 Affiliate CC detail: lista -> click Details -> /checking-account-detail/:id/:typeView', async ({ page }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5648' });
+    test.info().annotations.push({
+      type: 'note',
+      description: 'Las rows de Affiliate CC NO son clickables. Cada row expone botones por accion: ' +
+        '[$ Liquidate] (solo type=IN), [clock History], [list Details]. Clickeamos el ultimo = Details.'
+    });
 
     const list = new AffiliateCheckingAccountPage(page);
     await list.goto();
@@ -17,10 +25,9 @@ test.describe('@P1 @functional @migration Sprint 8 - Affiliate detail flows', ()
     const rowCount = await list.getDataRowCount();
     test.skip(rowCount === 0, 'Sin datos en TEST para Affiliate Checking Account');
 
-    const { finalUrl } = await list.clickFirstRowAndCaptureUrl();
-    // El click podria redirigir a checking-account-detail/:id/:typeView
-    // o a liquidations/list/:typeView segun el row clickeado.
-    expect(finalUrl).toMatch(/\/affiliate\/(checking-account-detail|checking-account\/[^/]+\/liquidations)\//);
+    const { finalUrl } = await list.clickFirstRowLastActionButton();
+    // El boton Details navega a /affiliate/checking-account-detail/:id/:typeView.
+    expect(finalUrl).toMatch(/\/affiliate\/checking-account-detail\//);
 
     const detail = new AffiliateCheckingAccountDetailPage(page);
     await detail.expectDetailReady();

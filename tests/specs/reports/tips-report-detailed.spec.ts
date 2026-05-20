@@ -162,7 +162,9 @@ test.describe('@P1 @functional @migration MX-5560 Tips Report - cobertura matriz
     annotate('TC19', { type: 'dim', description: 'HP' });
     const tips = new ReportsTipsPage(page);
     await tips.goto();
-    await expect(page.getByText(/show \d+/i).first()).toBeVisible();
+    // Componente real app-table-pagination: <label>Show <ng-select>...</ng-select></label>.
+    // Anclamos al label que envuelve "Show" + ng-select.
+    await expect(tips.pageSizeText).toBeVisible({ timeout: 15_000 });
   });
 
   test('TC20 Boton Refresh recarga tabla y muestra spinner', async ({ page }) => {

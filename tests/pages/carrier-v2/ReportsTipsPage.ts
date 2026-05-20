@@ -56,12 +56,18 @@ export class ReportsTipsPage extends BaseListPage {
     super(page);
     this.travelTypeSelect = page.locator('ng-select').first();
     this.dateRangePicker = page.locator('app-magiis-ranges-date-picker');
-    this.searchByNameInput = page.getByPlaceholder(/search name|buscar nombre/i).first();
+    // Input real: <input type="text" class="form-control search"> con placeholder i18n
+    // "filter_common.search_name" -> EN "Search Name", ES "Buscar nombre". Anclamos a
+    // class.search dentro de .search-box porque hay multiples inputs en pantalla.
+    this.searchByNameInput = page.locator('.search-box input.search, input.form-control.search').first();
     this.paymentMethodSelect = page.locator('ng-select').nth(1);
     this.statusSelect = page.locator('ng-select').nth(2);
 
+    // PDF button real: <button class="btn btn-light"><i class="mdi mdi-file-pdf-box"> + "Save PDF"
     this.pdfActionButton = page.getByRole('button', { name: /save pdf|guardar pdf|pdf/i }).first();
-    this.refreshButton = page.getByRole('button', { name: /update|actualizar|refresh/i });
+    // Refresh button real: <button class="btn btn-outline-primary" ngbTooltip="..."><i class="mdi mdi-refresh">
+    // El ngbTooltip NO se expone como accessible name. Anclamos a la clase + icono.
+    this.refreshButton = page.locator('button.btn-outline-primary:has(i.mdi-refresh)').first();
 
     this.tableHeaderRow = page.locator('thead tr.header-table-color').first();
     this.resizeHandles = this.tableHeaderRow.locator('.resize-handle');
@@ -69,6 +75,15 @@ export class ReportsTipsPage extends BaseListPage {
     this.columnsConfigButton = this.tableHeaderRow.locator('th').last().locator('a');
 
     this.emptyStateMessage = page.getByText(/no data|sin datos|no records/i).first();
+  }
+
+  /**
+   * Override: Tips Report usa el input `searchByNameInput` (con clase `.search` dentro de .search-box).
+   * El generico de BaseListPage matchea cualquier placeholder con /search/i y puede colisionar
+   * con dropdowns de filtro que tambien tienen "Search...".
+   */
+  async search(query: string): Promise<void> {
+    await this.searchByNameInput.fill(query);
   }
 
   /** Cambia el dropdown de travel type. */
