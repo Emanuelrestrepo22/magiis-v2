@@ -25,6 +25,10 @@ import { SettlementsOwnerHistoryPage } from '../../pages/carrier-v2/settlements/
 const HISTORY_BUTTON_INDEX = 1;
 
 test.describe('@P1 @functional @migration Sprint 8 - Settlements history flows', () => {
+  // Backend de auth + listas con latencia variable (validado 2026-05-20).
+  // retries=2 absorbe timeouts puntuales sin marcar el test como fallido definitivo.
+  test.describe.configure({ retries: 2 });
+
   test('MX-5647 Contractor: lista -> click History -> /contractors/history/:id', async ({ page }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
 

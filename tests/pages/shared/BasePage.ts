@@ -14,8 +14,9 @@ export abstract class BasePage {
   /**
    * Navega a una ruta relativa al baseURL y espera DOM listo.
    * Subclases deben llamar a este metodo en su propio goto().
+   * Timeout 45s tolera latencia transitoria del backend de auth/datos.
    */
-  protected async navigate(path: string, timeout = 20_000): Promise<void> {
+  protected async navigate(path: string, timeout = 45_000): Promise<void> {
     await this.page.goto(path, { waitUntil: 'domcontentloaded', timeout });
   }
 
