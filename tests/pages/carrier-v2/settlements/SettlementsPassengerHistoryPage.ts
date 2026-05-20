@@ -10,7 +10,8 @@ import { BaseDetailPage } from '../../shared/BaseDetailPage.js';
 
 export class SettlementsPassengerHistoryPage extends BaseDetailPage {
   protected get headingRegex(): RegExp {
-    return /history.*(individual|passenger)|(individual|passenger).*history|historial/i;
+    // Heading h2 real compartido: "Record Settlements".
+    return /record\s+settlements?|settlements?\s+records?|historial/i;
   }
   constructor(page: Page) { super(page); }
 }

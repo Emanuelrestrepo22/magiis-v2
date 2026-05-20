@@ -33,7 +33,8 @@ async function globalSetup(_config: FullConfig): Promise<void> {
 
   // V2 usa hash routing (apps-test.magiis.com/carrier/#/auth/login).
   // domcontentloaded llega antes que SPA boot; el waitFor del input asegura UI lista.
-  await page.goto(loginPath, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+  // Timeout 45s tolera latencia transitoria del backend (validado intermitente 2026-05-20).
+  await page.goto(loginPath, { waitUntil: 'domcontentloaded', timeout: 45_000 });
 
   // Selectores validados contra refs/v2/src/app/account/login/carrier/login-carrier.component.html.
   // El submit lleva texto i18n `login.sign_in` que en EN renderiza "Sign In" y en ES "Iniciar sesion".

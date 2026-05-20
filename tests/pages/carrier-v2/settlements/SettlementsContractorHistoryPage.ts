@@ -10,8 +10,9 @@ import { BaseDetailPage } from '../../shared/BaseDetailPage.js';
 
 export class SettlementsContractorHistoryPage extends BaseDetailPage {
   protected get headingRegex(): RegExp {
-    // TODO: verificar heading real (probable "History" / "Historial" + "Corporation").
-    return /history.*(corporation|contractor)|(corporation|contractor).*history|historial|liquidations? history/i;
+    // Contractor (Corporations) usa terminologia "Balance Record" en lugar de "Record
+    // Settlements" como los otros tipos. Breadcrumb h4: "Balances / Corporations / Record".
+    return /balance\s+records?|balances?\s+records?|historial/i;
   }
   constructor(page: Page) { super(page); }
 }
