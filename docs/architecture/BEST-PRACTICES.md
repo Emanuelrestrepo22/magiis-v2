@@ -4,11 +4,11 @@ Documento vivo. Refleja decisiones que aplican a TODO el suite.
 
 ## 1. Capas de datos (separacion clara)
 
-| Capa | Carpeta | Cuando usar | Ejemplo |
-| --- | --- | --- | --- |
-| **Estatica** | `tests/data/` | Catalogos inmutables: roles, paises, opciones de un dropdown conocido | `tests/data/countries.json` |
-| **Generada** | `tests/fixtures/factories/` | Datos unicos por test con faker | `makeTrip({ region: 'AR' })` |
-| **Inyectada** | `tests/fixtures/*.ts` (no factories) | Page Objects + setup (auth, visual, a11y) | `authFixture.ts` |
+| Capa          | Carpeta                              | Cuando usar                                                           | Ejemplo                      |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------- | ---------------------------- |
+| **Estatica**  | `tests/data/`                        | Catalogos inmutables: roles, paises, opciones de un dropdown conocido | `tests/data/countries.json`  |
+| **Generada**  | `tests/fixtures/factories/`          | Datos unicos por test con faker                                       | `makeTrip({ region: 'AR' })` |
+| **Inyectada** | `tests/fixtures/*.ts` (no factories) | Page Objects + setup (auth, visual, a11y)                             | `authFixture.ts`             |
 
 ### Por que separar
 
@@ -56,6 +56,7 @@ Orden de preferencia **inquebrantable**:
 5. `locator('[formcontrolname="email"]')` (ultimo recurso)
 
 **Prohibido**:
+
 - `nth-child`, CSS profundo (`div > div > span`)
 - Clases autogeneradas (`_ngcontent-*`, `mat-mdc-button-base-1234`)
 - IDs autogenerados (`mat-input-0`)
@@ -92,16 +93,17 @@ Lint regla activa (`playwright/no-wait-for-timeout`).
 
 ## 7. Tags consistentes en specs
 
-| Tag | Significado | Obligatorio |
-| --- | --- | --- |
-| `@P1` / `@P2` / `@P3` | Prioridad | ✓ |
-| `@functional` / `@visual` / `@both` | Tipo de validacion | ✓ |
-| `@migration` | Marca de pertenencia al suite | ✓ |
-| `@a11y` | Incluye scan de accesibilidad | opcional |
-| `@smoke` | Subset minimo (incluido en pipeline rapido) | opcional |
-| `@regression` | Suite completa nightly | opcional |
+| Tag                                 | Significado                                 | Obligatorio |
+| ----------------------------------- | ------------------------------------------- | ----------- |
+| `@P1` / `@P2` / `@P3`               | Prioridad                                   | ✓           |
+| `@functional` / `@visual` / `@both` | Tipo de validacion                          | ✓           |
+| `@migration`                        | Marca de pertenencia al suite               | ✓           |
+| `@a11y`                             | Incluye scan de accesibilidad               | opcional    |
+| `@smoke`                            | Subset minimo (incluido en pipeline rapido) | opcional    |
+| `@regression`                       | Suite completa nightly                      | opcional    |
 
 Filtrado en CLI:
+
 ```bash
 npm run test:smoke              # solo @P1
 npx playwright test --grep @visual
@@ -127,6 +129,7 @@ El reporter HTML los renderiza visibles; el JUnit los expone para integracion CI
 `tests/utils/envSchema.ts` valida con zod al arranque. Si `BASE_URL` no es URL valida o `USER_CARRIER` no es email, el framework falla con mensaje claro **antes** de cualquier spec.
 
 Verificar manualmente:
+
 ```bash
 npm run validate:env
 # ✓ .env.test valido
@@ -159,13 +162,14 @@ Al hacer `git commit`:
 3. Commit-msg valida formato `tipo(scope): [MX-XXXX] msg`.
 
 Si algo falla, el commit aborta. Para bypass (ULTIMO recurso, justificado):
+
 ```bash
 git commit --no-verify -m "..."
 ```
 
 ## 12. Visual regression: workflow
 
-1. Local dev: `npm run test:visual:update` genera baselines en `tests/specs/visual/__screenshots__/`.
+1. Local dev: `npm run test:visual:update` genera baselines en `tests/specs/visual/<spec>-snapshots/` (default de Playwright junto al spec).
 2. Commit baselines junto al spec.
 3. CI corre `npm run test:visual` y compara contra baselines commiteados.
 4. Si cambian intencionalmente: PR con `npm run test:visual:update` + descripcion del por que.
@@ -197,17 +201,18 @@ const f = getFaker('AR');
 
 ## 15. CI: que corre cuando
 
-| Workflow | Trigger | Suite | Tiempo objetivo |
-| --- | --- | --- | --- |
-| `smoke.yml` | PR + nightly | `@P1` | < 5 min |
-| `regression.yml` | Nightly + manual | Todo excepto `@visual` | < 30 min |
-| `visual.yml` | Nightly + manual | `@visual` | < 15 min |
+| Workflow         | Trigger          | Suite                  | Tiempo objetivo |
+| ---------------- | ---------------- | ---------------------- | --------------- |
+| `smoke.yml`      | PR + nightly     | `@P1`                  | < 5 min         |
+| `regression.yml` | Nightly + manual | Todo excepto `@visual` | < 30 min        |
+| `visual.yml`     | Nightly + manual | `@visual`              | < 15 min        |
 
 PRs solo deben bloquearse por smoke. Regression y visual reportan pero no bloquean (excepto en main).
 
 ## 16. Estructura de un Page Object (recap)
 
 Ver `docs/architecture/POM-CONVENTIONS.md`. Reglas clave:
+
 - Un archivo por pantalla.
 - Locators readonly en constructor.
 - Metodos de **negocio**, no de UI.
