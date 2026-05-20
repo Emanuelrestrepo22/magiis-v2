@@ -81,7 +81,10 @@ jobs:
           git config user.email "qa-bot@magiis.com"
           # Playwright guarda baselines junto al spec en <spec>-snapshots/.
           # En este repo: tests/specs/visual/dashboard.visual.spec.ts-snapshots/*.png
-          git add 'tests/specs/visual/**/*-snapshots/'
+          # NO usar ** (git add no soporta globstar, falla con "did not match any files").
+          # Usar * que matchea dentro del nivel directo + agregar el folder de specs por si
+          # se agregan nuevos specs en subcarpetas.
+          git add tests/specs/visual/
           if git diff --cached --quiet; then
             echo "No baseline changes to commit."
           else
