@@ -36,11 +36,17 @@ jobs:
           # Variables publicas del environment TEST.
           BASE_URL: ${{ vars.BASE_URL }}
           LOGIN_PATH: ${{ vars.LOGIN_PATH }}
-          # Credenciales region AR (las primarias EEUU no estan cargadas en CI).
-          # runtime.ts usa USER_CARRIER/PASS_CARRIER (sin sufijo) como primaria;
-          # mapeamos AR -> primaria para que global-setup funcione sin cambios.
-          USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
-          PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
+          # Primaria: US (carrier EEUU). global-setup usa USER_CARRIER/PASS_CARRIER sin sufijo.
+          USER_CARRIER: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_US }}
+          # Regiones disponibles para specs parametrizados (resolveCredentials('US'|'AR'|...)).
+          USER_CARRIER_US: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
+          # Cuando exista carrier FR, agregar:
+          # USER_CARRIER_FR: ${{ secrets.USER_CARRIER_FR }}
+          # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
         run: npx playwright test --grep-invert @visual
 
       - uses: actions/upload-artifact@v4
