@@ -45,7 +45,9 @@ test.describe('@P1 @functional @migration MX-5560 Tips Report - cobertura matriz
     await expect(tips.breadcrumb).toBeVisible();
   });
 
-  test('TC04 Dropdown travel type con opciones Historical/Recent y default Historical', async ({ page }) => {
+  test('TC04 Dropdown travel type con opciones Historical/Recent y default Historical', async ({
+    page
+  }) => {
     annotate('TC04', { type: 'dim', description: 'HP' });
     const tips = new ReportsTipsPage(page);
     await tips.goto();
@@ -201,7 +203,8 @@ test.describe('@P1 @functional @migration MX-5560 Tips Report - cobertura matriz
     annotate('TC23', { type: 'dim', description: 'INT' });
     test.info().annotations.push({
       type: 'note',
-      description: 'Validacion del formato fecha esta documentada como manual hasta cubrir change locale.'
+      description:
+        'Validacion del formato fecha esta documentada como manual hasta cubrir change locale.'
     });
     const tips = new ReportsTipsPage(page);
     await tips.goto();
@@ -219,7 +222,8 @@ test.describe('@P1 @functional @migration MX-5560 Tips Report - cobertura matriz
     annotate('TC25', { type: 'dim', description: 'INT' });
     test.info().annotations.push({
       type: 'note',
-      description: 'Locale switcher en topbar. Validacion completa requiere interactuar con toggle EN/ES.'
+      description:
+        'Locale switcher en topbar. Validacion completa requiere interactuar con toggle EN/ES.'
     });
     const tips = new ReportsTipsPage(page);
     await tips.goto();

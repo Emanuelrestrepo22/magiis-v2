@@ -55,21 +55,24 @@ export abstract class BaseListPage extends BasePage {
       ? page.getByRole('heading', { name: this.breadcrumbRegex, level: 4 }).first()
       : page.locator('h4').first();
 
-    this.searchInput = page
-      .getByPlaceholder(/search|buscar/i)
-      .first();
+    this.searchInput = page.getByPlaceholder(/search|buscar/i).first();
 
     this.dateRangeInput = page
       .getByPlaceholder(/choose date|elegi.? fecha|seleccion.? fecha/i)
       .first();
 
-    this.pdfButton = page.getByRole('button', { name: /^pdf$/i }).or(page.getByRole('button', { name: /pdf$/i }));
+    this.pdfButton = page
+      .getByRole('button', { name: /^pdf$/i })
+      .or(page.getByRole('button', { name: /pdf$/i }));
 
     this.table = page.getByRole('table').first();
 
     // Pagination "Show" label real: `<label>{{ 'table_footer_common.show' | translate }} <ng-select>...</ng-select></label>`
     // El numero esta dentro del ng-select, no inline en el texto. Anclamos al label que envuelve "Show".
-    this.pageSizeText = page.locator('label.d-inline-flex').filter({ hasText: /show|mostrar/i }).first();
+    this.pageSizeText = page
+      .locator('label.d-inline-flex')
+      .filter({ hasText: /show|mostrar/i })
+      .first();
     this.previousPageLink = page.getByRole('link', { name: /^previous$|^anterior$/i });
     this.nextPageLink = page.getByRole('link', { name: /^next$|^siguiente$/i });
   }
@@ -133,7 +136,9 @@ export abstract class BaseListPage extends BasePage {
    * `PDF` (idx 2, opcional). El click navega a la pantalla detail/history correspondiente
    * con :id capturable del URL.
    */
-  async clickFirstRowActionButton(buttonIndex: number): Promise<{ finalUrl: string; lastSegment: string | null }> {
+  async clickFirstRowActionButton(
+    buttonIndex: number
+  ): Promise<{ finalUrl: string; lastSegment: string | null }> {
     const firstRow = this.table.locator('tbody tr').first();
     const buttons = firstRow.getByRole('button');
     await buttons.nth(buttonIndex).click();

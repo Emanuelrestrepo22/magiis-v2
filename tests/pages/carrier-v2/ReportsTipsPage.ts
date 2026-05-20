@@ -59,7 +59,9 @@ export class ReportsTipsPage extends BaseListPage {
     // Input real: <input type="text" class="form-control search"> con placeholder i18n
     // "filter_common.search_name" -> EN "Search Name", ES "Buscar nombre". Anclamos a
     // class.search dentro de .search-box porque hay multiples inputs en pantalla.
-    this.searchByNameInput = page.locator('.search-box input.search, input.form-control.search').first();
+    this.searchByNameInput = page
+      .locator('.search-box input.search, input.form-control.search')
+      .first();
     this.paymentMethodSelect = page.locator('ng-select').nth(1);
     this.statusSelect = page.locator('ng-select').nth(2);
 

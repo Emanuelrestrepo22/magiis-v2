@@ -52,7 +52,9 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
   test('TC03 Topbar muestra avatar usuario + locale switcher EN', async ({ page }) => {
     annotate('TC03', 'HP');
     await page.goto('/carrier/#/dashboard');
-    await expect(page.getByRole('button', { name: /header avatar/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('button', { name: /header avatar/i })).toBeVisible({
+      timeout: 30_000
+    });
     await expect(page.getByRole('button', { name: /^en$/i })).toBeVisible();
   });
 
@@ -61,19 +63,26 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     await page.goto('/carrier/#/dashboard');
     // [class.active]="item.isActive" se aplica con un microtask despues del routerLink resolve.
     // Esperamos al link con class active visible directamente.
-    const activeLink = page.locator('a.nav-link.active, a.menu-link.active').filter({
-      hasText: /operations control|panel|operaciones/i
-    }).first();
+    const activeLink = page
+      .locator('a.nav-link.active, a.menu-link.active')
+      .filter({
+        hasText: /operations control|panel|operaciones/i
+      })
+      .first();
     await expect(activeLink).toBeVisible({ timeout: 30_000 });
   });
 
-  test('TC05 Avatar usuario muestra info IdentityService (Fantasy/SubUser/Carrier code)', async ({ page }) => {
+  test('TC05 Avatar usuario muestra info IdentityService (Fantasy/SubUser/Carrier code)', async ({
+    page
+  }) => {
     annotate('TC05', 'HP');
     await page.goto('/carrier/#/dashboard');
     // Topbar usuario: la imagen siempre es <img alt="Header Avatar">. El texto subordinado
     // (Fantasy, sub-user, carrier code) esta envuelto en `d-none d-xl-block` y depende del
     // viewport + carga del IdentityService. Validamos el avatar como senial estable.
-    await expect(page.getByRole('img', { name: /header avatar/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('img', { name: /header avatar/i })).toBeVisible({
+      timeout: 30_000
+    });
   });
 
   // ===== 16.3 Happy path - Toggle submenus =====
@@ -82,11 +91,15 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     annotate('TC21', 'HP');
     test.info().annotations.push({
       type: 'note',
-      description: 'Validamos via aria-expanded del parent. El sidebar inicia colapsado (aria-expanded=false). ' +
+      description:
+        'Validamos via aria-expanded del parent. El sidebar inicia colapsado (aria-expanded=false). ' +
         'Tras click toggleItem() pone item.isCollapsed=false -> aria-expanded=true.'
     });
     await page.goto('/carrier/#/dashboard');
-    const reportsToggle = page.locator('a.is-parent.menu-link').filter({ hasText: /reports/i }).first();
+    const reportsToggle = page
+      .locator('a.is-parent.menu-link')
+      .filter({ hasText: /reports/i })
+      .first();
     await reportsToggle.click();
     await expect(reportsToggle).toHaveAttribute('aria-expanded', 'true', { timeout: 10_000 });
   });
@@ -102,14 +115,19 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
   test('TC25 Click toggle Configuration expande submenu (aria-expanded=true)', async ({ page }) => {
     annotate('TC25', 'HP');
     await page.goto('/carrier/#/dashboard');
-    const configToggle = page.locator('a.is-parent.menu-link').filter({ hasText: /configuration|configuraci/i }).first();
+    const configToggle = page
+      .locator('a.is-parent.menu-link')
+      .filter({ hasText: /configuration|configuraci/i })
+      .first();
     await configToggle.click();
     await expect(configToggle).toHaveAttribute('aria-expanded', 'true', { timeout: 10_000 });
   });
 
   // ===== 16.4 Edge cases - Accordion + restauracion =====
 
-  test('TC28 Refresh F5 sobre /reports/tips restaura sidebar (sesion + auto-expand)', async ({ page }) => {
+  test('TC28 Refresh F5 sobre /reports/tips restaura sidebar (sesion + auto-expand)', async ({
+    page
+  }) => {
     annotate('TC28', 'EC');
     await page.goto('/carrier/#/reports/tips');
     await page.reload();
@@ -128,7 +146,9 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     expect(page.url()).toContain('/gnet/farm-in');
   });
 
-  test('TC30 back/forward del navegador actualiza isActive del item correspondiente', async ({ page }) => {
+  test('TC30 back/forward del navegador actualiza isActive del item correspondiente', async ({
+    page
+  }) => {
     annotate('TC30', 'EC');
     await page.goto('/carrier/#/dashboard');
     await page.goto('/carrier/#/map-viewer');
@@ -142,7 +162,7 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     annotate('TC32', 'EC');
     await page.goto('/carrier/#/map-viewer');
     const logoLink = page.locator('a.logo, a[routerLink="dashboard"]').first();
-    if (await logoLink.count() > 0) {
+    if ((await logoLink.count()) > 0) {
       await logoLink.click();
       await expect(page).toHaveURL(/#\/dashboard/);
     } else {
@@ -154,7 +174,9 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
 
   // ===== 16.5 Negativos =====
 
-  test('TC33 Deep-link a ruta inexistente redirige a /dashboard sin romper shell', async ({ page }) => {
+  test('TC33 Deep-link a ruta inexistente redirige a /dashboard sin romper shell', async ({
+    page
+  }) => {
     annotate('TC33', 'NEG');
     await page.goto('/carrier/#/foo-bar-nonexistent-route');
     // El portal debe redirigir a /dashboard (fallback) o quedar en ruta sin contenido.
@@ -167,13 +189,19 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
 
   test('TC38 Logout limpia sesion y redirige a /auth/login', async ({ page }) => {
     annotate('TC38', 'NEG');
-    test.info().annotations.push({ type: 'note', description: 'Logout via avatar dropdown - validacion indirecta de presencia.' });
+    test.info().annotations.push({
+      type: 'note',
+      description: 'Logout via avatar dropdown - validacion indirecta de presencia.'
+    });
     await page.goto('/carrier/#/dashboard');
     const avatar = page.getByRole('button', { name: /header avatar/i });
     await expect(avatar).toBeVisible({ timeout: 30_000 });
   });
 
-  test('TC39 Acceder a /dashboard sin sesion redirige a /auth/login (auth guard)', async ({ page, context }) => {
+  test('TC39 Acceder a /dashboard sin sesion redirige a /auth/login (auth guard)', async ({
+    page,
+    context
+  }) => {
     annotate('TC39', 'NEG');
     // Limpiar cookies y storage para simular sesion limpia.
     await context.clearCookies();
@@ -191,7 +219,9 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     await expect(sidebar).toBeVisible({ timeout: 30_000 });
   });
 
-  test('TC44 Sesion persiste tras refresh + volver a misma pantalla sin re-login', async ({ page }) => {
+  test('TC44 Sesion persiste tras refresh + volver a misma pantalla sin re-login', async ({
+    page
+  }) => {
     annotate('TC44', 'REG');
     await page.goto('/carrier/#/dashboard');
     await page.reload();
@@ -204,7 +234,9 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     await page.goto('/carrier/#/dashboard');
     await expect(page.getByRole('heading', { level: 4 }).first()).toBeVisible({ timeout: 30_000 });
     await page.goto('/carrier/#/map-viewer');
-    await expect(page.getByRole('heading', { name: /map viewer/i }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: /map viewer/i }).first()).toBeVisible({
+      timeout: 30_000
+    });
   });
 
   // ===== 16.7 Integracion =====
@@ -219,12 +251,15 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     annotate('TC48', 'INT');
     test.info().annotations.push({
       type: 'note',
-      description: 'IdentityService data (Fantasy Name + Sub User + Carrier Code) renderiza dentro de d-none d-xl-block. ' +
+      description:
+        'IdentityService data (Fantasy Name + Sub User + Carrier Code) renderiza dentro de d-none d-xl-block. ' +
         'En viewport headless default (1280x720) > xl (1200) deberia mostrarse, pero puede tardar segun carga del service. ' +
         'Validacion principal: avatar visible (senial estable).'
     });
     await page.goto('/carrier/#/dashboard');
-    await expect(page.getByRole('img', { name: /header avatar/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('img', { name: /header avatar/i })).toBeVisible({
+      timeout: 30_000
+    });
   });
 
   test('TC50 melita_ai quick access button visible', async ({ page }) => {
@@ -245,6 +280,8 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
   test('TC53 Boton Trips Management (topbar) visible', async ({ page }) => {
     annotate('TC53', 'HP');
     await page.goto('/carrier/#/dashboard');
-    await expect(page.getByRole('button', { name: /trips management/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('button', { name: /trips management/i })).toBeVisible({
+      timeout: 30_000
+    });
   });
 });

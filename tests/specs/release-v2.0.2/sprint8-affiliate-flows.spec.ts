@@ -10,11 +10,14 @@ test.describe('@P1 @functional @migration Sprint 8 - Affiliate detail flows', ()
   // Backend de listas con latencia variable (validado 2026-05-20).
   test.describe.configure({ retries: 2 });
 
-  test('MX-5648 Affiliate CC detail: lista -> click Details -> /checking-account-detail/:id/:typeView', async ({ page }) => {
+  test('MX-5648 Affiliate CC detail: lista -> click Details -> /checking-account-detail/:id/:typeView', async ({
+    page
+  }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5648' });
     test.info().annotations.push({
       type: 'note',
-      description: 'Las rows de Affiliate CC NO son clickables. Cada row expone botones por accion: ' +
+      description:
+        'Las rows de Affiliate CC NO son clickables. Cada row expone botones por accion: ' +
         '[$ Liquidate] (solo type=IN), [clock History], [list Details]. Clickeamos el ultimo = Details.'
     });
 
@@ -33,11 +36,14 @@ test.describe('@P1 @functional @migration Sprint 8 - Affiliate detail flows', ()
     await detail.expectDetailReady();
   });
 
-  test('MX-5646 Affiliate liquidation detail: ruta directa con :id/:editMode (sin datos reales, valida 404/redirect)', async ({ page }) => {
+  test('MX-5646 Affiliate liquidation detail: ruta directa con :id/:editMode (sin datos reales, valida 404/redirect)', async ({
+    page
+  }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5646' });
     test.info().annotations.push({
       type: 'note',
-      description: 'No tenemos :id real sin acceso a backend. Validamos que la ruta NO redirige a /dashboard cuando :id es invalido (probable muestra error inline o pagina vacia).'
+      description:
+        'No tenemos :id real sin acceso a backend. Validamos que la ruta NO redirige a /dashboard cuando :id es invalido (probable muestra error inline o pagina vacia).'
     });
 
     await page.goto('/carrier/#/affiliate/liquidation-detail/test-invalid-id/view');
@@ -49,11 +55,14 @@ test.describe('@P1 @functional @migration Sprint 8 - Affiliate detail flows', ()
     expect(finalUrl).toContain('/affiliate/liquidation-detail');
   });
 
-  test('MX-5647 Affiliate liquidations list con :id: ruta directa (placeholder validation)', async ({ page }) => {
+  test('MX-5647 Affiliate liquidations list con :id: ruta directa (placeholder validation)', async ({
+    page
+  }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
     test.info().annotations.push({
       type: 'note',
-      description: 'La URL real es /affiliate/checking-account/:id/liquidations/list/:typeView. Sin :id real validamos que el routing acepta la URL.'
+      description:
+        'La URL real es /affiliate/checking-account/:id/liquidations/list/:typeView. Sin :id real validamos que el routing acepta la URL.'
     });
 
     await page.goto('/carrier/#/affiliate/checking-account/test-invalid-id/liquidations/list/view');
