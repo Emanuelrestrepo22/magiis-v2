@@ -2,17 +2,17 @@
 
 ## Resumen
 
-| Env | Proposito | Archivo | Workers | Retries | Tests permitidos |
-| --- | --- | --- | --- | --- | --- |
-| `test` | Desarrollo local + CI nightly | `.env.test` | 4 | 0 | Todos |
-| `uat` | Validacion pre-prod | `.env.uat` | 2 | 1 | Todos excepto los que modifican datos compartidos |
-| `prod` | Smoke read-only en produccion | `.env.prod` | 1 | 2 | Solo `@smoke` y `@visual` no destructivos |
+| Env    | Proposito                     | Archivo     | Workers | Retries | Tests permitidos                                  |
+| ------ | ----------------------------- | ----------- | ------- | ------- | ------------------------------------------------- |
+| `test` | Desarrollo local + CI nightly | `.env.test` | 4       | 0       | Todos                                             |
+| `uat`  | Validacion pre-prod           | `.env.uat`  | 2       | 1       | Todos excepto los que modifican datos compartidos |
+| `prod` | Smoke read-only en produccion | `.env.prod` | 1       | 2       | Solo `@smoke` y `@visual` no destructivos         |
 
 ## URLs conocidas (test)
 
-| Capa | URL |
-| --- | --- |
-| V2 login | `https://apps-test.magiis.com/carrier/#/auth/login` |
+| Capa     | URL                                                           |
+| -------- | ------------------------------------------------------------- |
+| V2 login | `https://apps-test.magiis.com/carrier/#/auth/login`           |
 | V1 login | `https://apps-test.magiis.com/#/authentication/login/carrier` |
 
 Ambas comparten el dominio `apps-test.magiis.com`; el subpath `/carrier/` diferencia V2.
@@ -108,15 +108,18 @@ Cada uno se genera por `global-setup.ts` al primer run del env.
 ## Reglas duras por env
 
 ### `test`
+
 - Permite cualquier tipo de spec (CRUD, destructivos, visuales).
 - Es donde se generan baselines visuales por default.
 
 ### `uat`
+
 - No correr specs que destruyan datos visibles para QA Funcional (que tambien usa UAT).
 - Filtrar tags: usar `--grep "@smoke|@regression"`.
 - Baselines visuales pueden diverger de `test` por datos reales -> mantener baselines separados por env si genera flake.
 
 ### `prod`
+
 - **Read-only obligatorio**. Solo login + navegacion + assertions visuales.
 - Filtro: `--grep "@smoke"` o `--grep "@visual"`.
 - Cualquier spec que cree, edite o elimine debe estar protegida:
@@ -129,11 +132,12 @@ Cada uno se genera por `global-setup.ts` al primer run del env.
 Convencion: nombrar snapshots con sufijo de env cuando es necesario.
 
 ```
-tests/specs/visual/__screenshots__/
-├── dashboard-desktop-test.png
-├── dashboard-desktop-uat.png
-└── dashboard-desktop-prod.png
+tests/specs/visual/<spec>-snapshots/
+├── sidebar-desktop-visual-linux.png   # <name>-<project>-<platform>.png
+└── ...
 ```
+
+Playwright nombra cada baseline con sufijo del project (`visual`) + platform (`linux` en CI). Una sola baseline por test/project se mantiene en disco; corridas en otros projects requieren `--project=visual` (definido en `npm run test:visual`).
 
 Solo agregar sufijo cuando el env produce un baseline distinto (datos diferentes). La mayoria de pantallas estaticas comparten baseline.
 

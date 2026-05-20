@@ -10,8 +10,8 @@
     "test:uat": "cross-env ENV=uat playwright test",
     "test:prod": "cross-env ENV=prod playwright test",
     "test:smoke": "cross-env ENV=test playwright test --grep @P1",
-    "test:visual": "cross-env ENV=test playwright test tests/specs/visual",
-    "test:visual:update": "cross-env ENV=test playwright test tests/specs/visual --update-snapshots",
+    "test:visual": "cross-env ENV=test playwright test tests/specs/visual --project=visual",
+    "test:visual:update": "cross-env ENV=test playwright test tests/specs/visual --project=visual --update-snapshots",
     "test:a11y": "cross-env ENV=test playwright test --grep @a11y",
     "report": "playwright show-report",
     "lint": "eslint .",
@@ -46,7 +46,12 @@
     "zod": "^3.24.1"
   },
   "lint-staged": {
-    "*.ts": ["eslint --fix", "prettier --write"],
-    "*.{json,md,yml,yaml}": ["prettier --write"]
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

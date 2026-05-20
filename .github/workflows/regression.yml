@@ -1,28 +1,22 @@
 name: Regression - carrier V2
 
-# Suite completa funcional. Corre en test y uat por nightly y on-demand.
+# Suite completa funcional. Por ahora solo corre en TEST.
+# UAT esta documentado abajo (comentado) y se activara cuando RRHH/DevOps
+# configuren el environment UAT en GitHub con sus vars + secrets.
 on:
   schedule:
-    - cron: '0 7 * * *'  # nightly 07:00 UTC
+    - cron: '0 7 * * *' # nightly 07:00 UTC
   workflow_dispatch:
-    inputs:
-      env:
-        description: 'Environment'
-        required: true
-        default: 'test'
-        type: choice
-        options: [test, uat]
 
 jobs:
-  regression:
+  regression-test:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        env: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.env)) || fromJSON('["test", "uat"]') }}
+    # Environment TEST expone vars (BASE_URL, LOGIN_PATH) y secrets
+    # (USER_CARRIER_AR, PASS_CARRIER_AR) configurados desde GitHub UI.
+    environment: TEST
     env:
-      ENV: ${{ matrix.env }}
+      ENV: test
       CI: 'true'
       HEADLESS: 'true'
     steps:
@@ -39,14 +33,64 @@ jobs:
 
       - name: Run regression (excluye @visual)
         env:
-          BASE_URL: ${{ matrix.env == 'uat' && secrets.CARRIER_V2_BASE_URL_UAT || secrets.CARRIER_V2_BASE_URL_TEST }}
-          USER_CARRIER: ${{ matrix.env == 'uat' && secrets.CARRIER_V2_USER_UAT || secrets.CARRIER_V2_USER_TEST }}
-          PASS_CARRIER: ${{ matrix.env == 'uat' && secrets.CARRIER_V2_PASS_UAT || secrets.CARRIER_V2_PASS_TEST }}
+          # Variables publicas del environment TEST.
+          BASE_URL: ${{ vars.BASE_URL }}
+          LOGIN_PATH: ${{ vars.LOGIN_PATH }}
+          # Primaria: US (carrier EEUU). global-setup usa USER_CARRIER/PASS_CARRIER sin sufijo.
+          USER_CARRIER: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_US }}
+          # Regiones disponibles para specs parametrizados (resolveCredentials('US'|'AR'|...)).
+          USER_CARRIER_US: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
+          # Cuando exista carrier FR, agregar:
+          # USER_CARRIER_FR: ${{ secrets.USER_CARRIER_FR }}
+          # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
         run: npx playwright test --grep-invert @visual
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: regression-${{ matrix.env }}-report
-          path: evidence/${{ matrix.env }}/
+          name: regression-test-report
+          path: evidence/test/
           retention-days: 14
+
+  # ============================================================
+  # Job UAT pendiente de activacion.
+  # ============================================================
+  # Bloqueado hasta que se configure el environment UAT en GitHub con:
+  #   vars:   BASE_URL, LOGIN_PATH
+  #   secrets: USER_CARRIER_AR, PASS_CARRIER_AR  (o equivalente UAT)
+  # Cuando esten cargadas, descomentar este job y opcionalmente
+  # agregarlo al schedule (o dejarlo solo en workflow_dispatch).
+  # ------------------------------------------------------------
+  # regression-uat:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 90
+  #   environment: UAT
+  #   env:
+  #     ENV: uat
+  #     CI: 'true'
+  #     HEADLESS: 'true'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: 'npm'
+  #     - run: npm ci
+  #     - run: npx playwright install --with-deps chromium
+  #     - name: Run regression UAT (excluye @visual)
+  #       env:
+  #         BASE_URL: ${{ vars.BASE_URL }}
+  #         LOGIN_PATH: ${{ vars.LOGIN_PATH }}
+  #         USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
+  #         PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
+  #       run: npx playwright test --grep-invert @visual
+  #     - uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: regression-uat-report
+  #         path: evidence/uat/
+  #         retention-days: 14

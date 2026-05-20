@@ -49,13 +49,21 @@ jobs:
         env:
           BASE_URL: ${{ vars.BASE_URL }}
           LOGIN_PATH: ${{ vars.LOGIN_PATH }}
-          USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
-          PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
+          # Primaria: US. AR/FR disponibles para baselines region-especificos a futuro.
+          USER_CARRIER: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_US: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
         run: |
+          # Inline para no depender del npm script (el dispatch puede venir desde main
+          # antes de que se mergee el fix de package.json). --project=visual garantiza
+          # que solo corra en el project visual (codegen no tiene auth -> rompia).
           if [ "${{ inputs.update_baselines }}" = "true" ]; then
-            npm run test:visual:update
+            npx playwright test tests/specs/visual --project=visual --update-snapshots
           else
-            npm run test:visual
+            npx playwright test tests/specs/visual --project=visual
           fi
 
       - uses: actions/upload-artifact@v4
@@ -66,11 +74,14 @@ jobs:
           retention-days: 14
 
       - name: Commit updated baselines (solo workflow_dispatch + update=true)
-        if: inputs.update_baselines == 'true' && github.event_name == 'workflow_dispatch'
+        # Solo si el step de tests pego verde con los baselines actualizados.
+        if: success() && inputs.update_baselines == 'true' && github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "magiis-qa-bot"
           git config user.email "qa-bot@magiis.com"
-          git add tests/specs/visual/__screenshots__/
+          # Playwright guarda baselines junto al spec en <spec>-snapshots/.
+          # En este repo: tests/specs/visual/dashboard.visual.spec.ts-snapshots/*.png
+          git add 'tests/specs/visual/**/*-snapshots/'
           if git diff --cached --quiet; then
             echo "No baseline changes to commit."
           else

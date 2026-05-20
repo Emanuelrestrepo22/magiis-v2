@@ -52,11 +52,18 @@ jobs:
           # Variables publicas del environment TEST.
           BASE_URL: ${{ vars.BASE_URL }}
           LOGIN_PATH: ${{ vars.LOGIN_PATH }}
-          # Credenciales region AR (las primarias EEUU no estan cargadas en CI).
-          # runtime.ts usa USER_CARRIER/PASS_CARRIER (sin sufijo) como primaria;
-          # asi que mapeamos AR -> primaria para que global-setup funcione sin cambios.
-          USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
-          PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
+          # Primaria: US (carrier EEUU). global-setup usa USER_CARRIER/PASS_CARRIER sin sufijo.
+          USER_CARRIER: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_US }}
+          # Regiones disponibles para specs parametrizados (resolveCredentials('US'|'AR'|...)).
+          # Reglas financieras (simbolo moneda + separadores) varian por carrier; idioma EN/ES estable.
+          USER_CARRIER_US: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
+          # Cuando exista carrier FR, agregar:
+          # USER_CARRIER_FR: ${{ secrets.USER_CARRIER_FR }}
+          # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
         # Smoke = @P1 funcional. Excluye @visual (corre en visual.yml con baseline propio)
         # y --testIgnore del project en playwright.config.ts si fuera necesario.
         run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --grep-invert "@visual" --project=carrier-v2-desktop

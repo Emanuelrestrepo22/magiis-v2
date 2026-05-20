@@ -55,19 +55,24 @@ export abstract class BaseListPage extends BasePage {
       ? page.getByRole('heading', { name: this.breadcrumbRegex, level: 4 }).first()
       : page.locator('h4').first();
 
-    this.searchInput = page
-      .getByPlaceholder(/search|buscar/i)
-      .first();
+    this.searchInput = page.getByPlaceholder(/search|buscar/i).first();
 
     this.dateRangeInput = page
       .getByPlaceholder(/choose date|elegi.? fecha|seleccion.? fecha/i)
       .first();
 
-    this.pdfButton = page.getByRole('button', { name: /^pdf$/i }).or(page.getByRole('button', { name: /pdf$/i }));
+    this.pdfButton = page
+      .getByRole('button', { name: /^pdf$/i })
+      .or(page.getByRole('button', { name: /pdf$/i }));
 
     this.table = page.getByRole('table').first();
 
-    this.pageSizeText = page.getByText(/show \d+|mostrar \d+/i).first();
+    // Pagination "Show" label real: `<label>{{ 'table_footer_common.show' | translate }} <ng-select>...</ng-select></label>`
+    // El numero esta dentro del ng-select, no inline en el texto. Anclamos al label que envuelve "Show".
+    this.pageSizeText = page
+      .locator('label.d-inline-flex')
+      .filter({ hasText: /show|mostrar/i })
+      .first();
     this.previousPageLink = page.getByRole('link', { name: /^previous$|^anterior$/i });
     this.nextPageLink = page.getByRole('link', { name: /^next$|^siguiente$/i });
   }
@@ -75,10 +80,11 @@ export abstract class BaseListPage extends BasePage {
   /**
    * Navega a la ruta declarada por la subclase y espera heading visible.
    * Asume sesion activa via storageState.
+   * Timeout 30s para tolerar latencia transitoria del backend.
    */
   async goto(): Promise<void> {
     await this.navigate(this.path);
-    await expect(this.heading).toBeVisible({ timeout: 15_000 });
+    await expect(this.heading).toBeVisible({ timeout: 30_000 });
   }
 
   /**
@@ -106,5 +112,79 @@ export abstract class BaseListPage extends BasePage {
   async expectPaginationReady(): Promise<void> {
     await expect(this.previousPageLink).toBeVisible();
     await expect(this.nextPageLink).toBeVisible();
+  }
+
+  /**
+   * Click en la primera row entera (cuando es clickable). Captura URL final.
+   * NOTA: en Settlements (Contractor/Passenger/Driver/Owner) las rows NO son clickables;
+   *       cada row tiene botones de accion (`+ Create`, `clock History`, `PDF`) en la
+   *       ultima columna. Usar clickFirstRowActionButton() en esos casos.
+   */
+  async clickFirstRowAndCaptureUrl(): Promise<{ finalUrl: string; lastSegment: string | null }> {
+    const rows = this.table.locator('tbody tr');
+    await rows.first().click();
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 8_000 }).catch(() => null);
+    const finalUrl = this.page.url();
+    const pathAfterHash = finalUrl.split('#')[1] ?? '';
+    const segments = pathAfterHash.split('/').filter(Boolean);
+    return { finalUrl, lastSegment: segments.length > 0 ? segments[segments.length - 1] : null };
+  }
+
+  /**
+   * Click en el N-esimo boton de accion dentro de la primera row con datos.
+   * Patron Settlements: row expone botones `+ Create` (idx 0), `clock History` (idx 1),
+   * `PDF` (idx 2, opcional). El click navega a la pantalla detail/history correspondiente
+   * con :id capturable del URL.
+   */
+  async clickFirstRowActionButton(
+    buttonIndex: number
+  ): Promise<{ finalUrl: string; lastSegment: string | null }> {
+    const firstRow = this.table.locator('tbody tr').first();
+    const buttons = firstRow.getByRole('button');
+    await buttons.nth(buttonIndex).click();
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 8_000 }).catch(() => null);
+    const finalUrl = this.page.url();
+    const pathAfterHash = finalUrl.split('#')[1] ?? '';
+    const segments = pathAfterHash.split('/').filter(Boolean);
+    return { finalUrl, lastSegment: segments.length > 0 ? segments[segments.length - 1] : null };
+  }
+
+  /**
+   * Click en el ULTIMO boton de accion dentro de la primera row con datos.
+   * Util cuando el numero de botones varia por tipo de row (ej. Affiliate CC IN vs OUT).
+   * En Affiliate CC el ultimo boton siempre es "Details" -> navega a checking-account-detail/:id.
+   *
+   * Filtra la primera row CON botones (descarta placeholders Loading/No Data que no tienen botones).
+   */
+  async clickFirstRowLastActionButton(): Promise<{ finalUrl: string; lastSegment: string | null }> {
+    const firstActionRow = this.table
+      .locator('tbody tr')
+      .filter({ has: this.page.locator('button') })
+      .first();
+    const buttons = firstActionRow.getByRole('button');
+    await buttons.last().click();
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 8_000 }).catch(() => null);
+    const finalUrl = this.page.url();
+    const pathAfterHash = finalUrl.split('#')[1] ?? '';
+    const segments = pathAfterHash.split('/').filter(Boolean);
+    return { finalUrl, lastSegment: segments.length > 0 ? segments[segments.length - 1] : null };
+  }
+
+  /**
+   * Cuenta rows con datos reales (excluye placeholders "Loading", "No Data", "Empty").
+   * Util para `test.skip(rowCount === 0, 'sin datos')` en flujos padre->hijo.
+   *
+   * Criterio: row con datos = row que contiene texto no-vacio Y que NO es placeholder
+   * (Loading / Cargando / No Data / Sin Datos / Empty). Pueden contener ellipsis "..."
+   * o spinners, asi que el match es contiene-substring case-insensitive.
+   */
+  async getDataRowCount(): Promise<number> {
+    const allRows = this.table.locator('tbody tr');
+    const placeholderRows = this.table.locator('tbody tr', {
+      hasText: /loading|cargando|no data|sin datos|empty/i
+    });
+    const total = await allRows.count();
+    const placeholders = await placeholderRows.count();
+    return Math.max(0, total - placeholders);
   }
 }

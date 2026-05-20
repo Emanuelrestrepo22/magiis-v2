@@ -58,3 +58,16 @@ export { ReportCorporateServicesPage } from './ReportCorporateServicesPage.js';
 export { ReportIndividualCATravelsPage } from './ReportIndividualCATravelsPage.js';
 export { ReportRankingClientsPage } from './ReportRankingClientsPage.js';
 export { ReportRankingVehiclesPage } from './ReportRankingVehiclesPage.js';
+
+// Sprint 8 - Settlements + Affiliate detail flows (con :id)
+export { SettlementsContractorDetailPage } from './settlements/SettlementsContractorDetailPage.js';
+export { SettlementsContractorHistoryPage } from './settlements/SettlementsContractorHistoryPage.js';
+export { SettlementsPassengerDetailPage } from './settlements/SettlementsPassengerDetailPage.js';
+export { SettlementsPassengerHistoryPage } from './settlements/SettlementsPassengerHistoryPage.js';
+export { SettlementsDriverDetailPage } from './settlements/SettlementsDriverDetailPage.js';
+export { SettlementsDriverHistoryPage } from './settlements/SettlementsDriverHistoryPage.js';
+export { SettlementsOwnerDetailPage } from './settlements/SettlementsOwnerDetailPage.js';
+export { SettlementsOwnerHistoryPage } from './settlements/SettlementsOwnerHistoryPage.js';
+export { AffiliateLiquidationDetailPage } from './affiliate/AffiliateLiquidationDetailPage.js';
+export { AffiliateCheckingAccountDetailPage } from './affiliate/AffiliateCheckingAccountDetailPage.js';
+export { AffiliateLiquidationsListWithIdPage } from './affiliate/AffiliateLiquidationsListWithIdPage.js';
