@@ -31,8 +31,10 @@ export class ReportsDailyPage extends BaseListPage {
 
   constructor(page: Page) {
     super(page);
-    // flatpickr-input es el date picker real (sin placeholder generico).
-    this.datePickerInput = page.locator('input.flatpickr-input').first();
+    // mwlFlatpickr crea dos inputs: uno HIDDEN con [(ngModel)] y uno VISIBLE "alt" para mostrar.
+    // El selector debe apuntar al visible (input dentro del .input-group, no el hidden).
+    // Alternativa robusta: anclar al wrapper .input-group del date picker.
+    this.datePickerInput = page.locator('.input-group:has(input[mwlflatpickr i])').first();
     // Container del dashboard = primer .container-fluid dentro de la pagina.
     this.dashboardContainer = page.locator('.container-fluid').first();
   }
