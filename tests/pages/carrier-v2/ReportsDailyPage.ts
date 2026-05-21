@@ -32,9 +32,9 @@ export class ReportsDailyPage extends BaseListPage {
   constructor(page: Page) {
     super(page);
     // mwlFlatpickr crea dos inputs: uno HIDDEN con [(ngModel)] y uno VISIBLE "alt" para mostrar.
-    // El selector debe apuntar al visible (input dentro del .input-group, no el hidden).
-    // Alternativa robusta: anclar al wrapper .input-group del date picker.
-    this.datePickerInput = page.locator('.input-group:has(input[mwlflatpickr i])').first();
+    // Anclamos al .input-group wrapper (contenedor visible que envuelve ambos inputs).
+    // Angular renderiza attrs en lowercase, asi que [mwlflatpickr] es seguro sin flag i.
+    this.datePickerInput = page.locator('.input-group:has(input[mwlflatpickr])').first();
     // Container del dashboard = primer .container-fluid dentro de la pagina.
     this.dashboardContainer = page.locator('.container-fluid').first();
   }
