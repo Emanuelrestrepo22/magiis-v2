@@ -14,8 +14,8 @@ test.describe('@visual @P2 @migration MX-5569 Expired Documentation - visual bas
     const p = new ReportsDocumentationPage(visualPage);
     await p.goto();
     await p.expectListReady();
-    // Esperar a que la red estabilice (Documentation carga lista de documentos asincrona).
-    await visualPage.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => null);
+    // Esperar a que el thead termine de renderizar (deterministic, no usa networkidle que es flaky).
+    await expect(visualPage.locator('thead th').first()).toBeVisible({ timeout: 15_000 });
 
     const card = visualPage.locator('.card').first();
     await expect(card).toBeVisible();
