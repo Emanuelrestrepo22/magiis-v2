@@ -1,0 +1,57 @@
+name: A11y audit - carrier V2
+
+# Suite de accesibilidad WCAG 2.1 AA usando @axe-core/playwright.
+# Modo SOFT AUDIT: scans loguean violations como annotations sin fallar CI.
+# Util para tracking del estado a11y de V2 en cada release y reporte QA.
+on:
+  schedule:
+    - cron: '0 8 * * 1' # weekly los lunes 08:00 UTC (no diario - bajo cambio esperado)
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: 'Patron --grep (default @a11y)'
+        required: false
+        default: '@a11y'
+        type: string
+
+jobs:
+  a11y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Environment TEST expone vars + secrets configurados desde GitHub UI.
+    environment: TEST
+    env:
+      ENV: test
+      CI: 'true'
+      HEADLESS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run a11y audit (@a11y por defecto, override via dispatch)
+        env:
+          BASE_URL: ${{ vars.BASE_URL }}
+          LOGIN_PATH: ${{ vars.LOGIN_PATH }}
+          # Primaria: US (mismo patron que smoke.yml + regression.yml).
+          USER_CARRIER: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_US: ${{ secrets.USER_CARRIER_US }}
+          PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
+          USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
+          PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
+        run: npx playwright test --grep "${{ inputs.grep || '@a11y' }}" --project=carrier-v2-desktop
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a11y-test-report
+          path: evidence/test/
+          retention-days: 30
