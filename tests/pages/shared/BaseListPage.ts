@@ -55,7 +55,12 @@ export abstract class BaseListPage extends BasePage {
       ? page.getByRole('heading', { name: this.breadcrumbRegex, level: 4 }).first()
       : page.locator('h4').first();
 
-    this.searchInput = page.getByPlaceholder(/search|buscar/i).first();
+    // Anchor a input REAL visible dentro de un .search-box o con class="search" en la pantalla.
+    // El generico getByPlaceholder(/search|buscar/) puede matchear un input HIDDEN con
+    // placeholder "Search driver" presente en multiples pantallas (filtro dentro de modales),
+    // lo que generaba TimeoutError en search() porque element is not visible.
+    // Validado contra reports/*/component.html: el input siempre vive en .search-box.
+    this.searchInput = page.locator('.search-box input.search, input.form-control.search').first();
 
     this.dateRangeInput = page
       .getByPlaceholder(/choose date|elegi.? fecha|seleccion.? fecha/i)

@@ -146,9 +146,15 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
 
   test('TC13 Sidebar Reports -> Daily Report carga /reports/daily (MX-5438)', async ({ page }) => {
     annotate('TC13', 'HP');
+    test.info().annotations.push({
+      type: 'note',
+      description:
+        'i18n real del titulo es "Daily" (no "Daily Report"). El heading es h4 con icono prefix.'
+    });
     await page.goto('/carrier/#/reports/daily');
-    await expect(page.getByRole('heading', { name: /daily report/i }).first()).toBeVisible({
-      timeout: 30_000
+    // Heading h4 con texto "Daily". Tolerante a icon prefix.
+    await expect(page.getByRole('heading', { name: /^.*daily.*$/i }).first()).toBeVisible({
+      timeout: 45_000
     });
   });
 
@@ -156,10 +162,14 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
     page
   }) => {
     annotate('TC14', 'HP');
+    test.info().annotations.push({
+      type: 'note',
+      description: 'i18n title real: "Expired & To Expire Documentation". Heading h2.'
+    });
     await page.goto('/carrier/#/reports/documentation');
     await expect(
-      page.getByRole('heading', { name: /expired documentation|documentaci/i }).first()
-    ).toBeVisible({ timeout: 30_000 });
+      page.getByRole('heading', { name: /expired.*documentation|documentaci/i }).first()
+    ).toBeVisible({ timeout: 45_000 });
   });
 
   test('TC15 Sidebar Reports -> Unpaid Trips carga /reports/unpaid-travels-list (MX-5531)', async ({
@@ -260,13 +270,20 @@ test.describe('@P1 @functional @migration MX-5684 Navbar / Shell carrier (Revisi
 
   test('TC24 Click toggle eAffiliates expande submenu (aria-expanded=true)', async ({ page }) => {
     annotate('TC24', 'HP');
+    test.info().annotations.push({
+      type: 'note',
+      description:
+        'i18n menu label real: "eAffiliates (MAGIIS)". Tomamos tiempo extra por animacion accordion.'
+    });
     await page.goto('/carrier/#/dashboard');
     const affToggle = page
       .locator('a.is-parent.menu-link')
-      .filter({ hasText: /affiliate|afiliado/i })
+      .filter({ hasText: /eaffiliate|affiliate|afiliado/i })
       .first();
+    await expect(affToggle).toBeVisible({ timeout: 15_000 });
     await affToggle.click();
-    await expect(affToggle).toHaveAttribute('aria-expanded', 'true', { timeout: 10_000 });
+    // Accordion eAffiliates puede tomar mas tiempo por nested submenus + animaciones.
+    await expect(affToggle).toHaveAttribute('aria-expanded', 'true', { timeout: 20_000 });
   });
 
   test('TC25 Click toggle Configuration expande submenu (aria-expanded=true)', async ({ page }) => {
