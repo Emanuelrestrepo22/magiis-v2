@@ -78,6 +78,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1920, height: 1080 },
+        // Fija browser timezone en UTC para que date pickers/snapshots no cambien
+        // entre runners locales y GitHub Actions.
+        timezoneId: 'UTC',
         storageState: getStorageStatePath(env)
       }
     },
