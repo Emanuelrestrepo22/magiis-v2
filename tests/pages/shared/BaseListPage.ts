@@ -102,9 +102,17 @@ export abstract class BaseListPage extends BasePage {
     await expect(this.table).toBeVisible();
   }
 
-  /** Smoke check estricto: incluye search input visible. Llamar solo si el POM lo tiene. */
+  /**
+   * Smoke check estricto: incluye search input visible. Llamar solo si el POM lo tiene.
+   *
+   * NOTA: NO usar `this.expectListReady()` aca. Si un POM hijo override
+   * expectListReady() y llama a expectListReadyWithSearch(), entrariamos en
+   * recursion infinita por virtual dispatch (this resuelve al override del hijo,
+   * que vuelve a llamar a este metodo, ...). Mantener las assertions inline.
+   */
   async expectListReadyWithSearch(): Promise<void> {
-    await this.expectListReady();
+    await expect(this.heading).toBeVisible();
+    await expect(this.table).toBeVisible();
     await expect(this.searchInput).toBeVisible();
   }
 
