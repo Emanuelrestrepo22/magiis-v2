@@ -55,3 +55,24 @@ jobs:
           name: a11y-test-report
           path: evidence/test/
           retention-days: 30
+
+      - name: Validate Teams webhook secret
+        if: always()
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          if [ -z "${TEAMS_WEBHOOK_URL:-}" ]; then
+            echo "TEAMS_WEBHOOK_URL missing in environment TEST"
+            exit 1
+          fi
+          echo "TEAMS_WEBHOOK_URL available"
+
+      - name: Notify Teams (resultado del run)
+        if: always()
+        continue-on-error: true
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          PROJECT: carrier-v2-e2e
+          SUITE: a11y
+          JOB_STATUS: ${{ job.status }}
+        run: bash scripts/notify-teams.sh
