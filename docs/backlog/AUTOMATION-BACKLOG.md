@@ -196,6 +196,32 @@ Cuando se tome una pantalla del backlog para automatizar:
 
 ---
 
+### FW-001..FW-015 — Evolucion del framework
+
+Auditoria 2026-05-23. Detalle por item (archivos, criterio de aceptacion, dependencias) en [docs/audit/framework-evolution-plan.md](../audit/framework-evolution-plan.md).
+
+| ID     | Item                                              | Fase | Estado          |
+| ------ | ------------------------------------------------- | ---- | --------------- |
+| FW-001 | README + docs de convenciones del repo            | 0    | ✅ ya existia   |
+| FW-002 | Lint + typecheck como gate previo en CI           | 0    | ✅ implementado |
+| FW-003 | Guardrail anti `--update-snapshots` en `ENV=prod` | 0    | ✅ implementado |
+| FW-004 | Limpiar alias `@data` huerfano                    | 0    | ⏭ NO aplica    |
+| FW-005 | Segmentar specs por suite + dominio               | 1    | 🔵 pendiente    |
+| FW-006 | Trazabilidad `tc-map.{md,json}` + extractor       | 1    | ✅ implementado |
+| FW-007 | Locators compartidos `tests/locators/carrier-v2/` | 1    | 🔵 pendiente    |
+| FW-008 | Capa API tipada (`tests/api/clients/`)            | 2    | 🔵 pendiente    |
+| FW-009 | Mocks deterministas via `route.fulfill`           | 2    | 🔵 pendiente    |
+| FW-010 | Test-data JSON fixtures deterministas             | 2    | 🔵 pendiente    |
+| FW-011 | A11y thresholds + reporter agregado               | 2    | 🔵 pendiente    |
+| FW-012 | Composite action `setup-pw`                       | 3    | ✅ implementado |
+| FW-013 | Sharding 4-way en regression                      | 3    | ✅ implementado |
+| FW-014 | Scaffolding `scaffold:page` / `scaffold:spec`     | 3    | ✅ implementado |
+| FW-015 | Dashboard agregado (Allure o HTML consolidado)    | 3    | 🔵 pendiente    |
+
+**Snapshot trazabilidad inicial (FW-006)**: 69 specs analizados, 37 con TC (54%), 32 huerfanos detectados — revisar y agregar annotations `jira`.
+
+---
+
 ## Roadmap propuesto por sprint
 
 | Sprint              | Foco                             | Pantallas                                                     | Tests acumulados |
