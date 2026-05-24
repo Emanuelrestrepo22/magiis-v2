@@ -7,6 +7,7 @@
  * @type functional
  */
 import type { Page, Locator } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { BaseListPage } from '../shared/BaseListPage.js';
 
 export class OwnerListPage extends BaseListPage {
@@ -29,6 +30,10 @@ export class OwnerListPage extends BaseListPage {
   }
 
   async expectListReady(): Promise<void> {
-    await this.expectListReadyWithSearch();
+    // super.expectListReady() apunta directo a BaseListPage.expectListReady (heading + table).
+    // NO usar this.expectListReadyWithSearch() porque su implementacion en Base llama
+    // this.expectListReady() y produciria recursion infinita por virtual dispatch.
+    await super.expectListReady();
+    await expect(this.searchInput).toBeVisible();
   }
 }
