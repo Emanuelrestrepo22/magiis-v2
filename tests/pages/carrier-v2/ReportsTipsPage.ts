@@ -25,7 +25,12 @@ export class ReportsTipsPage extends BaseListPage {
   readonly travelTypeSelect: Locator;
   /** Date range picker (visible solo cuando travelType = Historical). */
   readonly dateRangePicker: Locator;
-  /** Search input con placeholder "Search Name...". */
+  /**
+   * Search input con placeholder "Search Name...". Alias semantico de `searchInput`
+   * (heredado de BaseListPage). Apuntan al mismo elemento `.search-box input.search`.
+   * Mantener el nombre dedicado mejora la legibilidad del spec ("buscar por nombre")
+   * sin duplicar el locator definition.
+   */
   readonly searchByNameInput: Locator;
   /** Dropdown payment method (Checking Account / Credit Card). */
   readonly paymentMethodSelect: Locator;
@@ -56,12 +61,10 @@ export class ReportsTipsPage extends BaseListPage {
     super(page);
     this.travelTypeSelect = page.locator('ng-select').first();
     this.dateRangePicker = page.locator('app-magiis-ranges-date-picker');
-    // Input real: <input type="text" class="form-control search"> con placeholder i18n
-    // "filter_common.search_name" -> EN "Search Name", ES "Buscar nombre". Anclamos a
-    // class.search dentro de .search-box porque hay multiples inputs en pantalla.
-    this.searchByNameInput = page
-      .locator('.search-box input.search, input.form-control.search')
-      .first();
+    // searchByNameInput es alias semantico del searchInput heredado de BaseListPage.
+    // Ambos apuntan a `.search-box input.search` (anchored al .search-box porque hay
+    // multiples inputs en pantalla con placeholder /search/i). Validado contra HTML real V2.
+    this.searchByNameInput = this.searchInput;
     this.paymentMethodSelect = page.locator('ng-select').nth(1);
     this.statusSelect = page.locator('ng-select').nth(2);
 
@@ -77,15 +80,6 @@ export class ReportsTipsPage extends BaseListPage {
     this.columnsConfigButton = this.tableHeaderRow.locator('th').last().locator('a');
 
     this.emptyStateMessage = page.getByText(/no data|sin datos|no records/i).first();
-  }
-
-  /**
-   * Override: Tips Report usa el input `searchByNameInput` (con clase `.search` dentro de .search-box).
-   * El generico de BaseListPage matchea cualquier placeholder con /search/i y puede colisionar
-   * con dropdowns de filtro que tambien tienen "Search...".
-   */
-  async search(query: string): Promise<void> {
-    await this.searchByNameInput.fill(query);
   }
 
   /** Cambia el dropdown de travel type. */
