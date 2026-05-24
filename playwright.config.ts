@@ -11,6 +11,22 @@ validateEnv();
 
 const env = getCurrentEnv();
 
+// Guardrail: prohibir mutaciones de baselines visuales contra produccion.
+// Una regeneracion accidental de snapshots en prod sobreescribiria la verdad
+// con datos volatiles (saldos, KPIs, fechas reales). Bloqueamos antes de que
+// Playwright cargue cualquier spec.
+if (env === 'prod') {
+  const argv = process.argv.join(' ');
+  const updatesSnapshots = /--update-snapshots|(?:^|\s)-u(?:$|\s)/.test(argv);
+  if (updatesSnapshots) {
+    throw new Error(
+      '[playwright.config] ENV=prod no permite --update-snapshots. ' +
+        'Regenera baselines en ENV=test (npm run test:visual:update) o via ' +
+        'workflow_dispatch en visual.yml con update_baselines=true.'
+    );
+  }
+}
+
 export default defineConfig({
   testDir: './tests',
 
