@@ -1,5 +1,7 @@
 # MCP / secrets - NUNCA commitear
-.mcp.json
+# Patron .mcp* cubre .mcp, .mcp.json, .mcp.local.json y cualquier variante futura
+# (los archivos MCP contienen GITHUB_PERSONAL_ACCESS_TOKEN, API keys, etc.).
+.mcp*
 .env
 .env.local
 .env.*.local

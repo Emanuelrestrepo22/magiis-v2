@@ -9,6 +9,8 @@ on:
       - 'global-setup.ts'
       - 'package.json'
       - 'package-lock.json'
+      - '.github/workflows/**'
+      - '.github/actions/**'
   push:
     branches:
       - 'carrier-v2/**'
@@ -25,7 +27,20 @@ on:
         type: string
 
 jobs:
+  # Gate barato (~1 min) que evita correr la suite si lint/typecheck rompe.
+  quality-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pw
+        with:
+          install-browsers: 'false'
+      - run: npm run lint
+      - run: npm run typecheck
+
   smoke-test:
+    needs: quality-checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Environment TEST expone vars (BASE_URL, LOGIN_PATH) y secrets
@@ -37,15 +52,7 @@ jobs:
       HEADLESS: 'true'
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - run: npm ci
-
-      - run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/setup-pw
 
       - name: Run smoke specs (@P1 por defecto, override via dispatch input)
         env:

@@ -15,7 +15,19 @@ on:
         type: string
 
 jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pw
+        with:
+          install-browsers: 'false'
+      - run: npm run lint
+      - run: npm run typecheck
+
   a11y:
+    needs: quality-checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Environment TEST expone vars + secrets configurados desde GitHub UI.
@@ -26,15 +38,7 @@ jobs:
       HEADLESS: 'true'
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - run: npm ci
-
-      - run: npx playwright install --with-deps chromium
+      - uses: ./.github/actions/setup-pw
 
       - name: Run a11y audit (@a11y por defecto, override via dispatch)
         env:

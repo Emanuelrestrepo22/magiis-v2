@@ -1,0 +1,589 @@
+{
+  "generatedAt": "2026-05-24T02:46:47.286Z",
+  "totalSpecs": 69,
+  "entries": [
+    {
+      "spec": "tests/specs/a11y/affiliate-checking-account-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/agency-commissions-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/aging-report-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/cash-flow-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/daily-report-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/documentation-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/gnet-credit-accounts-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/gnet-farm-in-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/navbar-shell-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/other-costs-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P3"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/payment-flow-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/segments-travels-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/taxes-fees-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/tips-report-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/transaction-tracking-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/a11y/unpaid-travels-a11y.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["a11y", "migration"]
+    },
+    {
+      "spec": "tests/specs/affiliate/checking-account-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/auth/login.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": ["/carrier/#/auth/login"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/customers/client-list.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5197"],
+      "routesV2": ["/carrier/#/client/list"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/dashboards/operations-control.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": ["/carrier/#/dashboard"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/drivers/driver-list.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": ["/carrier/#/driver/list"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/explore/sidebar-discovery.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": [],
+      "priorities": [],
+      "types": []
+    },
+    {
+      "spec": "tests/specs/explore/sprint5-6-discovery.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": [],
+      "priorities": [],
+      "types": []
+    },
+    {
+      "spec": "tests/specs/explore/sprint7-discovery.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": [],
+      "priorities": [],
+      "types": []
+    },
+    {
+      "spec": "tests/specs/explore/sprint8-detail-flow-discovery.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": [],
+      "priorities": [],
+      "types": []
+    },
+    {
+      "spec": "tests/specs/explore/sprint8-tables-dom.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": [],
+      "priorities": [],
+      "types": []
+    },
+    {
+      "spec": "tests/specs/owners/owner-list.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5604"],
+      "routesV2": ["/carrier/#/owner/list"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint2-p1.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5438", "MX-5529", "MX-5537", "MX-5554", "MX-5559", "MX-5569", "MX-5572"],
+      "routesV2": [
+        "/carrier/#/affiliate/checking-account",
+        "/carrier/#/map-viewer",
+        "/carrier/#/reports/daily",
+        "/carrier/#/reports/documentation",
+        "/carrier/#/travel/dashboard",
+        "/carrier/#/travel/quotes",
+        "/carrier/#/travel/recurring"
+      ],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint3-p2.spec.ts",
+      "tcIds": [],
+      "jiraIds": [
+        "MX-5560",
+        "MX-5561",
+        "MX-5562",
+        "MX-5565",
+        "MX-5566",
+        "MX-5568",
+        "MX-5571",
+        "MX-5573",
+        "MX-5574"
+      ],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint4-p3.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5575"],
+      "routesV2": ["/carrier/#/settings/otherCosts"],
+      "priorities": ["P3"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint5-desbloqueadas.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5531", "MX-5553"],
+      "routesV2": ["/carrier/#/reports/segments-travels", "/carrier/#/reports/unpaid-travels-list"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint6-settlements.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5647"],
+      "routesV2": [
+        "/carrier/#/liquidations/contractors/list",
+        "/carrier/#/liquidations/drivers/list",
+        "/carrier/#/liquidations/owners/list",
+        "/carrier/#/liquidations/passenger/list"
+      ],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint7-reports.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": [
+        "/carrier/#/reports/corporate-services-type",
+        "/carrier/#/reports/cost-center-report",
+        "/carrier/#/reports/individual-ca-travels",
+        "/carrier/#/reports/ranking-clients",
+        "/carrier/#/reports/ranking-drivers",
+        "/carrier/#/reports/ranking-vehicles",
+        "/carrier/#/reports/travels-list"
+      ],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint8-affiliate-flows.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5646", "MX-5647", "MX-5648"],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint8-detail-flows.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5647"],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/agency-commissions-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/aging-report-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/cash-flow-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/daily-report-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/documentation-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/gnet-credit-accounts-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/gnet-farm-in-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/payment-flow-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/segments-travels-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/taxes-fees-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/tips-report-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/transaction-tracking-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/reports/unpaid-travels-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/settings/other-costs-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P3"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/shell/navbar-detailed.spec.ts",
+      "tcIds": [],
+      "jiraIds": [],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/smoke/carrier-v2-smoke.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": ["/carrier/#/dashboard"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/trips/trips-list-demo.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-PENDING-trips-demo"],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/vehicles/vehicle-list.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": ["/carrier/#/vehicle/list"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/visual/affiliate-checking-account.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5554"],
+      "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/agency-commissions.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5571"],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/aging-report.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5561"],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/cash-flow.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5562"],
+      "routesV2": ["/carrier/#/reports/cash-flow"],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/daily-report.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5438"],
+      "routesV2": ["/carrier/#/reports/daily"],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/dashboard.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5711"],
+      "routesV2": ["/carrier/#/dashboard"],
+      "priorities": ["P1"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/documentation.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5569"],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/gnet-credit-accounts.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5574"],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/gnet-farm-in.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5573"],
+      "routesV2": ["/carrier/#/gnet/farm-in"],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/other-costs.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5575"],
+      "routesV2": [],
+      "priorities": ["P3"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/payment-flow.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5568"],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/segments-travels.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5553"],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/taxes-fees.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5566"],
+      "routesV2": [],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/tips-report.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5560"],
+      "routesV2": ["/carrier/#/reports/tips"],
+      "priorities": ["P1"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/transaction-tracking.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5565"],
+      "routesV2": ["/carrier/#/reports/transaction-tracking"],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    },
+    {
+      "spec": "tests/specs/visual/unpaid-travels.visual.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5531"],
+      "routesV2": ["/carrier/#/reports/unpaid-travels-list"],
+      "priorities": ["P2"],
+      "types": ["migration", "visual"]
+    }
+  ]
+}
