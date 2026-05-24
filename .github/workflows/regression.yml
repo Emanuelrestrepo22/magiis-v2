@@ -7,31 +7,48 @@ on:
   schedule:
     - cron: '0 7 * * *' # nightly 07:00 UTC
   workflow_dispatch:
+    inputs:
+      shards:
+        description: 'Cantidad de shards en paralelo (1 = sin sharding)'
+        required: false
+        default: '4'
+        type: string
 
 jobs:
-  regression-test:
+  quality-checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pw
+        with:
+          install-browsers: 'false'
+      - run: npm run lint
+      - run: npm run typecheck
+
+  regression-test:
+    needs: quality-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     # Environment TEST expone vars (BASE_URL, LOGIN_PATH) y secrets
     # (USER_CARRIER_AR, PASS_CARRIER_AR) configurados desde GitHub UI.
     environment: TEST
+    strategy:
+      fail-fast: false
+      # Sharding 4-way reduce ~90 min secuencial a ~25 min (4 shards paralelos).
+      # Cada shard ejecuta globalSetup (auth carrier) independiente.
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
       ENV: test
       CI: 'true'
       HEADLESS: 'true'
+      TOTAL_SHARDS: '4'
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pw
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - run: npm ci
-
-      - run: npx playwright install --with-deps chromium
-
-      - name: Run regression (excluye @visual)
+      - name: Run regression shard ${{ matrix.shard }}/${{ env.TOTAL_SHARDS }} (excluye @visual)
         env:
           # Variables publicas del environment TEST.
           BASE_URL: ${{ vars.BASE_URL }}
@@ -47,12 +64,13 @@ jobs:
           # Cuando exista carrier FR, agregar:
           # USER_CARRIER_FR: ${{ secrets.USER_CARRIER_FR }}
           # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
-        run: npx playwright test --grep-invert @visual
+        run: npx playwright test --grep-invert @visual --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: regression-test-report
+          # Reportes por shard para poder reconciliar JUnit si se necesita un agregado.
+          name: regression-test-report-shard-${{ matrix.shard }}
           path: evidence/test/
           retention-days: 14
 
@@ -67,13 +85,13 @@ jobs:
           fi
           echo "TEAMS_WEBHOOK_URL available"
 
-      - name: Notify Teams (resultado del run)
+      - name: Notify Teams (resultado del shard)
         if: always()
         continue-on-error: true
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
           PROJECT: carrier-v2-e2e
-          SUITE: regression
+          SUITE: regression-shard-${{ matrix.shard }}
           JOB_STATUS: ${{ job.status }}
         run: bash scripts/notify-teams.sh
 
@@ -85,33 +103,35 @@ jobs:
   #   secrets: USER_CARRIER_AR, PASS_CARRIER_AR  (o equivalente UAT)
   # Cuando esten cargadas, descomentar este job y opcionalmente
   # agregarlo al schedule (o dejarlo solo en workflow_dispatch).
+  # Replica el patron de sharding 4-way del job TEST.
   # ------------------------------------------------------------
   # regression-uat:
+  #   needs: quality-checks
   #   runs-on: ubuntu-latest
-  #   timeout-minutes: 90
+  #   timeout-minutes: 45
   #   environment: UAT
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       shard: [1, 2, 3, 4]
   #   env:
   #     ENV: uat
   #     CI: 'true'
   #     HEADLESS: 'true'
+  #     TOTAL_SHARDS: '4'
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20
-  #         cache: 'npm'
-  #     - run: npm ci
-  #     - run: npx playwright install --with-deps chromium
-  #     - name: Run regression UAT (excluye @visual)
+  #     - uses: ./.github/actions/setup-pw
+  #     - name: Run regression UAT shard ${{ matrix.shard }}/${{ env.TOTAL_SHARDS }} (excluye @visual)
   #       env:
   #         BASE_URL: ${{ vars.BASE_URL }}
   #         LOGIN_PATH: ${{ vars.LOGIN_PATH }}
   #         USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
   #         PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
-  #       run: npx playwright test --grep-invert @visual
+  #       run: npx playwright test --grep-invert @visual --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
   #     - uses: actions/upload-artifact@v4
   #       if: always()
   #       with:
-  #         name: regression-uat-report
+  #         name: regression-uat-report-shard-${{ matrix.shard }}
   #         path: evidence/uat/
   #         retention-days: 14
