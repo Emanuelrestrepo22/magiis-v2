@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-24T02:46:47.286Z",
-  "totalSpecs": 69,
+  "generatedAt": "2026-05-24T16:50:52.229Z",
+  "totalSpecs": 70,
   "entries": [
     {
       "spec": "tests/specs/a11y/affiliate-checking-account-a11y.spec.ts",
@@ -302,6 +302,19 @@
       "tcIds": [],
       "jiraIds": ["MX-5646", "MX-5647", "MX-5648"],
       "routesV2": [],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/release-v2.0.2/sprint8-detail-create-flows.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5647"],
+      "routesV2": [
+        "/carrier/#/liquidations/contractors/(create|details|last-liquidation)",
+        "/carrier/#/liquidations/drivers/(create|details|last-liquidation)",
+        "/carrier/#/liquidations/owners/(create|details|last-liquidation)",
+        "/carrier/#/liquidations/passenger/(create|details|last-liquidation)"
+      ],
       "priorities": ["P1"],
       "types": ["functional", "migration"]
     },
