@@ -20,6 +20,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "validate:env": "tsx tests/utils/envSchema.ts",
+    "traceability": "tsx scripts/extract-tc-map.ts",
+    "scaffold:page": "tsx scripts/scaffold/page.ts",
+    "scaffold:spec": "tsx scripts/scaffold/spec.ts",
     "prepare": "husky"
   },
   "engines": {
