@@ -5,18 +5,19 @@
 **Una pantalla migrada = un archivo Page Object = un archivo spec (o set de specs por categoria).**
 
 Esto garantiza:
+
 - Escalabilidad lineal: sumar pantallas no toca archivos existentes.
 - Reusabilidad clara: cada page expone metodos de negocio.
 - Trazabilidad directa con MX-XXXX y ruta V2.
 
 ## Naming
 
-| Tipo | Patron | Ejemplo |
-| --- | --- | --- |
-| Page Object | `<Pantalla>Page.ts` en PascalCase | `TripsListPage.ts` |
-| Spec functional | `<pantalla>.spec.ts` en kebab-case | `trips-list.spec.ts` |
-| Spec visual | `<pantalla>.visual.spec.ts` | `dashboard.visual.spec.ts` |
-| Carpeta dominio | minusculas | `tests/specs/trips/` |
+| Tipo            | Patron                             | Ejemplo                    |
+| --------------- | ---------------------------------- | -------------------------- |
+| Page Object     | `<Pantalla>Page.ts` en PascalCase  | `TripsListPage.ts`         |
+| Spec functional | `<pantalla>.spec.ts` en kebab-case | `trips-list.spec.ts`       |
+| Spec visual     | `<pantalla>.visual.spec.ts`        | `dashboard.visual.spec.ts` |
+| Carpeta dominio | minusculas                         | `tests/specs/trips/`       |
 
 ## Estructura de un Page Object
 
@@ -85,11 +86,13 @@ export class <Pantalla>Page extends BasePage {
 ## Metodos de pagina: que SI, que NO
 
 ### SI
+
 - Metodos de negocio: `selectDriver(name)`, `confirmTrip()`, `goToDetail(id)`.
 - Validaciones de UI exigidas por el flujo: `expectFormHasError(field, msg)`.
 - Helpers de extraccion: `getTripCount()`, `getRowByPlate(plate)`.
 
 ### NO
+
 - Asserts finales de la business rule (esos van en el spec).
 - Lectura/escritura directa de localStorage (mejor en helpers/utils).
 - Llamadas a API/backend (out of scope).
@@ -97,8 +100,68 @@ export class <Pantalla>Page extends BasePage {
 ## Cuando crear `BasePage` vs herencia simple
 
 - `BasePage` (ya creado): comun a TODAS las pantallas (header, toasts, dismiss).
+- `BaseListPage extends BasePage` (ya creado): listados con heading h2 + search + table + paginacion + PDF. Usar para CUALQUIER pantalla de listado del carrier V2.
+- `BaseDetailPage extends BasePage` (ya creado): pantallas de detalle con breadcrumb h4 + bloques de info.
 - Si dos pantallas comparten muchos elementos (ej. dos formularios CRUD con la misma plantilla), crear un mid-level: `class FormPageBase extends BasePage`.
 - No sobre-abstraer: 3 pantallas similares no justifican base intermedia.
+
+### Decision tree para nuevo POM
+
+1. ¿Es un listado con tabla, search, paginacion? -> `extends BaseListPage`.
+2. ¿Es una pantalla de detalle con breadcrumb h4 + bloques? -> `extends BaseDetailPage`.
+3. ¿Es otra cosa (login, dashboard, mapa, modal)? -> `extends BasePage`.
+
+### Settlements: patron especifico
+
+Los listados `Settlements*` (Contractor/Driver/Owner/Passenger) usan `extends BaseListPage` y aprovechan helpers nativos:
+
+- `clickFirstRowActionButton(buttonIndex)` — rows con N botones de accion (Create, History, PDF).
+- `clickFirstRowLastActionButton()` — cuando el numero de botones varia por tipo de row.
+- `getDataRowCount()` — para `test.skip(rowCount === 0, 'sin datos')` en flujos padre -> hijo.
+
+No redeclarar estos metodos en los POMs concretos.
+
+## Gotcha: virtual dispatch en jerarquia de POMs
+
+Cuando un metodo de la clase base llama `this.otroMetodo()` y una subclase override `otroMetodo`, **virtual dispatch resuelve al override del child desde el constructor o desde otros metodos de la base**. Si el override del child a su vez llama al metodo original de la base, se produce recursion infinita -> `RangeError: Maximum call stack size exceeded`.
+
+### Caso real (FW-007b, 2026-05-24)
+
+- `BaseListPage.expectListReadyWithSearch()` llamaba `await this.expectListReady()`.
+- `ClientListPage.expectListReady()` (override) llamaba `await this.expectListReadyWithSearch()`.
+- Resultado: loop infinito. CI smoke fallo. Typecheck + lint NO lo detectan (es runtime-only).
+
+### Regla
+
+1. **En la subclase, si necesitas extender un metodo de Base, usar `super.X()`** (apunta directo a Base, sin virtual dispatch).
+
+   ```ts
+   async expectListReady(): Promise<void> {
+     await super.expectListReady();          // ← OK, sin virtual dispatch
+     await expect(this.searchInput).toBeVisible();
+   }
+   ```
+
+   No hacer:
+
+   ```ts
+   async expectListReady(): Promise<void> {
+     await this.expectListReadyWithSearch();  // ← TRAMPA si Base llama this.expectListReady
+   }
+   ```
+
+2. **En la base, evitar `this.X()` cuando X sea overridable** y la subclase pueda llamar de vuelta. Preferir inline-ar las assertions:
+
+   ```ts
+   // BaseListPage
+   async expectListReadyWithSearch(): Promise<void> {
+     await expect(this.heading).toBeVisible();   // ← inline
+     await expect(this.table).toBeVisible();
+     await expect(this.searchInput).toBeVisible();
+   }
+   ```
+
+3. **Antes de mergear refactor de herencia, correr un smoke real** local (`npx playwright test --grep @P1 --workers=1`). `npm run typecheck + lint` no detecta este tipo de bug.
 
 ## Trazabilidad MX-XXXX en specs
 

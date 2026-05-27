@@ -209,7 +209,9 @@ Auditoria 2026-05-23. Detalle por item (archivos, criterio de aceptacion, depend
 | FW-005  | Segmentar specs por suite + dominio               | 1    | 🟡 auditado (3 decisiones bloqueantes) |
 | FW-006  | Trazabilidad `tc-map.{md,json}` + extractor       | 1    | ✅ implementado                        |
 | FW-007  | Locators compartidos `tests/locators/carrier-v2/` | 1    | ⏭ NO aplica (ya cubierto por Base)    |
-| FW-007b | Refactor 4 List POMs heredan de `BaseListPage`    | 1    | 🔵 pendiente (sucesor FW-007)          |
+| FW-007b | Refactor 4 List POMs heredan de `BaseListPage`    | 1    | ✅ implementado (-87 lineas)           |
+| FW-007c | Auditoria 4 Settlements ListPage POMs             | 1    | ⏭ NO aplica (ya estaban limpios)      |
+| FW-007d | Auditoria 10 POMs Detail + History                | 1    | ⏭ NO aplica (ya estaban limpios)      |
 | FW-008  | Capa API tipada (`tests/api/clients/`)            | 2    | 🔵 pendiente                           |
 | FW-009  | Mocks deterministas via `route.fulfill`           | 2    | 🔵 pendiente                           |
 | FW-010  | Test-data JSON fixtures deterministas             | 2    | 🔵 pendiente                           |
