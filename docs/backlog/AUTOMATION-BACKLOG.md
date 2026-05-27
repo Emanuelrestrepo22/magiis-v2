@@ -65,6 +65,22 @@ Pantallas críticas para operación diaria, alto tráfico, valor de regresión a
 
 > **Hallazgo discovery 2026-05-19**: `/carrier/#/travel/list` y `/carrier/#/travel/detail` rebotan a dashboard. Las pantallas reales son `travel/dashboard` (gestion = lista) y trip detail se abre haciendo click en una row del dashboard. Sprint 2 reducido de 8 a 7 pantallas P1.
 
+### Estado de cobertura real (2026-05-24)
+
+Revision de cobertura efectiva cruzando el plan P1 con los POMs/specs ya existentes:
+
+| #   | Pantalla                  | POM real                                                                      | Spec real                                                                        | Estado       | Nota                                                                                                                                                               |
+| --- | ------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Map Viewer                | `MapViewerPage`                                                               | `dashboards/map-viewer.spec.ts` (MX-5559)                                        | ✅ Done      | 3 tests @P1                                                                                                                                                        |
+| 2   | New Trip                  | —                                                                             | —                                                                                | 🔵 Bloqueado | Necesita POM nuevo; formulario CRUD requiere DOM real (no inventar selectores)                                                                                     |
+| 3   | Trips Dashboard           | `TravelDashboardPage`                                                         | `dashboards/travel-dashboard.spec.ts` (MX-5529)                                  | ✅ Done      | 3 tests @P1                                                                                                                                                        |
+| 4   | Trip Detail               | —                                                                             | —                                                                                | 🔵 Bloqueado | Accede via click row del Dashboard; requiere DOM real para selectores de detalle                                                                                   |
+| 5   | Owner Liquidations        | `SettlementsOwnerListPage`                                                    | `sprint8-detail-flows.spec.ts` + `sprint8-detail-create-flows.spec.ts` (MX-5647) | ✅ Done      | Lista + flujo padre->hijo                                                                                                                                          |
+| 6   | Driver Liquidations       | `SettlementsDriverListPage`                                                   | idem                                                                             | ✅ Done      | Lista + flujo padre->hijo                                                                                                                                          |
+| 7   | Credit Accounts — Clients | `AffiliateCheckingAccountPage` (MX-5554) + `GnetCreditAccountsPage` (MX-5574) | `affiliate/checking-account-detailed.spec.ts` (10 TCs) + `sprint3-p2.spec.ts`    | ✅ Done      | La URL `/checking-accounts/clients` del snapshot 2026-05-19 nunca se confirmo; la cobertura real vive bajo `/affiliate/checking-account` y `/gnet/credit-accounts` |
+
+**Resumen**: 5/7 pantallas P1 cubiertas (71%). Las 2 restantes (New Trip, Trip Detail) requieren crear POM nuevo, lo que exige inspeccionar el DOM real del portal (sesion autenticada + backend TEST disponible, o MCP Playwright) para no inventar selectores. Bloqueadas hasta tener ese acceso.
+
 ---
 
 ## 🔵 P2 — Formularios CRUD + reportes operativos
