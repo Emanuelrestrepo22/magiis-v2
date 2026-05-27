@@ -129,6 +129,16 @@ Revision de cobertura efectiva cruzando el plan P1 con los POMs/specs ya existen
 | 17  | eAfiliates — Agreements requested | `/carrier/#/affiliate/os-agreement-requested` | MX-?-affiliate-os-agreement-requested | `AffiliateAgreementsRequestedPage` | 2     | functional |
 | 18  | Magiis Apps Store (integrations)  | `/carrier/#/integrations/list`                | MX-5717 + MX-?-integrations-\*        | `IntegrationsListPage`             | 2     | functional |
 
+### Estado de cobertura real P3 (2026-05-27)
+
+Auditoria completa en [`docs/audit/p3-coverage-analysis.md`](../audit/p3-coverage-analysis.md). De las 18 P3:
+
+- ✅ **1 cubierta**: Settings — Other Costs (`SettingsOtherCostsPage`, MX-5575) con specs detailed + a11y + visual.
+- 🟡 **0 falta-spec**: ningun POM P3 sin spec → cero trabajo inmediato.
+- ⏸ **17 no desarrolladas**: declaradas en `ROUTING-V2.0.4.md` pero sin render confirmado en discovery. Diferidas por criterio de scope.
+
+**Cierre de auditoria de cobertura (3 tiers)**: P1 5/5 desarrolladas cubiertas; P2 4 cubiertas + 10 sin POM (bloqueadas por DOM); P3 1 cubierta + 17 no desarrolladas. **El cronograma de cobertura esta agotado para lo ejecutable sin acceso a DOM/discovery/backend.** Desbloqueo: sesion de discovery con backend TEST o MCP Playwright para confirmar cuales de las 27 pendientes (10 P2 + 17 P3) renderizan, y recien ahi crear POMs con selectores reales.
+
 ---
 
 ## ⏸ Reportes detallados (descubrir entrypoint)
