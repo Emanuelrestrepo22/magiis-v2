@@ -53,6 +53,14 @@ jobs:
           PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
         run: npx playwright test --grep "${{ inputs.grep || '@a11y' }}" --project=carrier-v2-desktop
 
+      # FW-011: gate suave de regresion a11y. Compara violations por regla contra
+      # tests/fixtures/a11y-baseline.json. Falla SOLO si crecen (regresion); las 478
+      # ya conocidas no bloquean. Como a11y corre weekly/dispatch (no en PRs), este
+      # gate marca rojo el job semanal cuando la accesibilidad empeora, sin frenar dev.
+      - name: A11y regression gate (FW-011)
+        if: always()
+        run: node scripts/check-a11y-regression.cjs evidence/test/results.json
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

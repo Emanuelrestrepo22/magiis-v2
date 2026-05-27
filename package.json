@@ -23,6 +23,8 @@
     "traceability": "tsx scripts/extract-tc-map.ts",
     "scaffold:page": "tsx scripts/scaffold/page.ts",
     "scaffold:spec": "tsx scripts/scaffold/spec.ts",
+    "a11y:gate": "node scripts/check-a11y-regression.cjs",
+    "dashboard": "node scripts/generate-dashboard.cjs",
     "prepare": "husky"
   },
   "engines": {

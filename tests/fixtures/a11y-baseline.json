@@ -1,0 +1,16 @@
+{
+  "_comment": "Baseline a11y versionado (FW-011). Conteo de nodos con violation por regla WCAG, agregado sobre las 16 pantallas baja-complejidad. Fuente: audit 2026-05-21 (docs/qa/release-v2.0.4/a11y-audit-results.md). El gate (scripts/check-a11y-regression.cjs) FALLA solo si una regla SUPERA su baseline (regresion); igual o menos pasa. Al arreglar bugs a11y, bajar estos numeros para que el baseline no vuelva a subir.",
+  "generatedFrom": "audit 2026-05-21",
+  "standard": "WCAG 2.1 AA",
+  "screensScanned": 16,
+  "totalNodes": 478,
+  "byRule": {
+    "button-name": 64,
+    "label": 19,
+    "color-contrast": 320,
+    "html-has-lang": 16,
+    "link-name": 36,
+    "aria-progressbar-name": 11,
+    "autocomplete-valid": 12
+  }
+}
