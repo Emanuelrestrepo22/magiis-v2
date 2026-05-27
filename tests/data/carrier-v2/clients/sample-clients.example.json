@@ -1,0 +1,19 @@
+{
+  "_comment": "Fixture determinista de ejemplo (FW-010). Datos ficticios con prefijo qa_e2e_ para trazabilidad y limpieza. Copiar/adaptar por dominio segun lo necesite un spec. NO representa datos reales del backend.",
+  "clients": [
+    {
+      "id": "qa_e2e_client_001",
+      "name": "QA Cliente Determinista Uno",
+      "email": "qa_e2e_client_001@yopmail.com",
+      "vip": false,
+      "region": "US"
+    },
+    {
+      "id": "qa_e2e_client_002",
+      "name": "QA Cliente Determinista Dos",
+      "email": "qa_e2e_client_002@yopmail.com",
+      "vip": true,
+      "region": "AR"
+    }
+  ]
+}

@@ -48,12 +48,12 @@ Cada fila lista: ID, descripcion, archivos tocados, criterio de aceptacion, esta
 
 ### Fase 2 — Calidad
 
-| ID     | Item                                                    | Archivos / artefactos                                               | Criterio aceptacion                                       | Estado                                     |
-| ------ | ------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------ |
-| FW-008 | feat: capa API tipada con request context               | `tests/api/clients/<dominio>.client.ts`                             | Al menos 1 spec usa API para precondicion en vez de UI    | 🔵 pendiente (necesita endpoints)          |
-| FW-009 | feat: mocks deterministas via `route.fulfill`           | `tests/api/mocks/`                                                  | Visual specs con datos volatiles migrados a mock          | 🔵 pendiente                               |
-| FW-010 | feat: `test-data/<portal>/` JSON fixtures deterministas | `tests/data/carrier-v2/<dominio>/*.json`                            | Casos estables para smoke critico documentados            | 🔵 pendiente                               |
-| FW-011 | feat: a11y thresholds + reporter agregado               | `tests/fixtures/a11yFixture.ts`, `scripts/generate-a11y-report.cjs` | Workflow falla si violations > baseline +X% (X a definir) | 🔵 pendiente (necesita baseline negociado) |
+| ID     | Item                                                    | Archivos / artefactos                                               | Criterio aceptacion                                       | Estado                                                          |
+| ------ | ------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------- |
+| FW-008 | feat: capa API tipada con request context               | `tests/api/clients/<dominio>.client.ts`                             | Al menos 1 spec usa API para precondicion en vez de UI    | 🔵 pendiente (necesita endpoints)                               |
+| FW-009 | feat: mocks deterministas via `route.fulfill`           | `tests/api/mocks/` (listMock.ts + README)                           | Helpers `mockListResponse`/`mockErrorResponse` listos     | 🟡 scaffold (helpers listos; ningun spec los consume aun)       |
+| FW-010 | feat: `test-data/<portal>/` JSON fixtures deterministas | `tests/data/carrier-v2/<dominio>/*.json` + README + ejemplo         | Estructura + ejemplo qa*e2e* + README de uso              | 🟡 scaffold (estructura lista; fixtures se agregan por demanda) |
+| FW-011 | feat: a11y thresholds + reporter agregado               | `tests/fixtures/a11yFixture.ts`, `scripts/generate-a11y-report.cjs` | Workflow falla si violations > baseline +X% (X a definir) | 🔵 pendiente (necesita baseline negociado)                      |
 
 ### Fase 3 — CI/CD y DX
 
