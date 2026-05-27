@@ -31,7 +31,16 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail/create f
   // retries=2 absorbe timeouts puntuales sin marcar el test como fallido definitivo.
   test.describe.configure({ retries: 2 });
 
-  test('MX-5647 Contractor: lista -> click + -> /contractors/(create|details|last-liquidation)/:id', async ({
+  // FIXME(MX-5647): el boton "+" navega al FORMULARIO de liquidacion (create), no a
+  // un "detail" con heading h2. Usar SettlementsXDetailPage.expectDetailReady() (que
+  // espera heading) es incorrecto para un form -> los 4 tests fallaban en CI.
+  // Pendiente: discovery del DOM real del form de create (ver tests/specs/exploratory/
+  // p2-p3-discovery con RUN_DISCOVERY=true) y crear un POM de formulario apropiado
+  // (Settlements*CreatePage) en vez de reutilizar el DetailPage. Marcados fixme hasta
+  // entonces para no inventar selectores. El flujo History (sprint8-detail-flows) SI
+  // valida bien porque /history/:id es una pantalla con heading real.
+
+  test.fixme('MX-5647 Contractor: lista -> click + -> /contractors/(create|details|last-liquidation)/:id', async ({
     page
   }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
@@ -55,7 +64,7 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail/create f
     await detail.expectDetailReady();
   });
 
-  test('MX-5647 Driver: lista -> click + -> /drivers/(create|details|last-liquidation)/:id', async ({
+  test.fixme('MX-5647 Driver: lista -> click + -> /drivers/(create|details|last-liquidation)/:id', async ({
     page
   }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
@@ -78,7 +87,7 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail/create f
     await detail.expectDetailReady();
   });
 
-  test('MX-5647 Owner: lista -> click + -> /owners/(create|details|last-liquidation)/:id', async ({
+  test.fixme('MX-5647 Owner: lista -> click + -> /owners/(create|details|last-liquidation)/:id', async ({
     page
   }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
@@ -101,7 +110,7 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements detail/create f
     await detail.expectDetailReady();
   });
 
-  test('MX-5647 Passenger: lista -> click + -> /passenger/(create|details|last-liquidation)/:id', async ({
+  test.fixme('MX-5647 Passenger: lista -> click + -> /passenger/(create|details|last-liquidation)/:id', async ({
     page
   }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5647' });
