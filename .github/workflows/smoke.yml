@@ -75,6 +75,11 @@ jobs:
         # y --testIgnore del project en playwright.config.ts si fuera necesario.
         run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --grep-invert "@visual" --project=carrier-v2-desktop
 
+      # FW-015: dashboard HTML consolidado de la corrida (sin deps). Se incluye en el artifact.
+      - name: Generate dashboard (FW-015)
+        if: always()
+        run: node scripts/generate-dashboard.cjs evidence/test/results.json
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

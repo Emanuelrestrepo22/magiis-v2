@@ -51,7 +51,10 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: `evidence/${env}/report` }],
-    ['junit', { outputFile: `evidence/${env}/junit.xml` }]
+    ['junit', { outputFile: `evidence/${env}/junit.xml` }],
+    // JSON con annotations (incluye a11y_violation) consumido por
+    // scripts/check-a11y-regression.cjs (FW-011) y dashboard (FW-015).
+    ['json', { outputFile: `evidence/${env}/results.json` }]
   ],
 
   outputDir: `evidence/${env}/playwright-artifacts`,
