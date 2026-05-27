@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-24T16:50:52.229Z",
-  "totalSpecs": 70,
+  "generatedAt": "2026-05-27T16:24:41.277Z",
+  "totalSpecs": 72,
   "entries": [
     {
       "spec": "tests/specs/a11y/affiliate-checking-account-a11y.spec.ts",
@@ -155,10 +155,26 @@
       "types": ["functional", "migration"]
     },
     {
+      "spec": "tests/specs/dashboards/map-viewer.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5559"],
+      "routesV2": ["/carrier/#/map-viewer"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
       "spec": "tests/specs/dashboards/operations-control.spec.ts",
       "tcIds": [],
       "jiraIds": ["MX-5711"],
       "routesV2": ["/carrier/#/dashboard"],
+      "priorities": ["P1"],
+      "types": ["functional", "migration"]
+    },
+    {
+      "spec": "tests/specs/dashboards/travel-dashboard.spec.ts",
+      "tcIds": [],
+      "jiraIds": ["MX-5529"],
+      "routesV2": ["/carrier/#/travel/dashboard"],
       "priorities": ["P1"],
       "types": ["functional", "migration"]
     },

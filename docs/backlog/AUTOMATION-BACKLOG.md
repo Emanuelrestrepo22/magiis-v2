@@ -65,6 +65,24 @@ Pantallas críticas para operación diaria, alto tráfico, valor de regresión a
 
 > **Hallazgo discovery 2026-05-19**: `/carrier/#/travel/list` y `/carrier/#/travel/detail` rebotan a dashboard. Las pantallas reales son `travel/dashboard` (gestion = lista) y trip detail se abre haciendo click en una row del dashboard. Sprint 2 reducido de 8 a 7 pantallas P1.
 
+### Estado de cobertura real (2026-05-24)
+
+Revision de cobertura efectiva cruzando el plan P1 con los POMs/specs ya existentes:
+
+| #   | Pantalla                  | POM real                                                                      | Spec real                                                                        | Estado     | Nota                                                                                                                                                               |
+| --- | ------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Map Viewer                | `MapViewerPage`                                                               | `dashboards/map-viewer.spec.ts` (MX-5559)                                        | ✅ Done    | 3 tests @P1                                                                                                                                                        |
+| 2   | New Trip                  | —                                                                             | —                                                                                | ⏸ Diferido | **Pantalla de alta complejidad AUN NO DESARROLLADA en el portal V2.** Fuera del scope actual. Sera de las ultimas en automatizarse, cuando dev la implemente.      |
+| 3   | Trips Dashboard           | `TravelDashboardPage`                                                         | `dashboards/travel-dashboard.spec.ts` (MX-5529)                                  | ✅ Done    | 3 tests @P1                                                                                                                                                        |
+| 4   | Trip Detail               | —                                                                             | —                                                                                | ⏸ Diferido | **Pantalla de alta complejidad AUN NO DESARROLLADA en el portal V2.** Misma razon que New Trip. Fuera del scope actual.                                            |
+| 5   | Owner Liquidations        | `SettlementsOwnerListPage`                                                    | `sprint8-detail-flows.spec.ts` + `sprint8-detail-create-flows.spec.ts` (MX-5647) | ✅ Done    | Lista + flujo padre->hijo                                                                                                                                          |
+| 6   | Driver Liquidations       | `SettlementsDriverListPage`                                                   | idem                                                                             | ✅ Done    | Lista + flujo padre->hijo                                                                                                                                          |
+| 7   | Credit Accounts — Clients | `AffiliateCheckingAccountPage` (MX-5554) + `GnetCreditAccountsPage` (MX-5574) | `affiliate/checking-account-detailed.spec.ts` (10 TCs) + `sprint3-p2.spec.ts`    | ✅ Done    | La URL `/checking-accounts/clients` del snapshot 2026-05-19 nunca se confirmo; la cobertura real vive bajo `/affiliate/checking-account` y `/gnet/credit-accounts` |
+
+**Resumen**: de las 7 pantallas del plan P1, **2 (New Trip, Trip Detail) NO estan desarrolladas aun en el portal V2** y quedan diferidas — alta complejidad, seran las ultimas en automatizarse cuando dev las implemente. De las **5 desarrolladas, las 5 estan cubiertas (100%)**. El scope de automatizacion se limita a pantallas ya implementadas en el backlog.
+
+> **Criterio de scope (2026-05-24)**: solo se automatizan pantallas ya desarrolladas/disponibles en el portal V2. Pantallas no desarrolladas (como New Trip y Trip Detail) se difieren hasta que dev las implemente — no se crean POMs con selectores inventados.
+
 ---
 
 ## 🔵 P2 — Formularios CRUD + reportes operativos
