@@ -163,6 +163,18 @@ El módulo Reports no expone submenus visibles desde el sidebar discovery. Branc
 
 ---
 
+## ⏸ Pantallas nuevas detectadas en CI visual (post-snapshot)
+
+Hallazgos cuando el nightly visual reporta drift por items de sidebar agregados por dev despues del ultimo snapshot del backlog. Pendientes de discovery (URL + tier + MX) antes de crear POM.
+
+| Item sidebar | Posicion en V2                                                | Detectado en                                                                                                                                                                                                       | URL probable                                                              | Estado | Nota                                                                                                                                                                                                                                                                                                                            |
+| ------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channels** | entre `Magiis Apps Store` y `Configuration` (sidebar pos #17) | nightly visual 2026-05-31 / 06-01 / 06-02 (run [26817693522](https://github.com/Emanuelrestrepo22/magiis-v2/actions/runs/26817693522)); rompio el baseline `sidebar-desktop-visual-linux.png` con 424 px diff (1%) | sin confirmar — posible `/carrier/#/channels` o subitem de `integrations` | ⏸      | Modulo nuevo agregado por dev al portal V2 sin actualizar `ROUTING-V2.0.4.md`. Tier probable: P3 (admin/integration por proximidad a `Magiis Apps Store` y `Configuration`). Discovery: navegar el item en `tests/specs/exploratory/p2-p3-discovery.spec.ts` con `RUN_DISCOVERY=true` agregando la ruta cuando dev la confirme. |
+
+> El baseline visual del sidebar se regenero (workflow_dispatch + update_baselines=true). Si aparece otro item nuevo en futuros runs, anotarlo aca con el mismo patron.
+
+---
+
 ## ❌ Out of scope / blockers
 
 | Tema                                             | Razón                                                                           |
