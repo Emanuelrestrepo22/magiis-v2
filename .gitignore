@@ -2,6 +2,8 @@
 # Patron .mcp* cubre .mcp, .mcp.json, .mcp.local.json y cualquier variante futura
 # (los archivos MCP contienen GITHUB_PERSONAL_ACCESS_TOKEN, API keys, etc.).
 .mcp*
+# Excepcion: la plantilla SIN secretos si se versiona (referencia para el equipo).
+!.mcp.json.example
 .env
 .env.local
 .env.*.local
@@ -48,8 +50,10 @@ coverage/
 # Worktrees
 .claude/worktrees/
 
-# Tooling interno (agentes, skills, memoria) - no expuesto en el repo publico
-.claude/
+# Claude: settings.json de equipo SE versiona; lo personal/local NO
+.claude/settings.local.json
+
+# Tooling interno (perfil, skills, memoria) - no expuesto en el repo publico
 CLAUDE.md
 memory/
 MEMORY.md
