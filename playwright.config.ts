@@ -100,7 +100,16 @@ export default defineConfig({
         // Fija browser timezone en UTC para que date pickers/snapshots no cambien
         // entre runners locales y GitHub Actions.
         timezoneId: 'UTC',
-        storageState: getStorageStatePath(env)
+        storageState: getStorageStatePath(env),
+        // Determinismo de render de texto (MX-5531): elimina variacion sub-pixel
+        // de fuentes/iconos entre runs del mismo runner Linux, causa del diff de
+        // ~2% concentrado en bordes de texto del thead/barra de filtros.
+        // - font-render-hinting=none: hinting deterministico, sin auto-hint.
+        // - disable-lcd-text: AA en escala de grises (no subpixel RGB).
+        // - force-color-profile=srgb: perfil de color fijo.
+        launchOptions: {
+          args: ['--font-render-hinting=none', '--disable-lcd-text', '--force-color-profile=srgb']
+        }
       }
     },
     {
