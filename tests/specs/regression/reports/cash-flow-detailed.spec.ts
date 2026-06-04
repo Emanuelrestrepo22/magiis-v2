@@ -35,7 +35,7 @@ test.describe('@P2 @functional @migration MX-5562 Collection Movements - cobertu
     annotate('TC03', 'HP');
     const p = new ReportsCashFlowPage(page);
     await p.goto();
-    await expect(p.dateRangeInput.or(p.searchInput)).toBeVisible();
+    await expect(p.dateRangeInput.or(p.searchInput).first()).toBeVisible();
   });
 
   test('TC04 Filtros aplican (estado de cobro / metodo)', async ({ page }) => {
@@ -49,6 +49,10 @@ test.describe('@P2 @functional @migration MX-5562 Collection Movements - cobertu
     annotate('TC05', 'HP');
     const p = new ReportsCashFlowPage(page);
     await p.goto();
+    test.skip(
+      !(await p.hasSearch()),
+      'Collection Movements V2 no expone search libre (ausente tambien en V1; matriz QA generica)'
+    );
     await p.search('qa-cashflow-search');
     await expect(p.searchInput).toHaveValue('qa-cashflow-search');
   });

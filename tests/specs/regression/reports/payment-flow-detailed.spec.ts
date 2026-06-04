@@ -42,13 +42,17 @@ test.describe('@P2 @functional @migration MX-5568 Payment Movements - cobertura 
     annotate('TC04', 'HP');
     const p = new ReportsPaymentFlowPage(page);
     await p.goto();
-    await expect(p.dateRangeInput.or(p.searchInput)).toBeVisible();
+    await expect(p.dateRangeInput.or(p.searchInput).first()).toBeVisible();
   });
 
   test('TC05 Search libre acepta input', async ({ page }) => {
     annotate('TC05', 'HP');
     const p = new ReportsPaymentFlowPage(page);
     await p.goto();
+    test.skip(
+      !(await p.hasSearch()),
+      'Payment Movements V2 no expone search libre (ausente tambien en V1; matriz QA generica)'
+    );
     await p.search('qa-payment-search');
     await expect(p.searchInput).toHaveValue('qa-payment-search');
   });

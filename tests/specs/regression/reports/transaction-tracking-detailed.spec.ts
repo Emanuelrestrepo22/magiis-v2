@@ -42,7 +42,7 @@ test.describe('@P2 @functional @migration MX-5565 Electronic Payment Transaction
     annotate('TC04', 'HP');
     const p = new ReportsTransactionTrackingPage(page);
     await p.goto();
-    await expect(p.dateRangeInput.or(p.searchInput)).toBeVisible();
+    await expect(p.dateRangeInput.or(p.searchInput).first()).toBeVisible();
   });
 
   test('TC05 Search libre acepta input', async ({ page }) => {
