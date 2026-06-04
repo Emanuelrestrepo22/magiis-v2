@@ -4,7 +4,7 @@ name: Visual regression - carrier V2
 # La actualizacion de baselines requiere ejecucion manual con flag update.
 on:
   schedule:
-    - cron: '30 7 * * *' # nightly 07:30 UTC
+    - cron: '0 12 * * *' # nightly 09:00 ART (12:00 UTC) - escalonado tras regression
   workflow_dispatch:
     inputs:
       update_baselines:

@@ -17,7 +17,7 @@ on:
       - 'infra/**'
       - 'analysis/**'
   schedule:
-    - cron: '0 6 * * *' # nightly 06:00 UTC
+    - cron: '30 11 * * *' # nightly 08:30 ART (11:30 UTC) - servidores ya encendidos
   workflow_dispatch:
     inputs:
       grep:

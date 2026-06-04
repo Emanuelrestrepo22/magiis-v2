@@ -5,7 +5,7 @@ name: A11y audit - carrier V2
 # Util para tracking del estado a11y de V2 en cada release y reporte QA.
 on:
   schedule:
-    - cron: '0 8 * * 1' # weekly los lunes 08:00 UTC (no diario - bajo cambio esperado)
+    - cron: '30 11 * * 1' # weekly lunes 08:30 ART (11:30 UTC) - bajo cambio esperado, no diario
   workflow_dispatch:
     inputs:
       grep:
