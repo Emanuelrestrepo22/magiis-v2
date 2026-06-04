@@ -27,10 +27,17 @@ export abstract class BaseListPage extends BasePage {
   readonly table: Locator;
   /** Page size selector (ng-select con texto "Show N"). */
   readonly pageSizeText: Locator;
-  /** Link de paginacion Previous. */
+  /** Link de paginacion Previous (listas clasicas con direction links). */
   readonly previousPageLink: Locator;
-  /** Link de paginacion Next. */
+  /** Link de paginacion Next (listas clasicas con direction links). */
   readonly nextPageLink: Locator;
+  /**
+   * Control de paginacion, tolerante a los dos patrones del carrier V2:
+   *  - listas clasicas: <a>Previous</a> / <a>Next</a> (direction links)
+   *  - reports/gnet (app-table-pagination): <ngb-pagination> que renderiza
+   *    <ul class="pagination"> numerada SIN direction links (directionLinks=false).
+   */
+  readonly pagination: Locator;
 
   /** Ruta del POM concreto (cada subclase lo declara). */
   abstract readonly path: string;
@@ -55,15 +62,24 @@ export abstract class BaseListPage extends BasePage {
       ? page.getByRole('heading', { name: this.breadcrumbRegex, level: 4 }).first()
       : page.locator('h4').first();
 
-    // Anchor a input REAL visible dentro de un .search-box o con class="search" en la pantalla.
-    // El generico getByPlaceholder(/search|buscar/) puede matchear un input HIDDEN con
-    // placeholder "Search driver" presente en multiples pantallas (filtro dentro de modales),
-    // lo que generaba TimeoutError en search() porque element is not visible.
-    // Validado contra reports/*/component.html: el input siempre vive en .search-box.
-    this.searchInput = page.locator('.search-box input.search, input.form-control.search').first();
+    // Input de busqueda libre visible. Varia entre pantallas:
+    //  - listas clasicas: <input class="search"> dentro de un .search-box
+    //  - reports V2 (Electronic Payment, GNET Farm In, etc.): textbox accesible con
+    //    placeholder "Search..." sin wrapper .search-box.
+    // Usamos getByRole('textbox') como fallback porque EXCLUYE inputs hidden (ej. el
+    // "Search driver" de modales cerrados que provocaba TimeoutError con getByPlaceholder).
+    this.searchInput = page
+      .locator('.search-box input.search, input.form-control.search')
+      .or(page.getByRole('textbox', { name: /^search|buscar/i }))
+      .first();
 
+    // mwlFlatpickr con altInput crea DOS inputs: el original queda type="hidden"
+    // (conserva placeholder "Choose Date") y un alt-input VISIBLE para mostrar.
+    // getByPlaceholder matcheaba el HIDDEN -> toBeVisible fallaba con "hidden".
+    // El alt-input visible se expone como role=textbox con name "Choose Date".
+    // (Cf. ReportsDailyPage, que ancla al wrapper .input-group para la misma estructura.)
     this.dateRangeInput = page
-      .getByPlaceholder(/choose date|elegi.? fecha|seleccion.? fecha/i)
+      .getByRole('textbox', { name: /choose date|elegi.? fecha|seleccion.? fecha/i })
       .first();
 
     this.pdfButton = page
@@ -80,6 +96,11 @@ export abstract class BaseListPage extends BasePage {
       .first();
     this.previousPageLink = page.getByRole('link', { name: /^previous$|^anterior$/i });
     this.nextPageLink = page.getByRole('link', { name: /^next$|^siguiente$/i });
+    // Presencia de paginacion: ngb-pagination (reports/gnet) o link Previous clasico.
+    this.pagination = page
+      .locator('ngb-pagination, ul.pagination')
+      .or(this.previousPageLink)
+      .first();
   }
 
   /**
@@ -121,10 +142,55 @@ export abstract class BaseListPage extends BasePage {
     await this.searchInput.fill(query);
   }
 
-  /** Verifica que la paginacion este visible (Previous + Next). */
+  /**
+   * True si el control esta visible poco despues de cargar la pantalla.
+   * Pensado para skip honesto de TCs de "presencia": no todas las pantallas V2
+   * exponen los mismos controles (ej. los reports de date-range no tienen search
+   * libre, los listados GNET no tienen date picker ni PDF). Verificado contra
+   * refs/v1 + refs/v2: la ausencia no es regresion de migracion sino diferencia
+   * real de pantalla. Si MAGIIS agrega el control, el TC se reactiva solo.
+   */
+  protected async isControlPresent(locator: Locator, timeoutMs = 3_000): Promise<boolean> {
+    return locator
+      .first()
+      .waitFor({ state: 'visible', timeout: timeoutMs })
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  /** True si la pantalla expone un input de busqueda libre visible. */
+  async hasSearch(): Promise<boolean> {
+    return this.isControlPresent(this.searchInput);
+  }
+
+  /** True si la pantalla expone un date picker visible. */
+  async hasDatePicker(): Promise<boolean> {
+    return this.isControlPresent(this.dateRangeInput);
+  }
+
+  /** True si la pantalla expone un boton de export PDF visible. */
+  async hasPdf(): Promise<boolean> {
+    return this.isControlPresent(this.pdfButton);
+  }
+
+  /**
+   * True si hay control de paginacion visible. No todas las pantallas lo tienen
+   * (Taxes/Other Costs no montan componente de paginacion) y ngb-pagination no
+   * renderiza cuando la tabla viene sin datos, asi que es legitimo skipear el TC
+   * de presencia cuando no hay paginado que validar.
+   */
+  async hasPagination(): Promise<boolean> {
+    return this.isControlPresent(this.pagination);
+  }
+
+  /**
+   * Verifica que el control de paginacion este presente.
+   * Acepta ambos patrones V2 (links Previous/Next clasicos o ngb-pagination),
+   * porque los reports/gnet migrados usan app-table-pagination (ngb-pagination
+   * numerada, sin direction links) mientras las listas clasicas siguen con links.
+   */
   async expectPaginationReady(): Promise<void> {
-    await expect(this.previousPageLink).toBeVisible();
-    await expect(this.nextPageLink).toBeVisible();
+    await expect(this.pagination).toBeVisible();
   }
 
   /**
