@@ -114,6 +114,11 @@ export default defineConfig({
     },
     {
       name: 'codegen',
+      // Sesion limpia para "Record new". NO debe ejecutar la suite autenticada:
+      // sin testMatch heredaba testDir './tests' y corria TODAS las specs sin login
+      // (heading nunca visible -> goto() timeout), inflando regression con ~72 fallos
+      // espurios bajo [codegen]. Lo acotamos a un dir propio (hoy vacio) -> 0 tests en CI.
+      testMatch: 'tests/codegen/**/*.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
         storageState: { cookies: [], origins: [] }

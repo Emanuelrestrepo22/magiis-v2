@@ -64,7 +64,10 @@ jobs:
           # Cuando exista carrier FR, agregar:
           # USER_CARRIER_FR: ${{ secrets.USER_CARRIER_FR }}
           # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
-        run: npx playwright test --grep-invert @visual --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
+        # --project explicito: excluye 'codegen' (sesion sin auth) y 'visual'.
+        # Sin pin, regression heredaba todos los projects y corria la suite bajo
+        # [codegen] sin login -> ~72 fallos espurios. Mantiene cobertura dual-viewport.
+        run: npx playwright test --grep-invert @visual --project=carrier-v2-desktop --project=carrier-v2-laptop --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
 
       - uses: actions/upload-artifact@v4
         if: always()
