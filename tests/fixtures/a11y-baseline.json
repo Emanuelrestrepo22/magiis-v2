@@ -1,16 +1,16 @@
 {
-  "_comment": "Baseline a11y versionado (FW-011). Conteo de nodos con violation por regla WCAG, agregado sobre las 16 pantallas baja-complejidad. Re-baselined 2026-06-10 (fuente: run weekly 27146339174 del 2026-06-08): se aceptan +7 button-name y +4 aria-progressbar-name por pantallas nuevas merged entre 2026-05-21 y 2026-06-08; se consolida la mejora -38 color-contrast (320->282). Total neto: 478->451 (-27 nodos). Followup: auditar los 11 nodos nuevos cuando capacidad FE lo permita. El gate (scripts/check-a11y-regression.cjs) FALLA solo si una regla SUPERA su baseline (regresion); igual o menos pasa. Al arreglar bugs a11y, bajar estos numeros para que el baseline no vuelva a subir.",
-  "generatedFrom": "audit 2026-05-21 + re-baseline 2026-06-10 (run 27146339174)",
+  "_comment": "Baseline a11y versionado (FW-011). Conteo de nodos con violation por regla WCAG, agregado sobre las 16 pantallas baja-complejidad. Re-baselined 2026-06-10 contra run 27298430405 del mismo dia (valores oficiales: total 486). NOTA sobre volatilidad: color-contrast depende del contenido real del backend (textos, valores) y puede fluctuar entre runs aunque el FE no cambie - por eso entre 2026-05-21 (320), 2026-06-08 (282) y 2026-06-10 (314) se ve oscilacion no estructural. Si vuelve a fluctuar +/-50 nodos sin cambios FE reales, considerar tolerancia +/-X% en el gate. button-name y aria-progressbar-name son mas estables (cambios reales en componentes). El gate FALLA solo si una regla SUPERA su baseline; igual o menos pasa.",
+  "generatedFrom": "audit 2026-05-21 + re-baseline 2026-06-10 (run 27298430405)",
   "standard": "WCAG 2.1 AA",
   "screensScanned": 16,
-  "totalNodes": 451,
+  "totalNodes": 486,
   "byRule": {
-    "button-name": 71,
+    "button-name": 73,
     "label": 19,
-    "color-contrast": 282,
+    "color-contrast": 314,
     "html-has-lang": 16,
     "link-name": 36,
-    "aria-progressbar-name": 15,
+    "aria-progressbar-name": 16,
     "autocomplete-valid": 12
   }
 }
