@@ -1,12 +1,13 @@
 // tests/specs/visual/affiliate-checking-account.visual.spec.ts
 // @visual @P1 @migration - Regresion visual MX-5554 Affiliate Credit Accounts.
 // NOTA: pantalla sin heading h2 (bug a11y) - anclamos al breadcrumb + .listjs-table.
-import { test, expect } from '../../fixtures/visualBaseline.js';
-import { VISUAL_DEFAULTS } from '../../config/visualConfig.js';
+import { test, captureCardAboveTheFold } from '../../fixtures/visualBaseline.js';
 import { AffiliateCheckingAccountPage } from '../../pages/carrier-v2/AffiliateCheckingAccountPage.js';
 
 test.describe('@visual @P1 @migration MX-5554 Affiliate Checking Account - visual baseline', () => {
-  test('card body estable (header + filtros + thead)', async ({ visualPage }) => {
+  test('card above-the-fold estable (header + filtros + thead, excluye tbody)', async ({
+    visualPage
+  }) => {
     test.info().annotations.push({ type: 'jira', description: 'MX-5554' });
     test
       .info()
@@ -16,14 +17,6 @@ test.describe('@visual @P1 @migration MX-5554 Affiliate Checking Account - visua
     await p.goto();
     await p.expectListReady();
 
-    const card = visualPage.locator('.card').first();
-    await expect(card).toBeVisible();
-
-    await expect(card).toHaveScreenshot('affiliate-checking-account.png', {
-      maxDiffPixelRatio: VISUAL_DEFAULTS.maxDiffPixelRatio,
-      animations: VISUAL_DEFAULTS.animations,
-      caret: VISUAL_DEFAULTS.caret,
-      mask: [visualPage.locator('tbody'), visualPage.locator('app-table-pagination')]
-    });
+    await captureCardAboveTheFold(visualPage, 'affiliate-checking-account.png');
   });
 });
