@@ -4,6 +4,7 @@
 // - Congela hora del sistema para evitar diffs por timestamps.
 // Uso: import { test, expect } from '@fixtures/visualBaseline'.
 import { test as base, expect, type Page } from '@playwright/test';
+import { VISUAL_DEFAULTS } from '../config/visualConfig.js';
 
 type VisualFixtures = {
   visualPage: Page;
@@ -50,3 +51,46 @@ export const test = base.extend<VisualFixtures>({
 });
 
 export { expect };
+
+/**
+ * Captura el "above-the-fold" de un .card de listado: clip desde el top del card
+ * hasta el bottom del thead, excluyendo tbody (cuya altura depende de cantidad de
+ * filas del backend y causa size mismatch + DOM mutation entre runs).
+ *
+ * Resuelve el problema cronico de visual flakiness en specs de reports/listados:
+ * antes, el locator era .card completo + mask de tbody/pagination, pero el mask
+ * no colapsa el layout - la altura del card seguia cambiando con el contenido.
+ *
+ * Captura asi solo lo estable: titulo del card, filtros y columnas (thead).
+ *
+ * Uso:
+ *   await captureCardAboveTheFold(visualPage, 'payment-flow.png');
+ */
+export async function captureCardAboveTheFold(
+  page: Page,
+  pngName: string,
+  options?: { maxDiffPixelRatio?: number }
+): Promise<void> {
+  const card = page.locator('.card').first();
+  const thead = page.locator('.card thead').first();
+  await expect(card).toBeVisible();
+  await expect(thead).toBeVisible({ timeout: 15_000 });
+
+  const cardBbox = await card.boundingBox();
+  const theadBbox = await thead.boundingBox();
+  if (!cardBbox || !theadBbox) {
+    throw new Error(`captureCardAboveTheFold: boundingBox null para ${pngName}`);
+  }
+
+  await expect(page).toHaveScreenshot(pngName, {
+    clip: {
+      x: Math.floor(cardBbox.x),
+      y: Math.floor(cardBbox.y),
+      width: Math.ceil(cardBbox.width),
+      height: Math.ceil(theadBbox.y + theadBbox.height - cardBbox.y)
+    },
+    maxDiffPixelRatio: options?.maxDiffPixelRatio ?? VISUAL_DEFAULTS.maxDiffPixelRatio,
+    animations: VISUAL_DEFAULTS.animations,
+    caret: VISUAL_DEFAULTS.caret
+  });
+}
