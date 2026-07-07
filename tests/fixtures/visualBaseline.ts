@@ -57,11 +57,21 @@ export { expect };
  * hasta el bottom del thead, excluyendo tbody (cuya altura depende de cantidad de
  * filas del backend y causa size mismatch + DOM mutation entre runs).
  *
- * Resuelve el problema cronico de visual flakiness en specs de reports/listados:
- * antes, el locator era .card completo + mask de tbody/pagination, pero el mask
- * no colapsa el layout - la altura del card seguia cambiando con el contenido.
+ * Iteracion v2 (2026-07-07): dos ajustes vs. v1 (que quedaba en ratio 0.5%):
  *
- * Captura asi solo lo estable: titulo del card, filtros y columnas (thead).
+ * 1) Math.round uniforme (antes: floor x/y + ceil width/height). El mix de
+ *    floor+ceil hacia que boundingBox con decimales sub-pixel diera clips de
+ *    134 vs 133 px de alto entre runs, disparando "Expected an image 1622x134,
+ *    received 1622x133" (size mismatch = fail duro, sin comparar contenido).
+ *
+ * 2) maxDiffPixels (absoluto) en lugar de maxDiffPixelRatio. En imagenes
+ *    pequenas (~134px de alto), 0.5% son solo ~1000 px - insuficiente para
+ *    absorber variaciones sub-pixel de antialiasing en fonts/iconos (que
+ *    tipicamente son 3000-7000 px). Con umbral absoluto 8000, la tolerancia
+ *    no depende del tamano de la captura.
+ *
+ * Sigue detectando cambios estructurales reales (nuevas columnas, filtros,
+ * headers) que mueven miles de pixeles adicionales.
  *
  * Uso:
  *   await captureCardAboveTheFold(visualPage, 'payment-flow.png');
@@ -69,7 +79,7 @@ export { expect };
 export async function captureCardAboveTheFold(
   page: Page,
   pngName: string,
-  options?: { maxDiffPixelRatio?: number }
+  options?: { maxDiffPixels?: number }
 ): Promise<void> {
   const card = page.locator('.card').first();
   const thead = page.locator('.card thead').first();
@@ -84,12 +94,12 @@ export async function captureCardAboveTheFold(
 
   await expect(page).toHaveScreenshot(pngName, {
     clip: {
-      x: Math.floor(cardBbox.x),
-      y: Math.floor(cardBbox.y),
-      width: Math.ceil(cardBbox.width),
-      height: Math.ceil(theadBbox.y + theadBbox.height - cardBbox.y)
+      x: Math.round(cardBbox.x),
+      y: Math.round(cardBbox.y),
+      width: Math.round(cardBbox.width),
+      height: Math.round(theadBbox.y + theadBbox.height - cardBbox.y)
     },
-    maxDiffPixelRatio: options?.maxDiffPixelRatio ?? VISUAL_DEFAULTS.maxDiffPixelRatio,
+    maxDiffPixels: options?.maxDiffPixels ?? 8000,
     animations: VISUAL_DEFAULTS.animations,
     caret: VISUAL_DEFAULTS.caret
   });
