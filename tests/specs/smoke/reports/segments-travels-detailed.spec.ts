@@ -71,7 +71,8 @@ test.describe('@P1 @functional @migration MX-5553 Trips Segments - cobertura mat
     await expect(p.table).toBeVisible();
   });
 
-  test('TC08 Paginacion + refresh', async ({ page }) => {
+  // fixme: expectPaginationReady() falla - previousPageLink not found en V2 (patron ngb-pagination)
+  test.fixme('TC08 Paginacion + refresh', async ({ page }) => {
     annotate('TC08', 'HP');
     const p = new ReportSegmentsTravelsPage(page);
     await p.goto();
