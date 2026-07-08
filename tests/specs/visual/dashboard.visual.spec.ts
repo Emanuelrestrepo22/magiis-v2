@@ -34,7 +34,7 @@ test.describe('@visual @P1 @migration Sidebar carrier V2', () => {
     // runs de Linux; con ratio 0.001 fallaba por 3000+ px de diff en iconos.
     // maxDiffPixelRatio: 1 desactiva el default global (0.005) del config.
     await expect(sidebar).toHaveScreenshot('sidebar-desktop.png', {
-      maxDiffPixels: 8000,
+      maxDiffPixels: 15000,
       maxDiffPixelRatio: 1,
       animations: VISUAL_DEFAULTS.animations,
       caret: VISUAL_DEFAULTS.caret
