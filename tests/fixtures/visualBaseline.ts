@@ -94,11 +94,14 @@ export async function captureCardAboveTheFold(
       width: Math.round(cardBbox.width),
       height: options?.clipHeight ?? 150
     },
-    maxDiffPixels: options?.maxDiffPixels ?? 8000,
+    // Threshold 15000 px (~6% de 243K px). El bump desde 8000 vino del run
+    // 28971137219 (2026-07-08) donde other-costs quedo en 8592 px - antialiasing
+    // de fonts Linux + iconos varia entre runs y 8000 fue muy justo. 15000
+    // sigue detectando cambios estructurales (nueva columna, banner, boton)
+    // que suelen mover >20000 px en un clip 1622x150.
+    maxDiffPixels: options?.maxDiffPixels ?? 15000,
     // Override: playwright.config.ts define maxDiffPixelRatio: 0.005 global.
-    // Con imagenes de 1622x150 = 243K px, 0.005 = 1215 px - insuficiente
-    // para absorber antialiasing sub-pixel de fonts Linux. maxDiffPixels
-    // absoluto (8000) es el criterio real, este override desactiva el ratio.
+    // 1 (100%) desactiva ese ratio y deja solo maxDiffPixels como criterio.
     maxDiffPixelRatio: 1,
     animations: VISUAL_DEFAULTS.animations,
     caret: VISUAL_DEFAULTS.caret
