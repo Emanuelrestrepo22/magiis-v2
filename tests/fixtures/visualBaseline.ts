@@ -100,6 +100,12 @@ export async function captureCardAboveTheFold(
       height: Math.round(theadBbox.y + theadBbox.height - cardBbox.y)
     },
     maxDiffPixels: options?.maxDiffPixels ?? 8000,
+    // Override explicito: playwright.config.ts define maxDiffPixelRatio 0.005
+    // como default global en expect.toHaveScreenshot. En imagenes pequenas
+    // (134x1622 px = 216K) 0.005 ~= 1000 px, insuficiente y compite con
+    // nuestro maxDiffPixels absoluto. Al pasar 1 (100%) desactivamos ese
+    // umbral y dejamos que solo maxDiffPixels controle el pass/fail.
+    maxDiffPixelRatio: 1,
     animations: VISUAL_DEFAULTS.animations,
     caret: VISUAL_DEFAULTS.caret
   });
