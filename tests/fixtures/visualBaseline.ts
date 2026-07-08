@@ -53,25 +53,22 @@ export const test = base.extend<VisualFixtures>({
 export { expect };
 
 /**
- * Captura el "above-the-fold" de un .card de listado: clip desde el top del card
- * hasta el bottom del thead, excluyendo tbody (cuya altura depende de cantidad de
- * filas del backend y causa size mismatch + DOM mutation entre runs).
+ * Captura solo el `.card-header` de un listado (titulo del reporte + acciones
+ * del header). Es la zona MAS ESTABLE de un card Bootstrap/Angular:
+ * - Altura fija (~60-80px), NO depende del tbody ni del thead.
+ * - No incluye filtros dinamicos ni columnas que ajusten ancho segun datos.
+ * - No sufre reflow: es la primera fila renderizada por el component template.
  *
- * Iteracion v2 (2026-07-07): dos ajustes vs. v1 (que quedaba en ratio 0.5%):
+ * Iteracion v4 (2026-07-08): abandonamos el enfoque de "clip hasta el bottom
+ * del thead" (v2/v3) porque `theadBbox` es fundamentalmente inestable entre
+ * runs de Chromium Linux — cada dispatch tras update_baselines revelaba
+ * OTRO spec con size mismatch de 22px (tips-report 183->161, taxes-fees
+ * 181->203, etc.). El thead cambia altura porque contiene columnas cuyo
+ * ancho se ajusta al contenido async del tbody, disparando reflow multi-fila.
  *
- * 1) Math.round uniforme (antes: floor x/y + ceil width/height). El mix de
- *    floor+ceil hacia que boundingBox con decimales sub-pixel diera clips de
- *    134 vs 133 px de alto entre runs, disparando "Expected an image 1622x134,
- *    received 1622x133" (size mismatch = fail duro, sin comparar contenido).
- *
- * 2) maxDiffPixels (absoluto) en lugar de maxDiffPixelRatio. En imagenes
- *    pequenas (~134px de alto), 0.5% son solo ~1000 px - insuficiente para
- *    absorber variaciones sub-pixel de antialiasing en fonts/iconos (que
- *    tipicamente son 3000-7000 px). Con umbral absoluto 8000, la tolerancia
- *    no depende del tamano de la captura.
- *
- * Sigue detectando cambios estructurales reales (nuevas columnas, filtros,
- * headers) que mueven miles de pixeles adicionales.
+ * Trade-off aceptado: perdemos cobertura visual de filtros y thead. A cambio
+ * ganamos estabilidad total. Cambios estructurales del header (renombrado
+ * del reporte, nuevos botones export/acciones) siguen siendo detectados.
  *
  * Uso:
  *   await captureCardAboveTheFold(visualPage, 'payment-flow.png');
@@ -81,30 +78,14 @@ export async function captureCardAboveTheFold(
   pngName: string,
   options?: { maxDiffPixels?: number }
 ): Promise<void> {
-  const card = page.locator('.card').first();
-  const thead = page.locator('.card thead').first();
-  await expect(card).toBeVisible();
-  await expect(thead).toBeVisible({ timeout: 15_000 });
+  const cardHeader = page.locator('.card > .card-header, .card-header').first();
+  await expect(cardHeader).toBeVisible({ timeout: 15_000 });
 
-  const cardBbox = await card.boundingBox();
-  const theadBbox = await thead.boundingBox();
-  if (!cardBbox || !theadBbox) {
-    throw new Error(`captureCardAboveTheFold: boundingBox null para ${pngName}`);
-  }
-
-  await expect(page).toHaveScreenshot(pngName, {
-    clip: {
-      x: Math.round(cardBbox.x),
-      y: Math.round(cardBbox.y),
-      width: Math.round(cardBbox.width),
-      height: Math.round(theadBbox.y + theadBbox.height - cardBbox.y)
-    },
-    maxDiffPixels: options?.maxDiffPixels ?? 8000,
+  await expect(cardHeader).toHaveScreenshot(pngName, {
+    maxDiffPixels: options?.maxDiffPixels ?? 5000,
     // Override explicito: playwright.config.ts define maxDiffPixelRatio 0.005
-    // como default global en expect.toHaveScreenshot. En imagenes pequenas
-    // (134x1622 px = 216K) 0.005 ~= 1000 px, insuficiente y compite con
-    // nuestro maxDiffPixels absoluto. Al pasar 1 (100%) desactivamos ese
-    // umbral y dejamos que solo maxDiffPixels controle el pass/fail.
+    // como default global. Con el card-header (imagen pequena ~120K px)
+    // 0.005 = 600 px, insuficiente para antialiasing de fonts Linux.
     maxDiffPixelRatio: 1,
     animations: VISUAL_DEFAULTS.animations,
     caret: VISUAL_DEFAULTS.caret
