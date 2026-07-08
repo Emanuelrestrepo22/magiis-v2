@@ -53,22 +53,23 @@ export const test = base.extend<VisualFixtures>({
 export { expect };
 
 /**
- * Captura solo el `.card-header` de un listado (titulo del reporte + acciones
- * del header). Es la zona MAS ESTABLE de un card Bootstrap/Angular:
- * - Altura fija (~60-80px), NO depende del tbody ni del thead.
- * - No incluye filtros dinamicos ni columnas que ajusten ancho segun datos.
- * - No sufre reflow: es la primera fila renderizada por el component template.
+ * Captura el "above-the-fold" del `.card` con altura FIJA (150 px).
  *
- * Iteracion v4 (2026-07-08): abandonamos el enfoque de "clip hasta el bottom
- * del thead" (v2/v3) porque `theadBbox` es fundamentalmente inestable entre
- * runs de Chromium Linux — cada dispatch tras update_baselines revelaba
- * OTRO spec con size mismatch de 22px (tips-report 183->161, taxes-fees
- * 181->203, etc.). El thead cambia altura porque contiene columnas cuyo
- * ancho se ajusta al contenido async del tbody, disparando reflow multi-fila.
+ * Iteracion v5 (2026-07-08): tras validar que en V2 NO existe `.card-header`
+ * de Bootstrap (v4 fallo con "element not found" en 14 specs), volvemos al
+ * clip pero con altura HARDCODED en lugar de calculada dinamicamente vs el
+ * thead. Razon: `theadBbox` es fundamentalmente inestable en Chromium Linux
+ * porque el thead V2 contiene columnas cuyo ancho se ajusta al contenido
+ * async del tbody, disparando reflow multi-fila con altura variable entre
+ * runs (visto v2/v3: tips-report 183->161, taxes-fees 181->203, +/-22px).
  *
- * Trade-off aceptado: perdemos cobertura visual de filtros y thead. A cambio
- * ganamos estabilidad total. Cambios estructurales del header (renombrado
- * del reporte, nuevos botones export/acciones) siguen siendo detectados.
+ * Solucion: capturar SIEMPRE los primeros 150 px del card, desde el top
+ * (x/y/width dinamicos, height fijo). Cubre toolbar de filtros + primera
+ * linea del thead sin depender de bbox calculado. 150 px es suficiente para
+ * la mayoria de reports V2 (toolbar ~50-60px + thead ~40-50px).
+ *
+ * Trade-off aceptado: no capturamos el thead completo si tiene >1 fila. A
+ * cambio ganamos estabilidad total: el clip nunca cambia de tamano entre runs.
  *
  * Uso:
  *   await captureCardAboveTheFold(visualPage, 'payment-flow.png');
@@ -76,16 +77,28 @@ export { expect };
 export async function captureCardAboveTheFold(
   page: Page,
   pngName: string,
-  options?: { maxDiffPixels?: number }
+  options?: { maxDiffPixels?: number; clipHeight?: number }
 ): Promise<void> {
-  const cardHeader = page.locator('.card > .card-header, .card-header').first();
-  await expect(cardHeader).toBeVisible({ timeout: 15_000 });
+  const card = page.locator('.card').first();
+  await expect(card).toBeVisible({ timeout: 15_000 });
 
-  await expect(cardHeader).toHaveScreenshot(pngName, {
-    maxDiffPixels: options?.maxDiffPixels ?? 5000,
-    // Override explicito: playwright.config.ts define maxDiffPixelRatio 0.005
-    // como default global. Con el card-header (imagen pequena ~120K px)
-    // 0.005 = 600 px, insuficiente para antialiasing de fonts Linux.
+  const cardBbox = await card.boundingBox();
+  if (!cardBbox) {
+    throw new Error(`captureCardAboveTheFold: card.boundingBox null para ${pngName}`);
+  }
+
+  await expect(page).toHaveScreenshot(pngName, {
+    clip: {
+      x: Math.round(cardBbox.x),
+      y: Math.round(cardBbox.y),
+      width: Math.round(cardBbox.width),
+      height: options?.clipHeight ?? 150
+    },
+    maxDiffPixels: options?.maxDiffPixels ?? 8000,
+    // Override: playwright.config.ts define maxDiffPixelRatio: 0.005 global.
+    // Con imagenes de 1622x150 = 243K px, 0.005 = 1215 px - insuficiente
+    // para absorber antialiasing sub-pixel de fonts Linux. maxDiffPixels
+    // absoluto (8000) es el criterio real, este override desactiva el ratio.
     maxDiffPixelRatio: 1,
     animations: VISUAL_DEFAULTS.animations,
     caret: VISUAL_DEFAULTS.caret
