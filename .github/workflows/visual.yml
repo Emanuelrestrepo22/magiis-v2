@@ -3,14 +3,14 @@ name: Visual regression - carrier V2
 # Suite visual aislada. Compara contra baselines versionados.
 # La actualizacion de baselines requiere ejecucion manual con flag update.
 #
-# NOTA 2026-07-08: schedule cron DESACTIVADO temporalmente hasta que el fix v5
-# (clip con altura fija) sea validado end-to-end. Motivo: iteraciones v2/v3/v4
-# dejaron flakiness estructural del thead V2 y los mails de fail eran ruido
-# constante para el team. workflow_dispatch permanece para validaciones manuales.
-# Reactivar cuando el fix este confirmado (issue de tracking pendiente).
+# Historial 2026-07-08: schedule fue desactivado temporalmente en PR #25 tras
+# 4 iteraciones fallidas del helper visual (v2/v3/v4 con bbox variable, v4 con
+# .card-header inexistente). Fix v5.1 (clip fijo 150px + maxDiffPixels 15000)
+# validado con 2 dispatches consecutivos verdes (28971477999, 28971641231).
+# Schedule reactivado en este PR.
 on:
-  # schedule:
-  #   - cron: '0 12 * * *' # nightly 09:00 ART (12:00 UTC) - escalonado tras regression
+  schedule:
+    - cron: '0 12 * * *' # nightly 09:00 ART (12:00 UTC) - escalonado tras regression
   workflow_dispatch:
     inputs:
       update_baselines:
