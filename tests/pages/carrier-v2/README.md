@@ -7,7 +7,6 @@ Page Objects del portal carrier V2 (Angular 18). **Un archivo por pantalla migra
 `<NombrePantalla>Page.ts` en PascalCase. Ejemplos hipoteticos (a confirmar contra V2 real):
 
 - `LoginCarrierPage.ts` ✅ existe en V2 (`/carrier/#/auth/login`)
-- `DashboardCarrierPage.ts` ✅ existe en V2 (`/carrier/#/dashboard`, skeleton)
 - `TripsListPage.ts` ⏳ no migrado todavia en `magiis-fe-carrier-v2@main`
 - `DriversListPage.ts` ⏳ no migrado todavia
 - `VehiclesListPage.ts` ⏳ no migrado todavia
@@ -33,7 +32,7 @@ Cada page debe:
 ## Plantilla base
 
 ```ts
-// tests/pages/carrier-v2/TripsListPage.ts (PLANTILLA - pantalla aun no migrada en V2)
+// tests/pages/carrier-v2/<dominio>/TripsListPage.ts (PLANTILLA - pantalla aun no migrada en V2)
 /**
  * @jira MX-XXXX
  * @route /carrier/#/trips (estimado - confirmar cuando dev migre el modulo)
@@ -42,7 +41,7 @@ Cada page debe:
  */
 import type { Page, Locator } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { BasePage } from '../shared/BasePage.js';
+import { BasePage } from '../../shared/BasePage.js';
 
 export class TripsListPage extends BasePage {
   private readonly newTripBtn: Locator;
@@ -76,6 +75,6 @@ export class TripsListPage extends BasePage {
 
 Pendiente de poblar tras destrabar Jira MCP. Cada item se mappea 1:1 a un archivo.
 
-| MX-XXXX | Pantalla | Page Object file | Prioridad |
-| --- | --- | --- | --- |
-| _pending_ | | | |
+| MX-XXXX   | Pantalla | Page Object file | Prioridad |
+| --------- | -------- | ---------------- | --------- |
+| _pending_ |          |                  |           |

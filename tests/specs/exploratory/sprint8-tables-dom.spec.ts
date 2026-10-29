@@ -1,4 +1,4 @@
-// tests/specs/explore/sprint8-tables-dom.spec.ts
+// tests/specs/exploratory/sprint8-tables-dom.spec.ts
 // Discovery quirurgico: dumpea aria-snapshot de cada tabla padre del Sprint 8
 // para entender estructura real (rows con datos vs loading vs empty state vs action buttons).
 import { test, expect } from '../../TestBase.js';
@@ -10,7 +10,7 @@ const TARGETS = [
 
 test.describe('@explore Sprint 8 tables DOM analysis', () => {
   test('aria-snapshot completo de tablas Sprint 8 (2 representativas)', async ({ page }) => {
-    test.info().annotations.push({ type: 'jira', description: 'MX-5711' });
+    test.info().annotations.push({ type: 'tms', description: 'MX-5711' });
 
     for (const target of TARGETS) {
       await page.goto(target.url, { waitUntil: 'domcontentloaded' });

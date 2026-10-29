@@ -1,5 +1,13 @@
 # Best Practices — magiis-carrier-v2-e2e
 
+> ⚠ **PARCIALMENTE SUPERSEDIDO** por [`docs/architecture/CONVENTIONS.md`](CONVENTIONS.md) (2026-09-02).
+> Donde este archivo y CONVENTIONS.md discrepan, manda CONVENTIONS.md (está medido contra el código).
+> Puntos conocidos desactualizados acá: §4 selectores (línea 54) lista `getByTestId` como 3ra opción — hoy
+> tiene 0 uso real, `data-testid` no existe en el front (ver CONVENTIONS.md §7) · §7 tags (líneas 96-103)
+> marca `@a11y`/`@smoke`/`@regression` como tags de título — el filtrado real es por carpeta + `@P1`, no por
+> esos tags (ver CONVENTIONS.md §4) · §8 trazabilidad (líneas 113-123) usa `type:'jira'` + `MX-XXXX`, el
+> contrato vigente es `makeAnnotate`/`type:'tms'` con keys `TM-`/`MG-` (ver CONVENTIONS.md §5).
+
 Documento vivo. Refleja decisiones que aplican a TODO el suite.
 
 ## 1. Capas de datos (separacion clara)
@@ -169,7 +177,7 @@ git commit --no-verify -m "..."
 
 ## 12. Visual regression: workflow
 
-1. Local dev: `npm run test:visual:update` genera baselines en `tests/specs/visual/<spec>-snapshots/` (default de Playwright junto al spec).
+1. Local dev: `npm run test:visual:update` genera baselines en `tests/specs/<dominio>/<spec>-snapshots/` (default de Playwright junto al spec).
 2. Commit baselines junto al spec.
 3. CI corre `npm run test:visual` y compara contra baselines commiteados.
 4. Si cambian intencionalmente: PR con `npm run test:visual:update` + descripcion del por que.

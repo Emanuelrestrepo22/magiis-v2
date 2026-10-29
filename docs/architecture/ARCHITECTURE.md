@@ -1,5 +1,13 @@
 # Arquitectura del framework `magiis-carrier-v2-e2e`
 
+> ⚠ **PARCIALMENTE SUPERSEDIDO** por [`docs/architecture/CONVENTIONS.md`](CONVENTIONS.md) (2026-09-02).
+> Donde este archivo y CONVENTIONS.md discrepan, manda CONVENTIONS.md (está medido contra el código).
+> Puntos conocidos desactualizados acá: §layout — trazabilidad "obligatoria `MX-XXXX`" (línea 39) y el
+> paso 5 de "Crecer el suite" (línea 103, `type:'jira'`) deben ser `TM-`/`MG-` vía `makeAnnotate`/`type:'tms'`
+> (ver CONVENTIONS.md §5) · `tests/helpers/` (líneas 80-83) se documenta como módulo clave pero tiene 0
+> llamadores medidos — no usarlo (ver CONVENTIONS.md §8) · formato de commit `[MX-XXXX]` (línea 117) es el
+> namespace histórico, ahora `[TM-nnn]`/`[MG-nnn]`.
+
 Framework Playwright + TypeScript para validar la migracion del portal carrier MAGIIS de Angular 8 (V1) a Angular 18 (V2). Solo frontend (visual + funcional).
 
 ## Diagrama de capas
@@ -16,7 +24,7 @@ Framework Playwright + TypeScript para validar la migracion del portal carrier M
 |  global-setup.ts (login + storageState)                  |
 +----------------------------------------------------------+
 |  tests/specs/<dominio>/<archivo>.spec.ts                 |
-|    auth | dashboard | trips | visual | smoke             |
+|    auth | operations | trips | reports | settlements ... |
 +----------------------------------------------------------+
 |  tests/fixtures/                                         |
 |    authFixture | visualBaseline                          |
@@ -45,39 +53,49 @@ Framework Playwright + TypeScript para validar la migracion del portal carrier M
 ## Modulos clave
 
 ### `tests/config/runtime.ts`
+
 Resuelve env activo, baseURL, credenciales, paths de login y storage state.
 Funciones exportadas:
+
 - `getCurrentEnv()` -> `'test'|'uat'|'prod'`
 - `resolveCredentials()` -> `{ username, password }` o lanza error
 - `getCarrierV2Runtime()` -> objeto completo de configuracion
 
 ### `tests/config/visualConfig.ts`
+
 Constantes para regresion visual (thresholds, viewports, animations off).
 
 ### `global-setup.ts`
+
 Antes de correr cualquier spec: login del carrier V2 + guardar `storage/state-carrier-<env>.json`.
 
 ### `playwright.config.ts`
+
 Define 4 projects:
+
 - `carrier-v2-desktop` (1920x1080)
 - `carrier-v2-laptop` (1366x768)
 - `visual` (suite dedicada a regresion visual)
 - `codegen` (sesion limpia para Record new)
 
 ### `tests/pages/shared/`
+
 - `BasePage`: clase abstracta, expone `navigate()`, `toastMessage()`, `dismissAnyDialog()`.
 - `LoginPage`: login carrier V2.
 - `ShellPage`: header, sidebar, user menu, logout.
 
 ### `tests/pages/carrier-v2/`
+
 **Un archivo por pantalla migrada** (de MX-4820). Naming: `<Pantalla>Page.ts`.
 Ver `tests/pages/carrier-v2/README.md` para la convencion completa.
 
 ### `tests/fixtures/`
+
 - `authFixture`: provee `loginPage` y `shellPage` listos para usar.
 - `visualBaseline`: provee `visualPage` con clock fijo, animaciones off, fonts ready.
 
 ### `tests/helpers/`
+
 - `assertions.ts`: asserts complejas reutilizables.
 - `waits.ts`: espera estables (jamas `waitForTimeout`).
 - `selectors.ts`: `byFormControl()`, `byTestId()`, `bySelectOption()`, `tableRowByText()`.
@@ -101,17 +119,20 @@ Para automatizar una pantalla migrada nueva (`MX-XXXX`):
 3. Crear spec en `tests/specs/<dominio>/<pantalla>.spec.ts`.
 4. Agregar tags: `@P1|@P2|@P3` + `@visual|@functional|@both` + `@migration`.
 5. Agregar `test.info().annotations.push({ type: 'jira', description: 'MX-XXXX' })`.
-6. Para regresion visual: crear spec en `tests/specs/visual/` con fixture `visualBaseline`.
+6. Para regresion visual: crear `<pantalla>.visual.spec.ts` en la carpeta del dominio
+   (`tests/specs/<dominio>/`) con fixture `visualBaseline`; el project `visual` lo toma por sufijo.
 7. Correr `npm run test:test` localmente; generar baseline visual con `--update-snapshots`.
 
 ## Branch y commits
 
 Convencion de ramas:
+
 - `carrier-v2/<feature>` para specs nuevos.
 - `analysis/<topic>` para analisis comparativos.
 - `infra/<change>` para config/CI/setup.
 
 Formato de commit (validado via commitlint):
+
 ```
 <tipo>(<scope>): [MX-XXXX] descripcion corta
 ```

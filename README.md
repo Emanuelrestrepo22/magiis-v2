@@ -36,17 +36,17 @@ Automatización del **portal carrier V2** (Angular 18). Se valida:
 
 ## Stack
 
-| Capa | Tooling |
-| --- | --- |
-| Test runner | [Playwright](https://playwright.dev/) 1.49 |
-| Lenguaje | TypeScript 5.7 (strict) |
-| Data factories | [@faker-js/faker](https://fakerjs.dev/) 9.x con locales por región |
-| Accesibilidad | [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm) (WCAG 2.1 AA) |
-| Env validation | [zod](https://zod.dev/) — schema del `.env` con fail-fast |
-| Lint | ESLint 9 flat config + `eslint-plugin-playwright` |
-| Format | Prettier |
-| Git hooks | Husky + lint-staged + commitlint |
-| CI | GitHub Actions (smoke, regression, visual) |
+| Capa           | Tooling                                                                         |
+| -------------- | ------------------------------------------------------------------------------- |
+| Test runner    | [Playwright](https://playwright.dev/) 1.49                                      |
+| Lenguaje       | TypeScript 5.7 (strict)                                                         |
+| Data factories | [@faker-js/faker](https://fakerjs.dev/) 9.x con locales por región              |
+| Accesibilidad  | [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm) (WCAG 2.1 AA) |
+| Env validation | [zod](https://zod.dev/) — schema del `.env` con fail-fast                       |
+| Lint           | ESLint 9 flat config + `eslint-plugin-playwright`                               |
+| Format         | Prettier                                                                        |
+| Git hooks      | Husky + lint-staged + commitlint                                                |
+| CI             | GitHub Actions (smoke, regression, visual)                                      |
 
 ## Arquitectura
 
@@ -85,10 +85,15 @@ Automatización del **portal carrier V2** (Angular 18). Se valida:
 ```
 
 Documentación completa en [`docs/architecture/`](./docs/architecture/):
+
 - [ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md)
 - [ENVIRONMENTS.md](./docs/architecture/ENVIRONMENTS.md)
 - [POM-CONVENTIONS.md](./docs/architecture/POM-CONVENTIONS.md)
 - [BEST-PRACTICES.md](./docs/architecture/BEST-PRACTICES.md)
+
+> **Canon de convenciones**: [`docs/architecture/CONVENTIONS.md`](./docs/architecture/CONVENTIONS.md) es
+> la convención medida contra el código real y supersede a los docs de arriba donde discrepen. Empezar por
+> ahí antes de escribir un POM o spec nuevo.
 
 ## Quick start
 
@@ -116,13 +121,14 @@ npm run test:smoke
 
 Tres environments aislados con su propio `.env`, storage y reportes.
 
-| Env | URL referencia | Workers | Retries | Tests permitidos |
-| --- | --- | --- | --- | --- |
-| `test` | apps-test.magiis.com | 4 | 0 | Todos |
-| `uat` | apps-uat.magiis.com | 2 | 1 | Todos no destructivos |
-| `prod` | apps.magiis.com | 1 | 2 | Solo `@smoke` read-only |
+| Env    | URL referencia       | Workers | Retries | Tests permitidos        |
+| ------ | -------------------- | ------- | ------- | ----------------------- |
+| `test` | apps-test.magiis.com | 4       | 0       | Todos                   |
+| `uat`  | apps-uat.magiis.com  | 2       | 1       | Todos no destructivos   |
+| `prod` | apps.magiis.com      | 1       | 2       | Solo `@smoke` read-only |
 
 Cambio de env:
+
 ```bash
 npm run test:test    # ENV=test
 npm run test:uat     # ENV=uat
@@ -151,8 +157,12 @@ test('@P1 @functional @migration login carrier V2 happy path', async ({ page }) 
  */
 export class TripsListPage extends BasePage {
   private readonly newTripBtn = this.page.getByRole('button', { name: /nuevo viaje/i });
-  async goto() { await this.navigate('/carrier/#/home/trips'); }
-  async openNewTrip() { await this.newTripBtn.click(); }
+  async goto() {
+    await this.navigate('/carrier/#/home/trips');
+  }
+  async openNewTrip() {
+    await this.newTripBtn.click();
+  }
 }
 ```
 
@@ -250,13 +260,14 @@ npm run validate:env            # valida .env con zod
 
 ## CI
 
-| Workflow | Trigger | Suite | Target |
-| --- | --- | --- | --- |
-| `smoke.yml` | PR + nightly | `@P1` | test |
-| `regression.yml` | Nightly + manual | Todos excepto `@visual` | test, uat |
-| `visual.yml` | Nightly + manual | `@visual` | test (baselines aquí) |
+| Workflow         | Trigger          | Suite                   | Target                |
+| ---------------- | ---------------- | ----------------------- | --------------------- |
+| `smoke.yml`      | PR + nightly     | `@P1`                   | test                  |
+| `regression.yml` | Nightly + manual | Todos excepto `@visual` | test, uat             |
+| `visual.yml`     | Nightly + manual | `@visual`               | test (baselines aquí) |
 
 Secrets requeridos en GitHub:
+
 ```
 CARRIER_V2_BASE_URL_TEST
 CARRIER_V2_USER_TEST
@@ -269,6 +280,7 @@ CARRIER_V2_PASS_UAT
 ## Contribuir
 
 ### Branch naming
+
 Respetar [magiis-branch-convention](https://github.com/<owner>/magiis-branch-convention):
 
 ```
@@ -278,6 +290,7 @@ infra/<change>            # config/CI
 ```
 
 ### Commits
+
 Formato enforced por commitlint:
 
 ```
@@ -289,6 +302,7 @@ chore(ci): actualizar workflow smoke (sin TC asociado)
 ```
 
 ### Pull request checklist
+
 - [ ] Tests pasan local (`npm run test:smoke`)
 - [ ] Typecheck pasa (`npm run typecheck`)
 - [ ] Lint pasa (`npm run lint`)

@@ -132,7 +132,7 @@ Cada uno se genera por `global-setup.ts` al primer run del env.
 Convencion: nombrar snapshots con sufijo de env cuando es necesario.
 
 ```
-tests/specs/visual/<spec>-snapshots/
+tests/specs/<dominio>/<spec>-snapshots/
 ├── sidebar-desktop-visual-linux.png   # <name>-<project>-<platform>.png
 └── ...
 ```

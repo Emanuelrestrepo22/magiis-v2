@@ -17,6 +17,10 @@ export class ShellPage extends BasePage {
   readonly operationsControlMenuItem: Locator;
   readonly userMenu: Locator;
   readonly logoutButton: Locator;
+  /** Selector de idioma del topbar (`app-language-dropdown`): botón que muestra el idioma activo (EN/ES). */
+  readonly languageToggle: Locator;
+  /** Ítems del menú de idioma (`a.dropdown-item.language`, texto EN / ES). */
+  readonly languageItems: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -30,11 +34,25 @@ export class ShellPage extends BasePage {
       .first();
     this.userMenu = page.getByTestId('user-menu');
     this.logoutButton = page.getByRole('menuitem', { name: /salir|logout|cerrar sesi[oó]n/i });
+    this.languageToggle = page.locator('app-language-dropdown').getByRole('button');
+    this.languageItems = page.locator('app-language-dropdown a.dropdown-item.language');
   }
 
   /** Considera el shell listo cuando el item raiz del sidebar esta visible. */
   async expectShellReady(): Promise<void> {
     await expect(this.operationsControlMenuItem).toBeVisible({ timeout: 15_000 });
+  }
+
+  /**
+   * Cambia el idioma del portal SIN recargar (selector del topbar). El idioma es 100% client-side
+   * (no depende del carrier). Espera el efecto observable: el botón pasa a mostrar el idioma nuevo.
+   */
+  async setLanguage(language: 'en' | 'es'): Promise<void> {
+    const label = language.toUpperCase();
+    if ((await this.languageToggle.innerText()).trim() === label) return;
+    await this.languageToggle.click();
+    await this.languageItems.filter({ hasText: new RegExp(`^\\s*${label}\\s*$`) }).click();
+    await expect(this.languageToggle).toHaveText(label, { timeout: 10_000 });
   }
 
   async logout(): Promise<void> {

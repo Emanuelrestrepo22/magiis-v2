@@ -1,4 +1,21 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npx eslint *)",
+      "Bash(npx tsc *)",
+      "Bash(python -c ' *)",
+      "PowerShell(npx playwright test --list*)",
+      "Bash(npm run test:test *)",
+      "Bash(npx playwright test *)",
+      "Bash(npx cross-env ENV=test npx playwright test *)",
+      "PowerShell(npm run test:test *)",
+      "PowerShell(npx playwright test *)",
+      "PowerShell(npx cross-env ENV=test npx playwright test *)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run traceability)",
+      "Bash(npm run migration:ledger)"
+    ]
+  },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["gitlab", "github"],
   "enabledPlugins": {

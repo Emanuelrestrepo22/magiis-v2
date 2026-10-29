@@ -3,14 +3,15 @@
 // Si FAKER_SEED esta en .env, se aplica al cargar - permite reproducir un test failed
 // con exactamente los mismos datos generados.
 import { faker } from '@faker-js/faker';
-import { fakerES, fakerES_MX, fakerEN_US } from '@faker-js/faker';
+import { fakerES, fakerES_MX, fakerEN_US, fakerFR } from '@faker-js/faker';
 import type { CarrierRegion } from '../config/runtime.js';
 
 const FAKER_BY_REGION: Record<CarrierRegion, typeof faker> = {
   '': faker, // primario (es por defecto)
   AR: fakerES,
   US: fakerEN_US,
-  MX: fakerES_MX
+  MX: fakerES_MX,
+  FR: fakerFR
 };
 
 /**

@@ -1,0 +1,58 @@
+# Project configuration consumed by AI agents (Claude, Cursor, Gemini, Codex, etc.)
+# Alineado con el orquestador de metodología: agentic-qa-boilerplate (HUB KATA).
+# Variables snake_case; el AI mapea {{PROJECT_KEY}} -> project.project_key léxicamente.
+#
+# ROL DE ESTE REPO: capa UI (E2E web) del portafolio QA MAGIIS. Automatiza el portal
+# Carrier V2 (Angular 18) con Playwright + Page Object Model. La metodología (KATA,
+# trazabilidad, ambientes) se define en el HUB; aquí se aplica el "contrato de
+# consistencia" (ver CLAUDE.md).
+
+project:
+  project_name: MAGIIS Carrier V2 (UI) # dominio Carrier — migración Angular 8 → Angular 18
+  project_key: MG # MIGRACIÓN MX→MG (2026-07-17): Carrier pasa a MAGIIS-4 (MG, jira-native). Keys nuevas = MG-XXXX. Las MX-XXXX en specs son históricas (pendiente mapeo MX→MG).
+  webapp_domain: apps-test.magiis.com # portal Carrier V2, base href /carrier/ (hash routing)
+
+backend:
+  backend_repo: C:\Users\Erika\OneDrive - MAGIIS USA LLC (1)\Escritorio\magiis-be # READ-ONLY (contrato/API de apoyo)
+  backend_stack: Spring Boot (Java 8) + JPA/Hibernate + Spring Security/JWT; deploy prefix magiis-v0.2/
+  backend_entry: src/main/java/com/magiis/magiis
+
+frontend:
+  frontend_repo: C:\Users\Erika\OneDrive - MAGIIS USA LLC (1)\Escritorio\magiis-fe-carrier-v2 # ACTIVO: Angular 18. Legacy A5/A8 = magiis-fe (refs/v1/)
+  frontend_stack: 'Angular 18 + Angular Material 16 + Google Maps + CKEditor (carrier-magiis-fe v2.0.0). Hash routing, base href /carrier/'
+  frontend_entry: src
+
+database:
+  db_type: Oracle # validación DB por cliente externo o SQLcl MCP (no se toca DB desde la capa UI salvo verificación)
+
+issue_tracker:
+  issue_tracker: Jira # MAGIIS Jira Cloud
+  issue_tracker_cli: acli # Atlassian CLI
+  atlassian_url: https://magiis.atlassian.net # cloudId 56c215ad-7fd1-43cd-81a3-ee41d2a2aafd
+
+testing:
+  default_env: test # getCurrentEnv() default = 'test' (runtime.ts)
+  tms_cli: acli # Modalidad jira-native: MG (MAGIIS-4) NO tiene Xray → ATP/ATR/bugs como comentarios estructurados. xray-reporter.ts queda para histórico MX/AF.
+  # Contrato de trazabilidad canónico (HUB): annotation type:'tms' con la key MG-XXXX + type:'tc' para subcasos.
+  # ⚠ CONVERGENCIA PENDIENTE: hoy predomina type:'jira' (121 usos) → migrar a type:'tms'. Además: keys MX-XXXX → MG-XXXX (mapeo de migración).
+  smoke_tag: '@P1' # equivalente a @critical del HUB — documentar el mapeo
+  regions: ['', 'AR', 'US', 'MX'] # tests parametrizables por región (USER_CARRIER[_<REGION>])
+
+# Per-environment config. Vocabulario HUB: qa=TEST · staging=UAT · production=PROD.
+# Mapear, no renombrar los .env.{test,uat,prod}. Guardrail: prohibido --update-snapshots en prod.
+environments:
+  test: # ENV=test → apps-test (qa en vocabulario HUB). Env de ejecución por defecto.
+    web_url: https://apps-test.magiis.com/carrier/ # login /carrier/#/auth/login · dashboard /carrier/#/dashboard
+    api_url: https://apps-test.magiis.com/magiis-v0.2/ # backend de apoyo
+    db_mcp: null
+    api_mcp: null # la capa UI no consume el openapi MCP directamente
+  uat: # ENV=uat → apps-uat (staging en vocabulario HUB)
+    web_url: https://apps-uat.magiis.com/carrier/ # CONFIRMAR
+    api_url: https://apps-uat.magiis.com/magiis-v0.2/
+    db_mcp: null
+    api_mcp: null
+  prod: # ENV=prod → producción. Solo read-only; storageState state-carrier-prod.json.
+    web_url: null # TODO: confirmar dominio Carrier V2 prod
+    api_url: https://api.apps.magiis.com/
+    db_mcp: null
+    api_mcp: null

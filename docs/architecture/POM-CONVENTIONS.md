@@ -1,5 +1,12 @@
 # POM Conventions — carrier V2
 
+> ⚠ **PARCIALMENTE SUPERSEDIDO** por [`docs/architecture/CONVENTIONS.md`](CONVENTIONS.md) (2026-09-02).
+> Donde este archivo y CONVENTIONS.md discrepan, manda CONVENTIONS.md (está medido contra el código).
+> Puntos conocidos desactualizados acá: naming `MX-XXXX` (línea 11, ahora `TM-`/`MG-`, ver
+> CONVENTIONS.md §5) · locators `private readonly` en el ejemplo de estructura (línea 38, el patrón
+> vigente es `readonly` público sin `private`, ver CONVENTIONS.md §6) · sección "Trazabilidad MX-XXXX en
+> specs" (líneas 166-177, usa `type:'jira'` legacy en vez de `makeAnnotate`/`type:'tms'`).
+
 ## Regla de oro
 
 **Una pantalla migrada = un archivo Page Object = un archivo spec (o set de specs por categoria).**

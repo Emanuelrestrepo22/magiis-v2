@@ -15,6 +15,10 @@ function walk(suite) {
       const unique = [...new Set(violations)];
       out.push({
         spec: spec.file.replace(/^.*[\\/]/, '').replace('.spec.ts', ''),
+        // Ruta real del spec desde la raiz del repo. `spec.file` viene relativo al testDir
+        // ('./tests'), por eso el prefijo. Antes se hardcodeaba 'tests/specs/a11y/<basename>':
+        // con los specs agrupados por dominio esa carpeta ya no existe.
+        path: 'tests/' + spec.file.replace(/\\/g, '/'),
         jira,
         route,
         violations: unique
@@ -73,7 +77,7 @@ for (const r of out.sort((a, b) => a.spec.localeCompare(b.spec))) {
   const niceName = r.spec.replace('-a11y', '').replace(/-/g, ' ');
   md += `### ${r.jira} - ${niceName}\n\n`;
   md += `- **Ruta**: \`${r.route}\`\n`;
-  md += `- **Spec**: \`tests/specs/a11y/${r.spec}.spec.ts\`\n`;
+  md += `- **Spec**: \`${r.path}\`\n`;
   md += `- **Resumen**: ${critical} critical + ${serious} serious = ${r.violations.length} categorias\n\n`;
   if (r.violations.length > 0) {
     md += '| Severity | Rule | Nodos |\n|---|---|---:|\n';
@@ -109,7 +113,7 @@ md += '## Trazabilidad\n\n';
 md += '| MX | Pantalla | Spec | TC ID |\n|---|---|---|---|\n';
 for (const r of out.sort((a, b) => a.jira.localeCompare(b.jira))) {
   const niceName = r.spec.replace('-a11y', '').replace(/-/g, ' ');
-  md += `| ${r.jira} | ${niceName} | \`tests/specs/a11y/${r.spec}.spec.ts\` | \`${r.jira}-A11Y01\` |\n`;
+  md += `| ${r.jira} | ${niceName} | \`${r.path}\` | \`${r.jira}-A11Y01\` |\n`;
 }
 
 md += '\n## Proximos pasos\n\n';

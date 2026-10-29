@@ -1,7 +1,7 @@
 // scripts/generate-dashboard.cjs
 // FW-015 - Dashboard HTML consolidado (sin dependencias externas).
 // Lee el reporter json de Playwright (evidence/<env>/results.json) y genera un
-// indice HTML autocontenido con resumen por suite (carpeta de spec) + global:
+// indice HTML autocontenido con resumen por suite (tag del spec) + global:
 // passed/failed/flaky/skipped, duracion, y desglose. Se sube como artifact en CI.
 //
 // Uso: node scripts/generate-dashboard.cjs [path/to/results.json]
@@ -20,10 +20,29 @@ if (!fs.existsSync(resultsPath)) {
 
 const data = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
 
-// Suite = primer segmento de carpeta bajo tests/specs/ (smoke, regression, visual, a11y, ...).
-function suiteOf(file) {
-  const m = (file || '').replace(/\\/g, '/').match(/tests\/specs\/([^/]+)\//);
-  return m ? m[1] : 'otros';
+// Suite = el TAG del spec, no su carpeta.
+//
+// Antes se derivaba del primer segmento bajo tests/specs/, que funcionaba solo mientras la
+// carpeta y la suite fueran lo mismo (smoke/, regression/, visual/, a11y/). Con los specs
+// agrupados por dominio (trips/, reports/, auth/, ...) ese path ya no dice nada de la suite.
+// Los tags SI son la verdad: es por tag que la CI selecciona que corre
+// (`--grep @P1`, `--grep @a11y`, `--grep-invert @visual`). Leerlos directo mantiene los mismos
+// grupos que reportaba antes y deja al dashboard inmune a futuras movidas de carpetas.
+//
+// PRECEDENCIA: del job mas especifico al mas general, porque un spec puede llevar varios tags
+// (p.ej. ['a11y','P1','migration'] lo tomaria tanto a11y.yml como smoke.yml). Gana el dueño
+// mas especifico: visual > a11y > P1 (smoke) > P2/P3 (regression).
+const SUITE_BY_TAG = ['visual', 'a11y', 'P1', 'P2', 'P3'];
+
+function suiteOf(spec) {
+  const tags = (spec && spec.tags) || [];
+  // El reporter json emite los tags sin '@'; se normaliza por si eso cambia.
+  const clean = tags.map((t) => String(t).replace(/^@/, ''));
+  const hit = SUITE_BY_TAG.find((t) => clean.includes(t));
+  // Hoy caen aca los 6 specs de exploratory/ (herramientas de relevamiento, sin prioridad por
+  // diseño) y el happy path de alta de viaje, que a proposito no lleva @P1 para que smoke.yml
+  // no cree viajes en cada PR.
+  return hit || 'sin-prioridad';
 }
 
 const bySuite = {};
@@ -45,7 +64,7 @@ function visit(suite, file) {
   for (const s of suite.suites || []) visit(s, f);
   for (const spec of suite.specs || []) {
     for (const t of spec.tests || []) {
-      const suiteName = suiteOf(spec.file || f);
+      const suiteName = suiteOf(spec);
       bySuite[suiteName] = bySuite[suiteName] || { passed: 0, failed: 0, flaky: 0, skipped: 0 };
       const cls = classify({ status: spec.ok === false ? 'failed' : t.status, results: t.results });
       bySuite[suiteName][cls]++;

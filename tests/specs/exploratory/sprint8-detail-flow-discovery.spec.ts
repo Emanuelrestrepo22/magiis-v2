@@ -1,4 +1,4 @@
-// tests/specs/explore/sprint8-detail-flow-discovery.spec.ts
+// tests/specs/exploratory/sprint8-detail-flow-discovery.spec.ts
 // Discovery del flujo padre->hijo Settlements + Affiliate.
 // Para cada lista:
 //  1. Naveva a la lista.
@@ -18,7 +18,7 @@ const AFFILIATE = [{ name: 'Affiliate CC', listPath: '/carrier/#/affiliate/check
 
 test.describe('@explore Sprint 8 detail flow discovery', () => {
   test('Settlements y Affiliate - lista -> click row -> capturar URL detail', async ({ page }) => {
-    test.info().annotations.push({ type: 'jira', description: 'MX-5711' });
+    test.info().annotations.push({ type: 'tms', description: 'MX-5711' });
 
     const targets = [...SETTLEMENTS, ...AFFILIATE];
 

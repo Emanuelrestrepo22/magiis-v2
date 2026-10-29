@@ -67,7 +67,7 @@ Identico hallazgo P2: Las 17 rutas **aparecen declaradas en ROUTING-V2.0.4.md** 
 
 ### SettingsOtherCostsPage (MX-5575)
 
-**Ubicacion:** tests/pages/carrier-v2/SettingsOtherCostsPage.ts
+**Ubicacion:** tests/pages/carrier-v2/settings/SettingsOtherCostsPage.ts
 
 **Clase exacta:** SettingsOtherCostsPage
 
@@ -112,11 +112,11 @@ Identico hallazgo P2: Las 17 rutas **aparecen declaradas en ROUTING-V2.0.4.md** 
    - Cobertura completa: heading validation, search, pagination, filters
    - CRUD smoke: simular create/edit/delete si aplica
 
-3. **tests/specs/a11y/other-costs-a11y.spec.ts** — Accesibility baseline
+3. **tests/specs/settings/other-costs-a11y.spec.ts** — Accesibility baseline
    - @a11y tag
    - Validaciones: color contrast, heading hierarchy, form labels, ARIA
 
-4. **tests/specs/visual/other-costs.visual.spec.ts** — Visual regression baseline
+4. **tests/specs/settings/other-costs.visual.spec.ts** — Visual regression baseline
    - @visual tag
    - Playwright snapshots del layout
 

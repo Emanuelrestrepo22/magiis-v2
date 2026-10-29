@@ -1,4 +1,4 @@
-// tests/specs/explore/p2-p3-discovery.spec.ts
+// tests/specs/exploratory/p2-p3-discovery.spec.ts
 // Spec exploratorio (tag @explore, fuera de smoke).
 // Discovery de las 27 pantallas P2/P3 SIN POM (ver docs/audit/p2-coverage-analysis.md
 // y p3-coverage-analysis.md). Para cada ruta del backlog:
@@ -65,7 +65,7 @@ test.describe('@explore P2/P3 discovery', () => {
   );
 
   test('dumpea estado real de las 25 rutas P2/P3 sin POM', async ({ page }) => {
-    test.info().annotations.push({ type: 'jira', description: 'MX-5711' });
+    test.info().annotations.push({ type: 'tms', description: 'MX-5711' });
 
     const results: Array<Record<string, unknown>> = [];
 

@@ -7,8 +7,31 @@ export type AppEnv = (typeof SUPPORTED_ENVS)[number];
 
 // Regiones soportadas - cada una mapea a un par USER_CARRIER[_<REGION>] + PASS_CARRIER[_<REGION>].
 // Default = '' (region primaria) -> USER_CARRIER / PASS_CARRIER sin sufijo.
-export const SUPPORTED_REGIONS = ['', 'AR', 'US', 'MX'] as const;
+export const SUPPORTED_REGIONS = ['', 'AR', 'US', 'MX', 'FR'] as const;
 export type CarrierRegion = (typeof SUPPORTED_REGIONS)[number];
+
+/**
+ * Regiones SIN fallback a las credenciales primarias: operan un carrier propio con escrituras
+ * (alta, cierre, rendicion). Caer en USER_CARRIER operaria otro carrier sin avisar.
+ */
+const NO_FALLBACK_REGIONS: readonly CarrierRegion[] = ['FR'];
+
+/**
+ * Locale del browser para TODA la suite. Fuente de verdad unica: lo consumen
+ * playwright.config.ts (use raiz) y global-setup.ts (que crea su propio contexto
+ * y NO hereda el use del config).
+ *
+ * El portal resuelve su idioma desde navigator.language (LanguageService ->
+ * getBrowserLang() -> /^es/ -> 'es-ar') y lo persiste en localStorage 'carrier-31'
+ * (StorageKeyEnum.defaultLanguage). Como el storageState se genera en global-setup,
+ * si ese contexto no fija el locale queda 'es-ar' grabado y pisa al locale del config
+ * en todos los tests: el getter de IdentityService lee localStorage antes que el
+ * navegador. Sin esto, en una maquina con SO en espanol la UI sale en ES.
+ *
+ * El idioma NO depende de la cuenta ni del pais del carrier: es 100% client-side.
+ * El project '-es' de docs/architecture/I18N-STRATEGY.md pisara este default.
+ */
+export const DEFAULT_LOCALE = 'en-US';
 
 export type CarrierV2Credentials = {
   username: string;
@@ -57,12 +80,13 @@ export function getEnvFile(): string {
  */
 export function resolveCredentials(region: CarrierRegion = ''): CarrierV2Credentials {
   const suffix = region ? `_${region}` : '';
+  const allowFallback = region !== '' && !NO_FALLBACK_REGIONS.includes(region);
   const username =
     normalizeEnvValue(process.env[`USER_CARRIER${suffix}`]) ??
-    (region ? normalizeEnvValue(process.env.USER_CARRIER) : undefined);
+    (allowFallback ? normalizeEnvValue(process.env.USER_CARRIER) : undefined);
   const password =
     normalizeEnvValue(process.env[`PASS_CARRIER${suffix}`]) ??
-    (region ? normalizeEnvValue(process.env.PASS_CARRIER) : undefined);
+    (allowFallback ? normalizeEnvValue(process.env.PASS_CARRIER) : undefined);
 
   if (!username) {
     throw new Error(`Missing USER_CARRIER${suffix} (and fallback USER_CARRIER) in ${getEnvFile()}`);
@@ -71,6 +95,102 @@ export function resolveCredentials(region: CarrierRegion = ''): CarrierV2Credent
     throw new Error(`Missing PASS_CARRIER${suffix} (and fallback PASS_CARRIER) in ${getEnvFile()}`);
   }
   return { username, password, region };
+}
+
+/**
+ * Credenciales del chofer de la region (app driver). Mismo criterio de sufijo que el carrier:
+ * region 'FR' -> DRIVER_EMAIL_FR / DRIVER_PASSWORD_FR, sin fallback para regiones de
+ * NO_FALLBACK_REGIONS. Falla rapido nombrando la variable (nunca el valor).
+ */
+export function resolveDriverCredentials(region: CarrierRegion = ''): {
+  email: string;
+  password: string;
+  region: CarrierRegion;
+} {
+  const suffix = region ? `_${region}` : '';
+  const allowFallback = region !== '' && !NO_FALLBACK_REGIONS.includes(region);
+  const email =
+    normalizeEnvValue(process.env[`DRIVER_EMAIL${suffix}`]) ??
+    (allowFallback ? normalizeEnvValue(process.env.DRIVER_EMAIL) : undefined);
+  const password =
+    normalizeEnvValue(process.env[`DRIVER_PASSWORD${suffix}`]) ??
+    (allowFallback ? normalizeEnvValue(process.env.DRIVER_PASSWORD) : undefined);
+  if (!email) throw new Error(`Missing DRIVER_EMAIL${suffix} in ${getEnvFile()}`);
+  if (!password) throw new Error(`Missing DRIVER_PASSWORD${suffix} in ${getEnvFile()}`);
+  return { email, password, region };
+}
+
+const FR_TEXT_KEYS = [
+  'FR_CLIENT_QUERY',
+  'FR_CONTRACTOR_QUERY',
+  'FR_ORIGIN_QUERY',
+  'FR_DESTINATION_QUERY',
+  'FR_OTHER_COST_NAME'
+] as const;
+const FR_ID_KEYS = ['FR_DRIVER_ID', 'FR_DRIVER_USER_ID', 'FR_VEHICLE_ID', 'FR_CC_ID'] as const;
+
+/** Datos del circuito e2e del carrier Francia (plan PLAN-E2E-CARRIER-FRANCIA). */
+export type FrCircuitConfig = {
+  clientQuery: string;
+  contractorQuery: string;
+  originQuery: string;
+  destinationQuery: string;
+  otherCostName: string;
+  /** DRIVER.ID (finalizeAdmin). */
+  driverId: number;
+  /** DRIVER.USER_ID (rendicion: query `driverUserId`). */
+  driverUserId: number;
+  vehicleId: number;
+  /** CHECKINGACCOUNT.ID de la CC del contractor. */
+  ccId: number;
+};
+
+/**
+ * Lee FR_* del entorno. Fail-fast: lista TODAS las variables ausentes o invalidas (solo nombres).
+ * Los ids deben ser enteros positivos.
+ */
+export function getFrCircuitConfig(): FrCircuitConfig {
+  const problems: string[] = [];
+  const text: Record<string, string> = {};
+  for (const key of FR_TEXT_KEYS) {
+    const value = normalizeEnvValue(process.env[key]);
+    if (value) text[key] = value;
+    else problems.push(`${key} (missing)`);
+  }
+  const ids: Record<string, number> = {};
+  for (const key of FR_ID_KEYS) {
+    const raw = normalizeEnvValue(process.env[key]);
+    const value = Number(raw);
+    if (!raw) problems.push(`${key} (missing)`);
+    else if (!Number.isInteger(value) || value <= 0)
+      problems.push(`${key} (not a positive integer)`);
+    else ids[key] = value;
+  }
+  if (problems.length > 0) {
+    throw new Error(`FR circuit config incomplete in ${getEnvFile()}: ${problems.join(', ')}`);
+  }
+  return {
+    clientQuery: text.FR_CLIENT_QUERY,
+    contractorQuery: text.FR_CONTRACTOR_QUERY,
+    originQuery: text.FR_ORIGIN_QUERY,
+    destinationQuery: text.FR_DESTINATION_QUERY,
+    otherCostName: text.FR_OTHER_COST_NAME,
+    driverId: ids.FR_DRIVER_ID,
+    driverUserId: ids.FR_DRIVER_USER_ID,
+    vehicleId: ids.FR_VEHICLE_ID,
+    ccId: ids.FR_CC_ID
+  };
+}
+
+/** Gate de irreversibles: solo el valor exacto `1` habilita la accion. */
+export function isFrGateOpen(
+  name:
+    | 'FR_CONFIRM_SURRENDER'
+    | 'FR_EDIT_AFTER_SURRENDER'
+    | 'FR_CIRCUIT_CREATE_TRIP'
+    | 'FR_TOGGLE_AUTO_SURRENDER'
+): boolean {
+  return normalizeEnvValue(process.env[name]) === '1';
 }
 
 export function resolveBaseURL(): string {

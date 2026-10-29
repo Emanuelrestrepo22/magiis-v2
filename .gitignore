@@ -47,6 +47,9 @@ coverage/
 .nyc_output/
 *.log
 
+# Scratch / diagnóstico (no versionar)
+tmp/
+
 # Worktrees
 .claude/worktrees/
 
@@ -60,3 +63,10 @@ MEMORY.md
 npm-install.log
 evidence/
 storage/
+
+# Allure reporting
+allure-results/
+allure-report/
+
+# Snapshots/logs del playwright-cli (relevamiento contra ambientes compartidos): no versionar
+.playwright-cli/

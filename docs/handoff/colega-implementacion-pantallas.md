@@ -10,6 +10,14 @@
 
 El proyecto `magiis-carrier-v2-e2e` automatiza con Playwright + TypeScript la regresion del portal carrier v2 de MAGIIS. Cubre actualmente flujos P1 (login, dashboard, modulos core) y va avanzando sobre P2/P3. Quedan **28 pantallas pendientes** detalladas en la seccion 5: **1 Channels** (nueva, detectada en CI visual 2026-05-31, URL TBD) + **10 P2** (sin POM, requieren discovery) + **17 P3** (todas en `/settings/*`, `/affiliate/*`, `/melita/*`, `/integrations/*`). Las 4 P2 ya cubiertas (Trip Quotes, Recurring Trips, Passenger/Contractor Liquidations) y New Trip/Trip Detail (no desarrolladas) estan listadas como exclusiones explicitas al final de la seccion 5.
 
+> **Corrección (2026-09-02)**: la nota de arriba sobre "New Trip/Trip Detail (no desarrolladas)" caducó.
+> **New Trip** ya tiene 10 TCs automatizados bajo MG-19 (9 en verde, 1 `fixme` con motivo) en
+> `tests/specs/trips/new-trip.spec.ts`. **Trip Detail EXISTE** en el front desplegado (`refs/v2`
+> `origin/main` v2.0.13): la ruta `travel/detail/:id` renderiza `TravelDetailNativeComponent`
+> (`travel-detail-native.component.ts`, 5582 líneas) — el `travel-detail.component.ts` de 48 líneas
+> citado como "stub" es solo un wrapper. Ver `docs/architecture/CONVENTIONS.md` §14 ("nota 'pantalla no
+> desarrollada' caduca con la migración") antes de repetir esta nota en trabajo nuevo.
+
 El colega va a:
 
 1. Tomar la rama `main` y, por cada pantalla, ejecutar el ciclo `discovery -> POM -> spec -> PR -> merge`.
@@ -29,9 +37,10 @@ Referencias clave:
 
 Marcar cada item al ir completando.
 
-- [ ] Clonar el repo desde GitHub:
-  - `git clone https://github.com/Emanuelrestrepo22/magiis-v2.git magiis-carrier-v2-e2e`
-  - (Opcional) agregar mirror GitLab: `git remote add gitlab https://gitlab.com/magiis_team/v2-carrier-testing.git`
+- [ ] Clonar el repo desde GitLab (origin unico desde la migracion del 2026-07-17):
+  - `git clone https://gitlab.com/repo.magiis/magiis-fe-v2-testing.git magiis-carrier-v2-e2e`
+  - NO clonar `github.com/Emanuelrestrepo22/magiis-v2` (archivado) ni
+    `magiis_team/v2-carrier-testing` (deprecado).
 - [ ] Instalar dependencias del sistema:
   - Node.js 20+ (`node --version` >= v20.0.0).
   - Git 2.40+ (`git --version`).
@@ -103,6 +112,7 @@ Resumen ejecutivo de las reglas no negociables. La fuente de verdad detallada vi
   - Multi-TC: `feat(carrier): [MX-5601][MX-5725] management board + client create POMs`.
 - **PR descriptions**: NO incluir el footer "Generated with Claude Code" (memoria `pr-sin-footer-claude`). Resumen + Test plan.
 - **Scope**: solo automatizar pantallas YA desarrolladas en el portal (memoria `scope-pantallas-desarrolladas`). New Trip / Trip Detail siguen diferidas.
+  > **Corrección (2026-09-02)**: ya no. Ambas están desarrolladas — ver la nota al inicio de la sección 1.
 - **No inventar selectores**: ejecutar discovery (`RUN_DISCOVERY=true`) antes de escribir el POM. Capturar `aria-snapshot` real.
 - **Locators (orden de preferencia)**: `getByRole` > `getByLabel` > `getByTestId` > CSS. Evitar XPath y texto dinamico.
 - **Snapshots Playwright**: viven en `<spec>-snapshots/`, no en `__screenshots__/` (memoria `playwright-snapshots-path`).
@@ -152,6 +162,7 @@ Inventario completo (**28 pantallas pendientes**: 1 Channels + 10 P2 + 17 P3) or
 **Exclusiones explicitas (no automatizar hasta nuevo aviso):**
 
 - New Trip / Trip Detail: pantallas marcadas como "no desarrolladas" en `AUTOMATION-BACKLOG.md` p.76-77.
+  > **Corrección (2026-09-02)**: ya no. Ambas están desarrolladas — ver la nota al inicio de la sección 1.
 - Pantallas ya cubiertas: `SettingsOtherCostsPage` (MX-5575), `TravelQuotesPage`, `TravelRecurringPage`, Settlements (Owner/Driver/Passenger/Contractor).
 
 ---
@@ -364,8 +375,9 @@ Lista de archivos que deben moverse en CADA PR de pantalla. Si falta alguno, el 
 
 ## 11. Recursos y enlaces
 
-- Repo GitHub (origin): https://github.com/Emanuelrestrepo22/magiis-v2.git
-- Repo GitLab (mirror): https://gitlab.com/magiis_team/v2-carrier-testing.git
+- Repo GitLab (origin unico): https://gitlab.com/repo.magiis/magiis-fe-v2-testing.git
+- Historicos, no usar: `github.com/Emanuelrestrepo22/magiis-v2` (archivado) y
+  `magiis_team/v2-carrier-testing` (deprecado).
 - Backlog vivo: `docs/backlog/AUTOMATION-BACKLOG.md`
 - JSON backlog (consumido por dashboard): `docs/backlog/automation-backlog.json`
 - Auditorias: `docs/audit/`

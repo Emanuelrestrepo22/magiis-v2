@@ -1,0 +1,24 @@
+{
+  "_comment": "Datos de entrada del happy path de New Trip (FW-010). Fixture DETERMINISTA: depende de registros que ya existen en el entorno de TEST (carrier de la sesion state-carrier-test.json; cliente `test`, medido 2026-09-30). NO usar faker aca: el typeahead de cliente y el autocomplete de Places consultan al backend real, asi que los valores tienen que existir. Si se corre contra otro entorno o carrier, reemplazar por datos de ese entorno.",
+
+  "customer": {
+    "_comment": "El combo busca por APELLIDO (GET /passengers/carrier/<id>?lastName=<search>) y exige 3+ caracteres. `option` es un substring del label real, que tiene formato 'apellido, nombre (+telefono)'; se deja sin el telefono a proposito para no versionar datos de contacto.",
+    "search": "test apellido",
+    "option": "test apellido, test2"
+  },
+
+  "expectedOrigin": {
+    "_comment": "Pick-Up se autocompleta con la direccion registrada del pasajero al seleccionar el cliente; el test no lo escribe, lo verifica.",
+    "address": "Bartolomé Mitre 1100, Salta, Argentina"
+  },
+
+  "destination": {
+    "_comment": "`search` va al autocomplete de Google Places (GET /places/autocomplete?address=<search>). El cliente `test` tiene Pick-Up en Salta y Places sesga las sugerencias a esa region: `Ezeiza` funciona. `optionPattern` (regex, insensible a mayusculas) elige la sugerencia y `option` es su label exacto: hay que esperarla por texto, porque el panel muestra 'No results found' hasta que responde el debounce.",
+    "search": "Ezeiza",
+    "optionPattern": "Acceso A Aeropuerto",
+    "option": "Acceso A Aeropuerto, B1802 Ezeiza, Provincia de Buenos Aires, Argentina"
+  },
+
+  "expectedServiceType": "Regular",
+  "expectedVehicleType": "Standard"
+}

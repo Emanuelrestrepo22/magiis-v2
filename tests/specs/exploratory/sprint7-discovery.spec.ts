@@ -1,4 +1,4 @@
-// tests/specs/explore/sprint7-discovery.spec.ts
+// tests/specs/exploratory/sprint7-discovery.spec.ts
 // Discovery one-shot para extraer DOM de los 7 reportes Sprint 7 descubiertos
 // en el routing oficial release/v2.0.4.
 import { test, expect } from '../../TestBase.js';
@@ -23,7 +23,7 @@ const TARGETS = [
 
 test.describe('@explore Sprint 7 DOM discovery (7 reportes adicionales release/v2.0.4)', () => {
   test('dumpea headings reales de los 7 reportes para extraer regex de POMs', async ({ page }) => {
-    test.info().annotations.push({ type: 'jira', description: 'MX-5711' });
+    test.info().annotations.push({ type: 'tms', description: 'MX-5711' });
 
     for (const target of TARGETS) {
       await page.goto(target.url, { waitUntil: 'domcontentloaded' });

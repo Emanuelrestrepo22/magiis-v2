@@ -1,0 +1,26 @@
+# Artefactos generados: los escribe scripts/extract-tc-map.ts y llevan el aviso
+# "NO EDITAR A MANO". Si prettier los reformatea al commitear, cada `npm run
+# traceability` deja un diff espurio y el gate de drift contra la version
+# commiteada nunca puede quedar limpio.
+traceability/tc-map.json
+traceability/tc-map.md
+
+# Vista y sidecar del ledger de migracion: los escribe scripts/build-migration-ledger.ts
+# y llevan el aviso "NO EDITAR A MANO". Los datos de mano viven en
+# docs/migration/LEDGER.json, que SI se formatea con prettier.
+docs/migration/MIGRATION-LEDGER.md
+docs/migration/ledger-gen.json
+
+# Baselines de a11y/visual: valores capturados, no codigo editable a mano.
+tests/fixtures/a11y-baseline.json
+
+# Directorios de salida (ya gitignorados, pero prettier no lee .gitignore).
+evidence/
+allure-results/
+allure-report/
+test-results/
+playwright-report/
+
+# Run records transcriptos de results.json (JSON generado, no editar a mano).
+docs/qa/runs/**/*.run.json
+docs/migration/v2-list-snapshot.json

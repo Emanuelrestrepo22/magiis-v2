@@ -1,4 +1,4 @@
-// tests/specs/explore/sidebar-discovery.spec.ts
+// tests/specs/exploratory/sidebar-discovery.spec.ts
 // Spec exploratorio (tag @explore, fuera de smoke/regression).
 // Itera URLs reales del Release V2.0.2 y dumpea aria-snapshot del main content
 // para extraer selectores estables antes de generar POMs.
@@ -37,7 +37,7 @@ const RELEASE_V2_0_2_PAGES = [
 
 test.describe('@explore release V2.0.2 discovery', () => {
   test('dumpea aria-snapshot de las 17 pantallas confirmadas', async ({ page }) => {
-    test.info().annotations.push({ type: 'jira', description: 'MX-5711' });
+    test.info().annotations.push({ type: 'tms', description: 'MX-5711' });
 
     for (const target of RELEASE_V2_0_2_PAGES) {
       await page.goto(target.url, { waitUntil: 'domcontentloaded' });

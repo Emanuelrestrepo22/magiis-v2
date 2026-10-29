@@ -2,9 +2,11 @@
  * Extractor de trazabilidad TC <-> spec.
  *
  * Escanea tests/specs/**\/*.spec.ts buscando:
- *   - Tags @TC-* / @MX-* / @TS-* en titulos de test/describe.
- *   - test.info().annotations.push({ type: 'jira', description: 'MX-XXXX' }).
+ *   - Tags @TC-* / @TS-* / @MX-* / @MG-* / @TM-* en titulos de test/describe.
+ *   - test.info().annotations.push({ type: 'tms' | 'jira', description: 'MX-XXXX' }).
  *   - test.info().annotations.push({ type: 'route_v2', description: '/path' }).
+ *   - Llamadas al helper canonico makeAnnotate('MX-XXXX', '/path') de tests/utils/traceability.ts,
+ *     incluyendo la forma indirecta makeAnnotate(MX, ROUTE) con las constantes del propio spec.
  *
  * Output: traceability/tc-map.md (tabla markdown) + traceability/tc-map.json (datos).
  *
@@ -29,13 +31,57 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const repoRoot = dirname(__dirname);
 
-const TAG_REGEX = /@((?:TC|TS|MX)-[A-Z0-9-]+)/g;
+// Prefijos reconocidos: TC/TS (tags internos) · MX (key Jira historica, pre-migracion) ·
+// MG (story/epic Jira-native del proyecto MG) · TM (Test de Xray del proyecto TM, "Test
+// Mangement" — typo real del proyecto; ver tests/specs/smoke/trips/new-trip.spec.ts).
+//
+// TODO(Fase 3): el mapa NO agrupa por Historia. Con el esquema actual la Historia (MG-XX) y
+// sus Tests (TM-XXX) entran por el mismo canal — tag en el titulo o key de makeAnnotate — asi
+// que MG-19 y TM-538 salen como filas hermanas y se pierde la relacion padre/hijo. Para
+// agruparlas hace falta un mapeo TM->MG (los 155 Tests de MG-19 no lo declaran en el spec).
+const TAG_REGEX = /@((?:TC|TS|MX|MG|TM)-[A-Z0-9-]+)/g;
 const PRIORITY_REGEX = /@(P[123])\b/g;
 const TYPE_REGEX = /@(functional|visual|both|migration|a11y|smoke|regression)\b/g;
+// Acepta la annotation canónica type:'tms' (contrato de consistencia) Y el legacy type:'jira'.
 const JIRA_ANNOTATION_REGEX =
-  /test\.info\(\)\.annotations\.push\(\s*\{\s*type:\s*['"]jira['"]\s*,\s*description:\s*['"]([^'"]+)['"]/g;
+  /test\.info\(\)\.annotations\.push\(\s*\{\s*type:\s*['"](?:tms|jira)['"]\s*,\s*description:\s*['"]([^'"]+)['"]/g;
 const ROUTE_ANNOTATION_REGEX =
   /test\.info\(\)\.annotations\.push\(\s*\{\s*type:\s*['"]route_v2['"]\s*,\s*description:\s*['"]([^'"]+)['"]/g;
+
+// Constantes string del propio spec (`const MX = 'MX-5438'`, `const ROUTE = '/carrier/#/x'`),
+// para resolver la forma indirecta makeAnnotate(MX, ROUTE).
+const CONST_BINDING_REGEX = /(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*['"]([^'"]+)['"]/g;
+// Llamadas al helper canonico: makeAnnotate('MX-XXXX', '/ruta') | makeAnnotate(MX, ROUTE) | makeAnnotate(MX).
+const MAKE_ANNOTATE_REGEX = /makeAnnotate\(\s*([^,)]+?)\s*(?:,\s*([^,)]+?)\s*)?\)/g;
+
+/** Resuelve un argumento de makeAnnotate: literal ('MX-1') o nombre de constante del spec. */
+function resolveArg(raw: string | undefined, bindings: Map<string, string>): string | undefined {
+  if (!raw) return undefined;
+  const literal = /^['"]([^'"]+)['"]$/.exec(raw.trim());
+  return literal ? literal[1] : bindings.get(raw.trim());
+}
+
+// El helper canonico `makeAnnotate` empuja las annotations en RUNTIME, por lo que en el fuente
+// del spec ya no queda ningun `annotations.push({ type: 'tms' ... })` que matchear. Sin este
+// parseo, cada spec migrado al helper se contaria como huerfano y la trazabilidad se degradaria.
+function collectMakeAnnotate(src: string): { keys: string[]; routes: string[] } {
+  const bindings = new Map<string, string>();
+  CONST_BINDING_REGEX.lastIndex = 0;
+  let b: RegExpExecArray | null;
+  while ((b = CONST_BINDING_REGEX.exec(src)) !== null) bindings.set(b[1], b[2]);
+
+  const keys = new Set<string>();
+  const routes = new Set<string>();
+  MAKE_ANNOTATE_REGEX.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = MAKE_ANNOTATE_REGEX.exec(src)) !== null) {
+    const key = resolveArg(m[1], bindings);
+    if (key) keys.add(key);
+    const route = resolveArg(m[2], bindings);
+    if (route) routes.add(route);
+  }
+  return { keys: [...keys].sort(), routes: [...routes].sort() };
+}
 
 async function extractFromFile(absPath: string): Promise<SpecEntry> {
   const src = await readFile(absPath, 'utf8');
@@ -46,11 +92,13 @@ async function extractFromFile(absPath: string): Promise<SpecEntry> {
     while ((m = re.exec(src)) !== null) out.add(m[1]);
     return [...out].sort();
   };
+  const helper = collectMakeAnnotate(src);
+  const merge = (...groups: string[][]): string[] => [...new Set(groups.flat())].sort();
   return {
     spec: relative(repoRoot, absPath).replace(/\\/g, '/'),
     tcIds: collect(TAG_REGEX),
-    jiraIds: collect(JIRA_ANNOTATION_REGEX),
-    routesV2: collect(ROUTE_ANNOTATION_REGEX),
+    jiraIds: merge(collect(JIRA_ANNOTATION_REGEX), helper.keys),
+    routesV2: merge(collect(ROUTE_ANNOTATION_REGEX), helper.routes),
     priorities: collect(PRIORITY_REGEX),
     types: collect(TYPE_REGEX)
   };
@@ -83,10 +131,10 @@ function renderMarkdown(entries: SpecEntry[]): string {
   lines.push(`- Specs analizados: **${total}**`);
   lines.push(`- Specs con trazabilidad: **${withTc}** (${Math.round((withTc / total) * 100)}%)`);
   lines.push(`- TCs/issues unicos referenciados: **${sortedTcs.length}**`);
-  lines.push(`- Specs huerfanos (sin TC ni jira annotation): **${orphan.length}**`, '');
+  lines.push(`- Specs huerfanos (sin TC ni key tms/jira): **${orphan.length}**`, '');
 
   lines.push('## Mapping TC -> Spec', '');
-  lines.push('| TC / Jira ID | Specs |');
+  lines.push('| TC / issue key | Specs |');
   lines.push('|---|---|');
   for (const id of sortedTcs) {
     const specs = tcToSpecs
@@ -98,7 +146,7 @@ function renderMarkdown(entries: SpecEntry[]): string {
   lines.push('');
 
   lines.push('## Mapping Spec -> TC', '');
-  lines.push('| Spec | Tags TC | Jira annotations | Rutas V2 | Prioridad | Tipo |');
+  lines.push('| Spec | Tags TC | Keys tms/jira | Rutas V2 | Prioridad | Tipo |');
   lines.push('|---|---|---|---|---|---|');
   for (const e of entries) {
     lines.push(
@@ -110,8 +158,10 @@ function renderMarkdown(entries: SpecEntry[]): string {
   lines.push('');
 
   if (orphan.length > 0) {
-    lines.push('## Specs huerfanos (sin TC ni jira annotation)', '');
-    lines.push('Estos specs no tienen tag `@TC-*`/`@MX-*` ni annotation `jira`. Revisar:');
+    lines.push('## Specs huerfanos (sin TC ni key tms/jira)', '');
+    lines.push(
+      'Estos specs no tienen tag `@TC-*`/`@MX-*`/`@MG-*`/`@TM-*`, ni annotation `tms`/`jira`, ni llamada a `makeAnnotate`. Revisar:'
+    );
     lines.push('');
     for (const e of orphan) lines.push(`- \`${e.spec}\``);
     lines.push('');

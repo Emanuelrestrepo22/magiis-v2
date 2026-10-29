@@ -13,6 +13,14 @@ on:
         required: false
         default: '4'
         type: string
+      xray_execution:
+        description: 'Xray: key del Test Execution (ATR) destino. Vacío = crea uno nuevo.'
+        required: false
+        default: ''
+      xray_version:
+        description: 'Xray: fixVersion para la ejecución nueva (si xray_execution vacío)'
+        required: false
+        default: ''
 
 jobs:
   quality-checks:
@@ -44,6 +52,8 @@ jobs:
       CI: 'true'
       HEADLESS: 'true'
       TOTAL_SHARDS: '4'
+      # HAS_XRAY habilita el reporter (los secrets no van directo en `if:`).
+      HAS_XRAY: ${{ secrets.XRAY_CLIENT_ID != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pw
@@ -53,6 +63,8 @@ jobs:
           # Variables publicas del environment TEST.
           BASE_URL: ${{ vars.BASE_URL }}
           LOGIN_PATH: ${{ vars.LOGIN_PATH }}
+          # XRAY=1 activa el xray-reporter → cada shard emite evidence/test/xray-results.json
+          XRAY: ${{ env.HAS_XRAY == 'true' && '1' || '' }}
           # Primaria: US (carrier EEUU). global-setup usa USER_CARRIER/PASS_CARRIER sin sufijo.
           USER_CARRIER: ${{ secrets.USER_CARRIER_US }}
           PASS_CARRIER: ${{ secrets.PASS_CARRIER_US }}
@@ -67,7 +79,12 @@ jobs:
         # --project explicito: excluye 'codegen' (sesion sin auth) y 'visual'.
         # Sin pin, regression heredaba todos los projects y corria la suite bajo
         # [codegen] sin login -> ~72 fallos espurios. Mantiene cobertura dual-viewport.
-        run: npx playwright test --grep-invert @visual --project=carrier-v2-desktop --project=carrier-v2-laptop --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
+        # @e2e tambien queda excluido: esos specs (new-trip-happy-path, new-trip-route-flags,
+        # new-trip-frequent-destination) crean viajes reales en el entorno sin limpieza
+        # automatica (~49 viajes acumulados pendientes de cancelacion manual); se corren
+        # a demanda con MG682_CREATE_TRIP=1, nunca en CI agendado. (new-trip-happy-path ya
+        # limpia lo que crea y corre siempre; su gate MG19_CREATE_TRIP fue retirado el 2026-09-30.)
+        run: npx playwright test --grep-invert "@visual|@e2e" --project=carrier-v2-desktop --project=carrier-v2-laptop --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -97,6 +114,69 @@ jobs:
           SUITE: regression-shard-${{ matrix.shard }}
           JOB_STATUS: ${{ job.status }}
         run: bash scripts/notify-teams.sh
+
+  # ============================================================
+  # Xray import — mergea los N shards y hace UN solo import.
+  # Inerte hasta que exista secrets.XRAY_CLIENT_ID (HAS_XRAY=false → steps skip).
+  # ============================================================
+  xray-import:
+    needs: regression-test
+    if: ${{ always() && needs.regression-test.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: TEST
+    env:
+      HAS_XRAY: ${{ secrets.XRAY_CLIENT_ID != '' }}
+      XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
+      XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+      XRAY_EXECUTION_KEY: ${{ inputs.xray_execution }}
+      XRAY_VERSION: ${{ inputs.xray_version }}
+    steps:
+      - name: Download shard artifacts
+        if: ${{ env.HAS_XRAY == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: regression-test-report-shard-*
+          path: shard-artifacts
+      - name: Merge shards + import to Xray Cloud
+        if: ${{ env.HAS_XRAY == 'true' }}
+        run: |
+          set -e
+          mapfile -t FILES < <(find shard-artifacts -name xray-results.json 2>/dev/null || true)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "⚠️  Sin xray-results.json en los shards (¿XRAY off o 0 tests mapeados?). Skip."
+            exit 0
+          fi
+          echo "🧬 Merge de ${#FILES[@]} shard(s)"
+          MERGED=$(jq -s '{ tests: (map(.tests) | add) }' "${FILES[@]}")
+          if [ -n "${XRAY_EXECUTION_KEY}" ]; then
+            PAYLOAD=$(echo "$MERGED" | jq --arg k "$XRAY_EXECUTION_KEY" '. + { testExecutionKey: $k }')
+          else
+            SUMMARY="Regression carrier-v2 — run #${{ github.run_number }}"
+            PAYLOAD=$(echo "$MERGED" | jq --arg s "$SUMMARY" --arg v "$XRAY_VERSION" \
+              '. + { info: ({ summary: $s } + (if $v != "" then { version: $v } else {} end)) }')
+          fi
+          echo "$PAYLOAD" > xray-merged.json
+          echo "📤 Importando $(echo "$PAYLOAD" | jq '.tests | length') resultado(s)..."
+          TOKEN=$(curl -sf -H "Content-Type: application/json" -X POST \
+            --data "{\"client_id\":\"${XRAY_CLIENT_ID}\",\"client_secret\":\"${XRAY_CLIENT_SECRET}\"}" \
+            https://xray.cloud.getxray.app/api/v2/authenticate | tr -d '"')
+          [ -n "$TOKEN" ] || { echo "❌ auth Xray falló"; exit 1; }
+          HTTP=$(curl -s -o resp.json -w "%{http_code}" -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" -X POST --data @xray-merged.json \
+            https://xray.cloud.getxray.app/api/v2/import/execution)
+          echo "HTTP ${HTTP}:"; cat resp.json; echo
+          [ "$HTTP" = "200" ] || { echo "❌ import devolvió ${HTTP}"; exit 1; }
+          echo "✅ Import OK."
+      - name: Upload merged payload
+        if: ${{ always() && env.HAS_XRAY == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: xray-merged-${{ github.run_number }}
+          path: |
+            xray-merged.json
+            resp.json
+          retention-days: 14
 
   # ============================================================
   # Job UAT pendiente de activacion.
@@ -131,7 +211,7 @@ jobs:
   #         LOGIN_PATH: ${{ vars.LOGIN_PATH }}
   #         USER_CARRIER: ${{ secrets.USER_CARRIER_AR }}
   #         PASS_CARRIER: ${{ secrets.PASS_CARRIER_AR }}
-  #       run: npx playwright test --grep-invert @visual --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
+  #       run: npx playwright test --grep-invert "@visual|@e2e" --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
   #     - uses: actions/upload-artifact@v4
   #       if: always()
   #       with:

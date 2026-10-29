@@ -100,8 +100,7 @@ No avanzar a Fase 3 si hay items en FALLA criticos.
 ### Bloque D — Repo y dependencias del proyecto
 - [ ] Clon limpio del repo. `git status` debe estar `clean`.
 - [ ] `git remote -v` muestra:
-      - `origin → github.com/Emanuelrestrepo22/magiis-v2`
-      - (Opcional) `gitlab → gitlab.com/magiis_team/v2-carrier-testing`
+      - `origin -> gitlab.com/repo.magiis/magiis-fe-v2-testing` (unico remote)
 - [ ] `npm ci` corre sin errores.
 - [ ] `npx playwright install --with-deps chromium` instala Chromium.
 - [ ] `npm run typecheck` → exit 0.
@@ -262,9 +261,11 @@ usar Workflow.
 
 # Repositorios
 
-- E2E (este repo): https://github.com/Emanuelrestrepo22/magiis-v2 (GitHub, donde
-  vive CI/CD) y https://gitlab.com/magiis_team/v2-carrier-testing (GitLab,
-  espejo del codigo).
+- E2E (este repo): https://gitlab.com/repo.magiis/magiis-fe-v2-testing (GitLab,
+  origin unico desde la migracion del 2026-07-17). El repo GitHub
+  `Emanuelrestrepo22/magiis-v2` quedo archivado y el proyecto
+  `magiis_team/v2-carrier-testing` quedo deprecado: no clonar ninguno de los dos.
+  El CI se ejecuta por la infra interna de MAGIIS, no en GitLab.
 - Frontend Angular (codigo del portal V2):
   <<<URL DEL REPO GITLAB FRONTEND>>>
 

@@ -1,4 +1,4 @@
-// tests/specs/explore/sprint5-6-discovery.spec.ts
+// tests/specs/exploratory/sprint5-6-discovery.spec.ts
 // Discovery one-shot para extraer DOM de Sprint 5+6 pages que fallan.
 import { test, expect } from '../../TestBase.js';
 
@@ -12,7 +12,7 @@ const TARGETS = [
 
 test.describe('@explore Sprint 5+6 DOM discovery', () => {
   test('dumpea headings reales de las 5 pantallas que fallaron', async ({ page }) => {
-    test.info().annotations.push({ type: 'jira', description: 'MX-5711' });
+    test.info().annotations.push({ type: 'tms', description: 'MX-5711' });
 
     for (const target of TARGETS) {
       await page.goto(target.url, { waitUntil: 'domcontentloaded' });

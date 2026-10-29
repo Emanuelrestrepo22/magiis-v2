@@ -1,9 +1,11 @@
 // global-setup.ts
 // Login carrier V2 + persistir storageState antes de correr los specs.
 // Se invoca una sola vez por run (configurado en playwright.config.ts).
+import { existsSync, rmSync } from 'node:fs';
 import { chromium, type Browser, type FullConfig } from '@playwright/test';
 import dotenv from 'dotenv';
 import {
+  DEFAULT_LOCALE,
   getCurrentEnv,
   getEnvFile,
   getStorageStatePath,
@@ -12,6 +14,45 @@ import {
   resolveLoginPath,
   resolveDashboardPattern
 } from './tests/config/runtime.js';
+import { normalizeStorageStateLanguage } from './tests/config/storage-state-locale.js';
+import {
+  loadCarrierSession,
+  SUITE_MIN_SESSION_VALIDITY_MS
+} from './tests/api/clients/carrierSession.js';
+import {
+  availabilityUrls,
+  ENV_DOWN_FLAG,
+  EnvironmentUnavailableError,
+  probeEnvironment
+} from './tests/utils/envAvailability.js';
+
+/**
+ * Gate de disponibilidad (capa 1 del plan de remediacion de flaky, 2026-10-08): antes de loguear
+ * o reutilizar la sesion, comprueba que el shell del carrier y la API responden. Si no, la suite
+ * no corre y no queda resultado publicable en Xray. ENV_GATE=0 lo desactiva.
+ *
+ * El borrado del archivo de resultados vive aca y no en el reporter: si globalSetup falla,
+ * Playwright no llama a onEnd (verificado 2026-10-08), y un xray-results.json de una corrida
+ * anterior quedaria listo para importarse como si fuera de esta. Misma ruta que playwright.config.
+ */
+async function assertEnvironmentAvailable(baseURL: string, env: string): Promise<void> {
+  if (process.env.ENV_GATE?.trim() === '0') {
+    console.info('[globalSetup] ENV_GATE=0: gate de disponibilidad desactivado');
+    return;
+  }
+  const apiPrefix = process.env.MAGIIS_API_PREFIX?.trim() || 'magiis-v0.2';
+  const result = await probeEnvironment({ urls: availabilityUrls(baseURL, apiPrefix) });
+  for (const a of result.attempts) {
+    console.info(`[globalSetup] gate intento ${a.attempt}: ${a.url} -> ${a.outcome}`);
+  }
+  if (!result.ok) {
+    process.env[ENV_DOWN_FLAG] = '1';
+    const xrayResults = process.env.XRAY_RESULTS_FILE ?? `evidence/${env}/xray-results.json`;
+    rmSync(xrayResults, { force: true });
+    console.warn(`[globalSetup] ENVIRONMENT_DOWN: ${xrayResults} eliminado (nada para importar)`);
+    throw new EnvironmentUnavailableError(baseURL, result.attempts);
+  }
+}
 
 /**
  * Ejecuta un intento completo de login + persistencia de storageState.
@@ -29,7 +70,9 @@ async function attemptLogin(
   dashboardPattern: string,
   storageStatePath: string
 ): Promise<void> {
-  const context = await browser.newContext({ baseURL });
+  // locale explicito: este contexto NO hereda el 'use' de playwright.config.ts, y el
+  // idioma que resuelva aca queda grabado en el storageState (localStorage carrier-31).
+  const context = await browser.newContext({ baseURL, locale: DEFAULT_LOCALE });
   const page = await context.newPage();
   try {
     // V2 usa hash routing (apps-test.magiis.com/carrier/#/auth/login).
@@ -62,16 +105,70 @@ async function attemptLogin(
   }
 }
 
+/**
+ * Guard REUSE_STORAGE_STATE=1 (uso local): reutiliza la sesion guardada sin
+ * llamar al login. Valida EL token de sesion (`carrier-0` del origin de BASE_URL,
+ * el mismo que usa la capa API) y exige que siga vigente al menos
+ * SUITE_MIN_SESSION_VALIDITY_MS, para que no venza a mitad de una suite que ya
+ * creo datos. Si no existe, no cuadra o vence antes, falla pidiendo login humano.
+ * Nunca imprime el token.
+ */
+function assertReusableStorageState(storageStatePath: string): void {
+  const loginHint =
+    'Hace falta un login humano: inicia sesion manualmente y vuelve a guardar el ' +
+    `storageState en ${storageStatePath}, o corre con REUSE_STORAGE_STATE=0.`;
+  if (!existsSync(storageStatePath)) {
+    throw new Error(
+      `[globalSetup] REUSE_STORAGE_STATE=1 pero no existe ${storageStatePath}. ${loginHint}`
+    );
+  }
+  let expiresAt: Date;
+  try {
+    expiresAt = loadCarrierSession({
+      storageStatePath,
+      minValidityMs: SUITE_MIN_SESSION_VALIDITY_MS
+    }).tokenExpiresAt;
+  } catch (error) {
+    throw new Error(
+      `[globalSetup] REUSE_STORAGE_STATE=1 pero la sesion guardada no sirve para la suite ` +
+        `(vigencia minima ${SUITE_MIN_SESSION_VALIDITY_MS / 60_000} min): ${(error as Error).message}. ${loginHint}`
+    );
+  }
+  console.info(
+    `[globalSetup] REUSE_STORAGE_STATE=1: se reutiliza ${storageStatePath} (token de sesion vigente hasta ${expiresAt.toISOString()}); no se llama al login`
+  );
+}
+
+/** Fuerza EN en el storageState (reusado o recien logueado) y deja rastro si lo altero. */
+function ensureEnglishStorageState(storageStatePath: string): void {
+  const { changed, previous } = normalizeStorageStateLanguage(storageStatePath, 'en');
+  if (changed) {
+    console.info(`[globalSetup] idioma del storageState: ${previous} -> en-us`);
+  }
+}
+
 async function globalSetup(_config: FullConfig): Promise<void> {
   // Cargar .env correcto antes de leer credenciales.
   dotenv.config({ path: getEnvFile() });
 
   const env = getCurrentEnv();
+  const storageStatePath = getStorageStatePath(env);
+
+  // Primero el ambiente: un servidor caido no es un fallo de login ni de ningun test.
+  await assertEnvironmentAvailable(resolveBaseURL(), env);
+
+  // Uso local: reutilizar la sesion guardada y no loguear. Sin la variable (CI),
+  // el flujo de login de abajo no cambia.
+  if (process.env.REUSE_STORAGE_STATE?.trim() === '1') {
+    assertReusableStorageState(storageStatePath);
+    ensureEnglishStorageState(storageStatePath);
+    return;
+  }
+
   const baseURL = resolveBaseURL();
   const { username, password } = resolveCredentials();
   const loginPath = resolveLoginPath();
   const dashboardPattern = resolveDashboardPattern();
-  const storageStatePath = getStorageStatePath(env);
 
   console.log(`[globalSetup] ENV=${env} BASE_URL=${baseURL}`);
   console.log(`[globalSetup] login -> ${loginPath} (user=${username})`);
@@ -102,6 +199,7 @@ async function globalSetup(_config: FullConfig): Promise<void> {
           dashboardPattern,
           storageStatePath
         );
+        ensureEnglishStorageState(storageStatePath);
         console.log(
           `[globalSetup] storageState guardado en ${storageStatePath} (intento ${attempt})`
         );

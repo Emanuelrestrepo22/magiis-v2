@@ -305,7 +305,7 @@ Reportarme antes de pasar a la siguiente:
 
 ```
 Pantalla <N> completada:
-- URL del PR mergeado: https://github.com/Emanuelrestrepo22/magiis-v2/pull/<num>
+- URL de la MR mergeada: https://gitlab.com/repo.magiis/magiis-fe-v2-testing/-/merge_requests/<num>
 - Tiempo total: <horas> (estimado <S/M/L>).
 - TCs implementados: <count> (de <total planeado>).
 - Gotchas / aprendizajes: <texto> (si hubo).

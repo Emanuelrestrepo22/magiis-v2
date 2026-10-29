@@ -17,8 +17,13 @@ export abstract class BaseListPage extends BasePage {
   readonly heading: Locator;
   /** Breadcrumb h4 con jerarquia (ej. "Owners / Owners Management"). */
   readonly breadcrumb: Locator;
-  /** Input de busqueda libre. Placeholder varia entre "Search...", "Search Name...", etc. */
-  readonly searchInput: Locator;
+  /**
+   * Input de busqueda libre. Placeholder varia entre "Search...", "Search Name...", etc.
+   * NO readonly: algunas pantallas migradas (ej. Customers) exponen la busqueda como un
+   * ng-select `combobox` en vez de `<input class="search">`, y el POM concreto reasigna
+   * este locator en su constructor.
+   */
+  searchInput: Locator;
   /** Date picker principal (cuando aplica). Placeholder "Choose Date" o input visible con formato fecha. */
   readonly dateRangeInput: Locator;
   /** Boton de export PDF (usualmente disabled si no hay datos). */
