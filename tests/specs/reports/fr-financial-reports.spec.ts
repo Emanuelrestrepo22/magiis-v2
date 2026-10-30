@@ -19,6 +19,7 @@
 // FR_REPORT_DIR (default evidence/test/reports).
 // Salida: <FR_REPORT_DIR>/results.json (consumido por el informe docs/qa/.../reportes-financieros-*.md).
 // Discrepancias = expect.soft: el spec falla pero SIEMPRE recorre todos los reportes.
+// @db: el CI de GitHub lo excluye por tag (sin sesion 1901 ni red a Oracle en el runner hosteado).
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { Locator, Page, Response, TestInfo } from '@playwright/test';
@@ -451,7 +452,7 @@ async function verifyDownloads(
   });
 }
 
-test.describe('@read-only FR 1901 reportes financieros: UI + descarga vs DB', () => {
+test.describe('@read-only @db FR 1901 reportes financieros: UI + descarga vs DB', () => {
   test.beforeAll(async ({ carrierSession }) => {
     test.skip(getCurrentEnv() !== 'test', 'FR 1901 vive solo en ENV=test');
     if (carrierSession.carrierId !== CARRIER_ID) {

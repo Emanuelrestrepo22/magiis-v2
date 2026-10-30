@@ -307,7 +307,9 @@ export class TravelDashboardPage extends BaseListPage {
         };
         return (body.page?.content ?? []).map((item) => ({
           code: `${item.travelIdForCarrier}-${item.channel}`,
-          codePattern: new RegExp(String.raw`^\s*${item.travelIdForCarrier}(/\d+)?-[A-Z]+\s*$`),
+          // Sufijo de canal opcional: el pipe travelChannel solo lo pinta para canales de
+          // TravelChannelEnum (+ ERS→ER); p. ej. canal «S» se ve «15515» a secas (medido 2026-10-30).
+          codePattern: new RegExp(String.raw`^\s*${item.travelIdForCarrier}(/\d+)?(-[A-Z]+)?\s*$`),
           distanceToPPUP: item.distanceToPPUP
         }));
       });
@@ -362,7 +364,7 @@ export class TravelDashboardPage extends BaseListPage {
 export interface DashboardRow {
   /** Código esperado `travelIdForCarrier-channel`. */
   code: string;
-  /** Código visible esperado: subíndice opcional («4598/1-W») y canal que la grilla puede abreviar («ERS» se ve «ER»), por eso solo se fija el id. */
+  /** Código visible esperado: subíndice opcional («4598/1-W») y canal que la grilla puede abreviar («ERS» se ve «ER») u omitir (canal fuera de TravelChannelEnum), por eso solo se fija el id. */
   codePattern: RegExp;
   /** Crudo en km (`distanceToPPUP`). */
   distanceToPPUP: number | null;

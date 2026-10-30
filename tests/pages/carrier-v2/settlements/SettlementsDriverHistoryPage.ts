@@ -11,7 +11,10 @@ import { BaseDetailPage } from '../../shared/BaseDetailPage.js';
 export class SettlementsDriverHistoryPage extends BaseDetailPage {
   protected get headingRegex(): RegExp {
     // Heading h2 real compartido: "Record Settlements".
-    return /record\s+settlements?|settlements?\s+records?|historial/i;
+    // v2.0.20: el h2 ya no se renderiza; el titulo es el breadcrumb h4 "Settlements / Drivers / Record".
+    return /settlements?\s*\/\s*drivers\s*\/\s*record|record\s+settlements?|settlements?\s+records?|historial/i;
   }
-  constructor(page: Page) { super(page); }
+  constructor(page: Page) {
+    super(page);
+  }
 }

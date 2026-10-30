@@ -73,6 +73,9 @@ jobs:
           PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
           USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
           PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
+          # global-setup loguea AR y guarda storage/state-carrier-ar-test.json: lo consume
+          # carrierRegionFixture (specs de unidades MG-1189/1190/1193, carrier metrico 1040).
+          REGION_SESSIONS: AR
           # Cuando exista carrier FR, agregar:
           # USER_CARRIER_FR: ${{ secrets.USER_CARRIER_FR }}
           # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
@@ -84,7 +87,9 @@ jobs:
         # automatica (~49 viajes acumulados pendientes de cancelacion manual); se corren
         # a demanda con MG682_CREATE_TRIP=1, nunca en CI agendado. (new-trip-happy-path ya
         # limpia lo que crea y corre siempre; su gate MG19_CREATE_TRIP fue retirado el 2026-09-30.)
-        run: npx playwright test --grep-invert "@visual|@e2e" --project=carrier-v2-desktop --project=carrier-v2-laptop --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
+        # @db: oraculos contra Oracle (ORACLE_*_TEST + red interna), inalcanzables desde un runner
+        # hosteado de GitHub; corren local o en el CI interno. @explore: discovery, no regresion.
+        run: npx playwright test --grep-invert "@visual|@e2e|@db|@explore" --project=carrier-v2-desktop --project=carrier-v2-laptop --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
 
       - uses: actions/upload-artifact@v4
         if: always()

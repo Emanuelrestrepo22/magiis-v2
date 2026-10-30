@@ -68,7 +68,7 @@ test.describe('@P1 @functional @migration MX-5531 Unpaid Trips Report - cobertur
     annotate('TC08', 'HP');
     const p = new ReportUnpaidTravelsPage(page);
     await p.goto();
-    await expect(p.pdfButton.first()).toBeVisible();
+    await expect(p.pdfExportButton).toBeVisible();
   });
 
   test('TC09 i18n + l10n', async ({ page }) => {

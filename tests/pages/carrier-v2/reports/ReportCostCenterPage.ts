@@ -12,7 +12,8 @@ import { BaseListPage } from '../../shared/BaseListPage.js';
 export class ReportCostCenterPage extends BaseListPage {
   readonly path = '/carrier/#/reports/cost-center-report';
   protected get headingRegex(): RegExp {
-    return /(client company.*cost center|cost center.*associate|centro de costos?)/i;
+    // v2.0.20: breadcrumb h4 "Reports / By Cost Center" (contractor.reports.generic_reports.cost_center.breadcrumb).
+    return /(client company.*cost center|cost center.*associate|by cost center|centro de costos?)/i;
   }
   constructor(page: Page) {
     super(page);

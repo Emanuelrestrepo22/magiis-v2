@@ -68,6 +68,9 @@ jobs:
           PASS_CARRIER_US: ${{ secrets.PASS_CARRIER_US }}
           USER_CARRIER_AR: ${{ secrets.USER_CARRIER_AR }}
           PASS_CARRIER_AR: ${{ secrets.PASS_CARRIER_AR }}
+          # global-setup loguea AR y guarda storage/state-carrier-ar-test.json: lo consume
+          # carrierRegionFixture (specs de unidades MG-1189/1190/1193, carrier metrico 1040).
+          REGION_SESSIONS: AR
           # Cuando exista carrier FR, agregar:
           # USER_CARRIER_FR: ${{ secrets.USER_CARRIER_FR }}
           # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
