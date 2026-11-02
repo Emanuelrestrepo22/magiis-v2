@@ -43,6 +43,7 @@ import { LoginPage } from '../../pages/shared/LoginPage.js';
 import {
   IntegrationsAppStorePage,
   PAYMENT_GATEWAY_NAMES,
+  type CarrierPreferences,
   GATEWAY_FLAG_KEYS,
   linkedGatewaysFromPreferences
 } from '../../pages/carrier-v2/integrations/IntegrationsAppStorePage.js';
@@ -129,6 +130,22 @@ async function loginAs(page: Page): Promise<void> {
   ).toHaveURL(toUrlRegex(resolveDashboardPattern()), { timeout: 20_000 });
 }
 
+/**
+ * Precondicion de datos: la familia solo aplica si la cuenta tiene una pasarela vinculada. Sin
+ * ninguna (GET preferences, la misma fuente que rehidrata la UI) el caso se OMITE con el motivo
+ * nombrado; no pasa en vacio. Con mas de una sigue corriendo y falla en las aserciones de
+ * exclusividad: eso si es un hallazgo (desvinculacion en curso o doble vinculo).
+ * Medido 2026-10-30/11-02: la cuenta AR de TEST quedo sin Mercado Pago vinculado.
+ */
+function skipWhenNoGatewayLinked(prefs: CarrierPreferences): void {
+  // eslint-disable-next-line playwright/no-skipped-test -- omision por precondicion de datos, con motivo nombrado
+  test.skip(
+    linkedGatewaysFromPreferences(prefs).length === 0,
+    `precondicion de datos: la cuenta APPSTORE_ACCOUNT=${ACCOUNT} no tiene pasarela vinculada ` +
+      'en GET preferences; se omite hasta que se vuelva a vincular (p. ej. Mercado Pago en AR)'
+  );
+}
+
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('@P1 @functional @migration MG-920 App Store de integraciones - pasarela vinculada', () => {
@@ -143,6 +160,7 @@ test.describe('@P1 @functional @migration MG-920 App Store de integraciones - pa
 
     const appStore = new IntegrationsAppStorePage(page);
     const prefs = await appStore.goto();
+    skipWhenNoGatewayLinked(prefs);
     // R5-3 G1: shape del body medido en vivo (docs/qa/migration/units/MU-002-plan.md, seccion
     // "Forma medida del body de preferences") - invariante anti-drift antes de leer las flags.
     expect(
@@ -196,7 +214,7 @@ test.describe('@P1 @functional @migration MG-920 App Store de integraciones - pa
     await loginAs(page);
 
     const appStore = new IntegrationsAppStorePage(page);
-    await appStore.goto();
+    skipWhenNoGatewayLinked(await appStore.goto());
     await appStore.expectMainSectionsReady();
     await expect(
       appStore.cardsWithUnlink,
@@ -251,6 +269,7 @@ test.describe('@P1 @functional @migration MG-920 App Store de integraciones - pa
 
     const appStore = new IntegrationsAppStorePage(page);
     const prefs = await appStore.goto();
+    skipWhenNoGatewayLinked(prefs);
     // R5-3 G1: shape del body medido en vivo, ver TC01 y MU-002-plan.md.
     expect(
       Object.keys(prefs),
