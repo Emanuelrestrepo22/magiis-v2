@@ -10,7 +10,7 @@ name: Visual regression - carrier V2
 # Schedule reactivado en este PR.
 on:
   schedule:
-    - cron: '0 12 * * *' # nightly 09:00 ART (12:00 UTC) - escalonado tras regression
+    - cron: '0 12 * * 1-5' # lun-vie 09:00 ART (12:00 UTC) - escalonado tras regression
   workflow_dispatch:
     inputs:
       update_baselines:
@@ -25,7 +25,32 @@ permissions:
   contents: write
 
 jobs:
+  # Ventana operativa: los runs automaticos (schedule, push, PR) solo arrancan de lunes a viernes,
+  # 07:00-19:00 ART. El cron ya filtra dias, pero GitHub demora los schedule hasta horas (2026-11-02:
+  # cron de 11:30 UTC arranco 20:50 UTC), asi que se valida la hora real de arranque. Un
+  # workflow_dispatch (manual) no se filtra. TZ=ART3 = UTC-3 fijo (AR sin horario de verano), sin tzdata.
+  schedule-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run: ${{ steps.window.outputs.run }}
+    steps:
+      - id: window
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          DOW=$(TZ=ART3 date +%u)
+          HOUR=$(TZ=ART3 date +%-H)
+          if [ "$EVENT" = "workflow_dispatch" ] || { [ "$DOW" -le 5 ] && [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 19 ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Fuera de la ventana lun-vie 07:00-19:00 ART (dia $DOW, hora $HOUR): run omitido"
+          fi
+
   quality-checks:
+    needs: schedule-gate
+    if: needs.schedule-gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

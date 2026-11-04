@@ -23,10 +23,13 @@ export class AffiliateCheckingAccountPage extends BaseListPage {
     super(page);
   }
 
-  /** Override: la pantalla no expone heading visible, anclamos a tabla. */
+  /**
+   * Override: la pantalla no expone heading visible, anclamos a tabla. Mismo techo de 30s que
+   * BaseListPage.goto(): en el run visual 41098031323 la tabla (vacia, "No Data") pinto despues de 15s.
+   */
   async goto(): Promise<void> {
     await this.navigate(this.path);
-    await expect(this.table).toBeVisible({ timeout: 15_000 });
+    await expect(this.table).toBeVisible({ timeout: 30_000 });
   }
 
   async expectListReady(): Promise<void> {

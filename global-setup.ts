@@ -9,10 +9,13 @@ import {
   getCurrentEnv,
   getEnvFile,
   getStorageStatePath,
+  regionSessionsToLogin,
+  regionStorageStatePath,
   resolveBaseURL,
   resolveCredentials,
   resolveLoginPath,
-  resolveDashboardPattern
+  resolveDashboardPattern,
+  type CarrierRegion
 } from './tests/config/runtime.js';
 import { normalizeStorageStateLanguage } from './tests/config/storage-state-locale.js';
 import {
@@ -147,6 +150,48 @@ function ensureEnglishStorageState(storageStatePath: string): void {
   }
 }
 
+/**
+ * Sesiones de region para carrierRegionFixture (REGION_SESSIONS, opt-in de CI: en el runner no hay
+ * storageState humano de la region). Exige las credenciales CON sufijo: el fallback de
+ * resolveCredentials a USER_CARRIER grabaria la sesion primaria con nombre de region. Un fallo aca
+ * no corta la suite: solo fallan los specs de esa region, con el mensaje del fixture.
+ */
+async function loginRegionSessions(
+  browser: Browser,
+  regions: readonly CarrierRegion[],
+  baseURL: string,
+  loginPath: string,
+  dashboardPattern: string
+): Promise<void> {
+  for (const region of regions) {
+    const username = process.env[`USER_CARRIER_${region}`]?.trim();
+    const password = process.env[`PASS_CARRIER_${region}`]?.trim();
+    if (!username || !password) {
+      console.warn(
+        `[globalSetup] REGION_SESSIONS incluye ${region} pero faltan USER_CARRIER_${region}/PASS_CARRIER_${region}: sesion omitida`
+      );
+      continue;
+    }
+    const regionStatePath = regionStorageStatePath(region);
+    try {
+      await attemptLogin(
+        browser,
+        baseURL,
+        loginPath,
+        username,
+        password,
+        dashboardPattern,
+        regionStatePath
+      );
+      ensureEnglishStorageState(regionStatePath);
+      console.info(`[globalSetup] sesion de region ${region} guardada en ${regionStatePath}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[globalSetup] login de region ${region} fallo: ${msg.split('\n')[0]}`);
+    }
+  }
+}
+
 async function globalSetup(_config: FullConfig): Promise<void> {
   // Cargar .env correcto antes de leer credenciales.
   dotenv.config({ path: getEnvFile() });
@@ -169,6 +214,8 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   const { username, password } = resolveCredentials();
   const loginPath = resolveLoginPath();
   const dashboardPattern = resolveDashboardPattern();
+  // Antes del login: una REGION_SESSIONS mal escrita falla aca, no como reintento del login primario.
+  const regionSessions = regionSessionsToLogin();
 
   console.log(`[globalSetup] ENV=${env} BASE_URL=${baseURL}`);
   console.log(`[globalSetup] login -> ${loginPath} (user=${username})`);
@@ -203,6 +250,7 @@ async function globalSetup(_config: FullConfig): Promise<void> {
         console.log(
           `[globalSetup] storageState guardado en ${storageStatePath} (intento ${attempt})`
         );
+        await loginRegionSessions(browser, regionSessions, baseURL, loginPath, dashboardPattern);
         return;
       } catch (err) {
         lastError = err;

@@ -1,5 +1,6 @@
 // Smoke SOLO LECTURA de los oraculos DB (trifuerza) contra TEST con datos del circuito FR 1901.
 // Requiere ORACLE_*_TEST en el env file; sin ellas falla de forma explicita (un skip se veria verde).
+// @db: el CI de GitHub lo excluye por tag (el runner hosteado no llega a Oracle); corre local o interno.
 import { test, expect } from '../../fixtures/carrierApiFixture.js';
 import {
   readSaleCostData,
@@ -16,7 +17,7 @@ const TRAVEL_ID = 71510;
 const SURRENDER_ID = 13858;
 const CC_ID = 5614;
 
-test.describe('oraculos DB smoke (solo lectura)', () => {
+test.describe('@db oraculos DB smoke (solo lectura)', () => {
   test.beforeEach(({ db }) => {
     expect(db, 'ORACLE_*_TEST ausentes: el oraculo DB no se puede verificar').not.toBeNull();
   });

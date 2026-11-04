@@ -6,6 +6,7 @@
 // storageState guardado de la región (`storage/state-carrier-<región>-<env>.json`; la región
 // primaria usa `state-carrier-<env>.json`, el mismo que consume el project). Si el archivo no
 // existe o la sesión venció, falla pidiendo login humano: el agente no teclea contraseñas.
+// En CI el archivo lo crea global-setup con REGION_SESSIONS (login con los secrets de la región).
 //
 // Uso:
 //   import { test, expect } from '../../fixtures/carrierRegionFixture.js';
@@ -16,17 +17,12 @@ import { test as base } from '../TestBase.js';
 import {
   DEFAULT_LOCALE,
   getCurrentEnv,
-  getStorageStatePath,
+  regionStorageStatePath,
   type CarrierRegion
 } from '../config/runtime.js';
 
-/** Ruta del storageState de una región en el ambiente activo. */
-export function regionStorageStatePath(region: CarrierRegion): string {
-  const env = getCurrentEnv();
-  return region
-    ? `storage/state-carrier-${region.toLowerCase()}-${env}.json`
-    : getStorageStatePath(env);
-}
+// La ruta vive en runtime.ts: global-setup la usa para crear la sesión de región en CI.
+export { regionStorageStatePath };
 
 type RegionFixtures = {
   /** Abre una página autenticada como el carrier de la región (se cierra sola al terminar el test). */

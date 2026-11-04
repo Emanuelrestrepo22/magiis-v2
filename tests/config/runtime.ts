@@ -228,6 +228,32 @@ export function getStorageStatePath(env: AppEnv = getCurrentEnv()): string {
   return `storage/state-carrier-${env}.json`;
 }
 
+/** storageState de una región en el ambiente activo; la primaria ('') usa el del project. */
+export function regionStorageStatePath(region: CarrierRegion): string {
+  const env = getCurrentEnv();
+  return region
+    ? `storage/state-carrier-${region.toLowerCase()}-${env}.json`
+    : getStorageStatePath(env);
+}
+
+/**
+ * Regiones extra a loguear en global-setup (REGION_SESSIONS="AR,US"). Opt-in pensado para CI,
+ * donde no hay storageState humano de la región; localmente queda vacío y nada cambia.
+ */
+export function regionSessionsToLogin(): CarrierRegion[] {
+  const raw = normalizeEnvValue(process.env.REGION_SESSIONS);
+  if (!raw) return [];
+  return raw.split(',').map((value) => {
+    const region = value.trim().toUpperCase();
+    if (!region || !(SUPPORTED_REGIONS as readonly string[]).includes(region)) {
+      throw new Error(
+        `REGION_SESSIONS invalida: "${value}" (esperado ${SUPPORTED_REGIONS.filter(Boolean).join('|')})`
+      );
+    }
+    return region as CarrierRegion;
+  });
+}
+
 export function getCarrierV2Runtime(): CarrierV2RuntimeConfig {
   return {
     env: getCurrentEnv(),

@@ -1,7 +1,9 @@
 // tests/specs/reports/daily-report.visual.spec.ts
 // @visual @P2 @migration - Regresion visual MX-5438 Daily Report (dashboard de KPIs).
 // NOTA: pantalla con widgets/KPI cards de datos diarios -> alta volatilidad.
-// Capturamos solo el header (h4 + date picker) y masking del resto.
+// Capturamos solo el header y masking del resto.
+// v2.0.20: el header pasa a <app-breadcrumbs> (titulo "DAILY") y el date picker sale de
+// .page-title-box a su propia fila: el snapshot cubre el header y el picker se valida funcional.
 import { test, expect } from '../../fixtures/visualBaseline.js';
 import { VISUAL_DEFAULTS } from '../../config/visualConfig.js';
 import { ReportsDailyPage } from '../../pages/carrier-v2/reports/ReportsDailyPage.js';
@@ -17,6 +19,7 @@ test.describe('@visual @P2 @migration MX-5438 Daily Report - visual baseline', (
 
     const pageTitle = visualPage.locator('.page-title-box').first();
     await expect(pageTitle).toBeVisible();
+    await expect(p.datePickerInput).toBeVisible();
 
     await expect(pageTitle).toHaveScreenshot('daily-report-header.png', {
       maxDiffPixelRatio: VISUAL_DEFAULTS.maxDiffPixelRatioCharts,

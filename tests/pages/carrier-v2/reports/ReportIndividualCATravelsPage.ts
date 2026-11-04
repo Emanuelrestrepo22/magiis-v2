@@ -13,7 +13,9 @@ import { BaseListPage } from '../../shared/BaseListPage.js';
 export class ReportIndividualCATravelsPage extends BaseListPage {
   readonly path = '/carrier/#/reports/individual-ca-travels';
   protected get headingRegex(): RegExp {
-    return /customers?.*trips? credit account|credit account.*customers?|cuenta corriente.*viajes?/i;
+    // v2.0.20: breadcrumb h4 "Reports / Customers - Credit Account"
+    // (carrier.reports.generic_reports.individual_ca_travels.breadcrumb).
+    return /customers?.*(trips? )?credit account|credit account.*customers?|cuenta corriente.*viajes?/i;
   }
   constructor(page: Page) {
     super(page);

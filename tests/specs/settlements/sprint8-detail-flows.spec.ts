@@ -7,10 +7,13 @@
 //   4. Validar URL match /history/:id.
 //   5. expectDetailReady() sobre el POM history.
 //
-// Las rows NO son clickables directamente. Cada row expone botones de accion:
+// Las rows NO son clickables directamente. Cada row expone botones de accion (icon-only, sin nombre
+// accesible: solo tooltip), en este orden:
 //   index 0 = `+` (Create nueva liquidacion)
 //   index 1 = clock (History de liquidaciones)
 //   index 2 = PDF (solo si hay last settlement)
+// Excepcion Passenger (v2.0.20, settlements-passenger-list.component.html): agrega "Pay" (cash) en
+// index 1 y History pasa a index 2.
 // History es el mas estable porque siempre aparece para rows con datos.
 import { test, expect } from '../../TestBase.js';
 import { SettlementsContractorListPage } from '../../pages/carrier-v2/settlements/SettlementsContractorListPage.js';
@@ -23,6 +26,7 @@ import { SettlementsDriverHistoryPage } from '../../pages/carrier-v2/settlements
 import { SettlementsOwnerHistoryPage } from '../../pages/carrier-v2/settlements/SettlementsOwnerHistoryPage.js';
 
 const HISTORY_BUTTON_INDEX = 1;
+const PASSENGER_HISTORY_BUTTON_INDEX = 2;
 
 test.describe('@P1 @functional @migration Sprint 8 - Settlements history flows', () => {
   // Backend de auth + listas con latencia variable (validado 2026-05-20).
@@ -58,7 +62,7 @@ test.describe('@P1 @functional @migration Sprint 8 - Settlements history flows',
     const rowCount = await list.getDataRowCount();
     test.skip(rowCount === 0, 'Sin datos en TEST para Passenger liquidations');
 
-    const { finalUrl } = await list.clickFirstRowActionButton(HISTORY_BUTTON_INDEX);
+    const { finalUrl } = await list.clickFirstRowActionButton(PASSENGER_HISTORY_BUTTON_INDEX);
     expect(finalUrl).toMatch(/\/liquidations\/passenger\/history\//);
 
     const detail = new SettlementsPassengerHistoryPage(page);
