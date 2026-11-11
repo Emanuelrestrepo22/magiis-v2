@@ -13,7 +13,8 @@ export class SettlementsContractorHistoryPage extends BaseDetailPage {
     // Contractor (Corporations) usa terminologia "Balance Record" en lugar de "Record
     // Settlements" como los otros tipos. Breadcrumb h4: "Balances / Corporations / Record".
     // v2.0.20: el h2 ya no se renderiza; el unico titulo es ese breadcrumb.
-    return /balances?\s*\/\s*corporations\s*\/\s*record|balance\s+records?|balances?\s+records?|historial/i;
+    // TEST 11/11: "Settlements / Organizations / Record".
+    return /(balances?|settlements?)\s*\/\s*(corporations|organizations)\s*\/\s*record|balance\s+records?|balances?\s+records?|historial/i;
   }
   constructor(page: Page) {
     super(page);
