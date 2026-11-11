@@ -118,6 +118,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         if: always()
+        # Un corte del servicio de artifacts de GitHub (2026-11-11, run 43094155204: smoke verde y
+        # job rojo por CreateArtifact 5xx) no debe marcar la suite como fallida: el resultado de los
+        # tests lo decide el step de Playwright.
+        continue-on-error: true
         with:
           # Reportes por shard para poder reconciliar JUnit si se necesita un agregado.
           name: regression-test-report-shard-${{ matrix.shard }}
@@ -201,6 +205,7 @@ jobs:
       - name: Upload merged payload
         if: ${{ always() && env.HAS_XRAY == 'true' }}
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: xray-merged-${{ github.run_number }}
           path: |

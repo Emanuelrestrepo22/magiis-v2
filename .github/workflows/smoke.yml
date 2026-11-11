@@ -110,6 +110,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         if: always()
+        # Un corte del servicio de artifacts de GitHub (2026-11-11, run 43094155204: smoke verde y
+        # job rojo por CreateArtifact 5xx) no debe marcar la suite como fallida: el resultado de los
+        # tests lo decide el step de Playwright.
+        continue-on-error: true
         with:
           name: smoke-test-report
           path: evidence/test/
