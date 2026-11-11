@@ -12,7 +12,8 @@ export class SettlementsPassengerHistoryPage extends BaseDetailPage {
   protected get headingRegex(): RegExp {
     // Heading h2 real compartido: "Record Settlements".
     // v2.0.20: el h2 ya no se renderiza; el titulo es el breadcrumb h4 "Settlements / Individuals / Record".
-    return /settlements?\s*\/\s*individuals\s*\/\s*record|record\s+settlements?|settlements?\s+records?|historial/i;
+    // TEST 11/11: "Settlements / Passengers / Record".
+    return /settlements?\s*\/\s*(individuals|passengers)\s*\/\s*record|record\s+settlements?|settlements?\s+records?|historial/i;
   }
   constructor(page: Page) {
     super(page);

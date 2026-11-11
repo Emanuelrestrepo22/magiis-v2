@@ -11,8 +11,9 @@ import { BaseListPage } from '../../shared/BaseListPage.js';
 export class SettlementsContractorListPage extends BaseListPage {
   readonly path = '/carrier/#/liquidations/contractors/list';
   protected get headingRegex(): RegExp {
-    // Breadcrumb h4 real: "Settlements / Corporations". No hay h2 ni el literal "Contractor".
-    return /settlements\s*\/\s*corporations/i;
+    // Breadcrumb h4: "Settlements / Corporations"; TEST 11/11 lo renombro a "Settlements / Organizations".
+    // Se aceptan ambos mientras UAT/PROD conserven el texto viejo. No hay h2 ni el literal "Contractor".
+    return /settlements\s*\/\s*(corporations|organizations)/i;
   }
   constructor(page: Page) {
     super(page);
