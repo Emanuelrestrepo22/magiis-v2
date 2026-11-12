@@ -5,7 +5,7 @@ name: Regression - carrier V2
 # configuren el environment UAT en GitHub con sus vars + secrets.
 on:
   schedule:
-    - cron: '45 11 * * 1-5' # lun-vie 08:45 ART (11:45 UTC) - escalonado tras smoke
+    - cron: '45 10 * * 1-5' # lun-vie 07:45 ART (10:45 UTC) - escalonado tras smoke
   workflow_dispatch:
     inputs:
       shards:

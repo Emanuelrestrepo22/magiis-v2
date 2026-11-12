@@ -17,7 +17,10 @@ on:
       - 'infra/**'
       - 'analysis/**'
   schedule:
-    - cron: '30 11 * * 1-5' # lun-vie 08:30 ART (11:30 UTC) - servidores ya encendidos
+    # GitHub demora los schedule 7-10 h (nov-2026): se programa temprano para que el arranque real
+    # caiga dentro de la ventana 07-19 ART del schedule-gate. Si arrancara en hora y TEST aun no
+    # estuviera encendido, el gate de disponibilidad de global-setup corta con ENVIRONMENT_DOWN.
+    - cron: '30 10 * * 1-5' # lun-vie 07:30 ART (10:30 UTC)
   workflow_dispatch:
     inputs:
       grep:
