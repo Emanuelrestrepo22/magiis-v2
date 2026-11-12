@@ -10,7 +10,7 @@ name: Visual regression - carrier V2
 # Schedule reactivado en este PR.
 on:
   schedule:
-    - cron: '0 12 * * 1-5' # lun-vie 09:00 ART (12:00 UTC) - escalonado tras regression
+    - cron: '0 11 * * 1-5' # lun-vie 08:00 ART (11:00 UTC) - escalonado tras regression
   workflow_dispatch:
     inputs:
       update_baselines:
