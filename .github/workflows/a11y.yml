@@ -20,7 +20,7 @@ jobs:
   # cron de 11:30 UTC arranco 20:50 UTC), asi que se valida la hora real de arranque. Un
   # workflow_dispatch (manual) no se filtra. TZ=ART3 = UTC-3 fijo (AR sin horario de verano), sin tzdata.
   schedule-gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
       run: ${{ steps.window.outputs.run }}
@@ -41,7 +41,7 @@ jobs:
   quality-checks:
     needs: schedule-gate
     if: needs.schedule-gate.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
 
   a11y:
     needs: quality-checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     # Environment TEST expone vars + secrets configurados desde GitHub UI.
     environment: TEST

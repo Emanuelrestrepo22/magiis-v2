@@ -28,7 +28,7 @@ jobs:
   # cron de 11:30 UTC arranco 20:50 UTC), asi que se valida la hora real de arranque. Un
   # workflow_dispatch (manual) no se filtra. TZ=ART3 = UTC-3 fijo (AR sin horario de verano), sin tzdata.
   schedule-gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
       run: ${{ steps.window.outputs.run }}
@@ -49,7 +49,7 @@ jobs:
   quality-checks:
     needs: schedule-gate
     if: needs.schedule-gate.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
 
   regression-test:
     needs: quality-checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     # Environment TEST expone vars (BASE_URL, LOGIN_PATH) y secrets
     # (USER_CARRIER_AR, PASS_CARRIER_AR) configurados desde GitHub UI.
@@ -156,7 +156,7 @@ jobs:
   xray-import:
     needs: regression-test
     if: ${{ always() && needs.regression-test.result != 'skipped' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: TEST
     env:
@@ -225,7 +225,7 @@ jobs:
   # ------------------------------------------------------------
   # regression-uat:
   #   needs: quality-checks
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-24.04
   #   timeout-minutes: 45
   #   environment: UAT
   #   strategy:
