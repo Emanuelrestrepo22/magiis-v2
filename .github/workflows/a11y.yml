@@ -5,7 +5,7 @@ name: A11y audit - carrier V2
 # Util para tracking del estado a11y de V2 en cada release y reporte QA.
 on:
   schedule:
-    - cron: '15 11 * * 1' # weekly lunes 08:15 ART (11:15 UTC) - bajo cambio esperado, no diario
+    - cron: '30 12 * * 1' # weekly lunes 09:30 ART (12:30 UTC) - bajo cambio esperado, no diario
   workflow_dispatch:
     inputs:
       grep:
@@ -15,10 +15,11 @@ on:
         type: string
 
 jobs:
-  # Ventana operativa: los runs automaticos (schedule, push, PR) solo arrancan de lunes a viernes,
-  # 07:00-19:00 ART. El cron ya filtra dias, pero GitHub demora los schedule hasta horas (2026-11-02:
-  # cron de 11:30 UTC arranco 20:50 UTC), asi que se valida la hora real de arranque. Un
-  # workflow_dispatch (manual) no se filtra. TZ=ART3 = UTC-3 fijo (AR sin horario de verano), sin tzdata.
+  # Ventana operativa (regla QA 2026-11-17): los runs automaticos (schedule, push, PR) solo arrancan
+  # de lunes a viernes entre las 09:00 y las 10:00 ART, una vez al dia y fuera del horario de deploy
+  # de TEST (el 2026-11-16 la suite fallo por un deploy en curso). GitHub demora los schedule horas
+  # (nov-2026: 7-10 h), asi que se valida la hora real de arranque: si llega tarde se omite, sin rojo
+  # falso. Un workflow_dispatch (manual) no se filtra. TZ=ART3 = UTC-3 fijo (AR sin horario de verano).
   schedule-gate:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -31,11 +32,11 @@ jobs:
         run: |
           DOW=$(TZ=ART3 date +%u)
           HOUR=$(TZ=ART3 date +%-H)
-          if [ "$EVENT" = "workflow_dispatch" ] || { [ "$DOW" -le 5 ] && [ "$HOUR" -ge 7 ] && [ "$HOUR" -lt 19 ]; }; then
+          if [ "$EVENT" = "workflow_dispatch" ] || { [ "$DOW" -le 5 ] && [ "$HOUR" -eq 9 ]; }; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Fuera de la ventana lun-vie 07:00-19:00 ART (dia $DOW, hora $HOUR): run omitido"
+            echo "::notice::Fuera de la ventana lun-vie 09:00-10:00 ART (dia $DOW, hora $HOUR): run omitido"
           fi
 
   quality-checks:
