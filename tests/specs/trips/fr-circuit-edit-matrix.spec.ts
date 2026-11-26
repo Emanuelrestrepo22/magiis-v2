@@ -47,13 +47,15 @@ import {
   type FinalizeOutcome
 } from '../../helpers/fr-ac-eval-edit-reports.js';
 import {
-  DEFAULT_CARRIER_ID,
-  DEFAULT_OWNER_ID,
+  circuitCarrierId,
+  circuitOwnerId,
   frConfigOrNull,
-  optionalInt,
   readBooks,
-  requireNumberField
+  requireNumberField,
+  circuitCcPaymentMethod,
+  thousandsSeparatorLabel
 } from '../../helpers/fr-circuit.js';
+import { loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { requireOracle } from '../../helpers/db-gate.js';
 import { readIsolation } from '../../helpers/fr-preflight.js';
 import { assertOutsideCronWindow } from '../../helpers/run-window.js';
@@ -69,7 +71,6 @@ import { FR_1901_EDM_KEY_BY_FIELD, FR_1901_KEYS } from '../../data/xray/fr-1901-
 import { makeAnnotate } from '../../utils/traceability.js';
 
 const ROUTE = '/carrier/#/travel/create';
-const PAYMENT_CC = process.env.FR_CC_PAYMENT_METHOD?.trim() || 'Credit Account';
 const STATE_DONE = /^DONE$/i;
 const STATE_CANCELLED = /^(CANCELL?ED|7)$/i;
 const TOL = 0.011;
@@ -318,8 +319,8 @@ test.describe('Circuito Francia · matriz de edicion post-cierre (rendido, no li
         c.id,
         c.priority === 'P1' ? 'HP' : 'EDGE'
       );
-      const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
-      const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+      const ownerId = circuitOwnerId();
+      const expectedCarrier = circuitCarrierId();
       const batch = { driverUserId: cfg.driverId, vehicleId: cfg.vehicleId };
       const surrenderClient = new SurrenderClient(carrierApi, carrierSession);
       const surrender = new SurrenderFlow(page, surrenderClient);
@@ -362,9 +363,9 @@ test.describe('Circuito Francia · matriz de edicion post-cierre (rendido, no li
           flow.createViaUi({
             page,
             client: cfg.clientQuery,
-            paymentMethod: c.kind === 'cash' ? 'Cash' : PAYMENT_CC,
+            paymentMethod: c.kind === 'cash' ? 'Cash' : circuitCcPaymentMethod(),
             ...(c.withOtherCost ? { otherCostName: cfg.otherCostName } : {}),
-            region: 'FR',
+            circuitProfile: loadCarrierProfile(),
             assertBeforeSubmit: ({ simulatedAmount, resolvedOrigin, resolvedDestination }) => {
               // Anti-vacuidad (guarda tecnica): sin esto un total 0 haria pasar los oraculos en vacio.
               if (resolvedOrigin === resolvedDestination) {
@@ -443,7 +444,7 @@ test.describe('Circuito Francia · matriz de edicion post-cierre (rendido, no li
           knownIssue(
             testInfo,
             'AC-FR-90',
-            `TEST FR THOUSANDS_SEPARATOR SPACE: toTravelsSurrender ${confirmStatus} con la rendicion persistida (viaje ${travelId})`
+            `${thousandsSeparatorLabel()}: toTravelsSurrender ${confirmStatus} con la rendicion persistida (viaje ${travelId})`
           );
         } else {
           expect(confirmStatus, 'toTravelsSurrender 2xx').toBeGreaterThanOrEqual(200);

@@ -30,6 +30,7 @@
 //   POST {carrierId}/{ownerId}  body igual; `travelSurrenderId` = ids separados por coma de UN grupo.
 // Estados (LiquidationStatus, ordinal): 0 NOTPAID, 1 PAID, 2 CANCELED. El FE crea siempre con 'PAID'.
 import type { APIRequestContext } from '@playwright/test';
+import { isGateOpen } from '../../config/runtime.js';
 import { readJson, sendGetOk, sendOk, type CarrierSession } from './carrierSession.js';
 
 /** Rendicion pendiente de chofer (TravelsSurrenderReportDTO, constructor de 25 parametros). */
@@ -97,11 +98,11 @@ export type CreateLiquidationBody = {
 };
 
 const BIG_PAGE = 200;
-/** Gate de escrituras de liquidaciones (definido aqui, no en runtime.ts: solo el valor exacto `1` lo abre). */
-export const SETTLEMENT_GATE = 'FR_CONFIRM_SETTLEMENT';
+/** Gate de escrituras de liquidaciones: `F5_CONFIRM_SETTLEMENT` (alias de lectura historico `FR_CONFIRM_SETTLEMENT`; solo el valor exacto `1` lo abre). */
+export const SETTLEMENT_GATE = 'F5_CONFIRM_SETTLEMENT';
 
 export function isSettlementGateOpen(): boolean {
-  return process.env[SETTLEMENT_GATE]?.trim() === '1';
+  return isGateOpen(SETTLEMENT_GATE);
 }
 
 function assertId(name: string, value: number): void {
@@ -303,7 +304,33 @@ export class SettlementClient {
     );
   }
 
-  // ───────────── escrituras (gate FR_CONFIRM_SETTLEMENT=1) ─────────────
+  /**
+   * Comprobante PDF de una liquidacion (`POST .../getLiquidationTravelsDetails/report/{id}`, el mismo que baja el
+   * boton «PDF» de la pantalla). POST de LECTURA: no escribe. Devuelve status + bytes (el spec juzga: 500 vacio =
+   * PDF no generado, p. ej. 1901 TEST con THOUSANDS_SEPARATOR=SPACE).
+   */
+  async liquidationReportPdf(
+    kind: 'driver' | 'owner',
+    liquidationId: number,
+    opts: { hideAmount?: boolean; languageCode?: 'ES' | 'EN' } = {}
+  ): Promise<{ status: number; body: Buffer }> {
+    assertId('liquidationId', liquidationId);
+    const base = kind === 'driver' ? 'carrierDriverLiquidations' : 'carrierOwnerLiquidations';
+    const response = await this.api.post(
+      `${base}/getLiquidationTravelsDetails/report/${liquidationId}`,
+      {
+        params: {
+          sort: 'ASC',
+          column: 'id',
+          languageCode: opts.languageCode ?? 'ES',
+          hideAmount: opts.hideAmount ? 't' : 'f'
+        }
+      }
+    );
+    return { status: response.status(), body: await response.body() };
+  }
+
+  // ───────────── escrituras (gate F5_CONFIRM_SETTLEMENT=1) ─────────────
 
   private assertCreateGate(method: string): void {
     if (!isSettlementGateOpen()) {

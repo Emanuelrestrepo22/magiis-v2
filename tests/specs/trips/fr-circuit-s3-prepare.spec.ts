@@ -26,15 +26,15 @@ import {
   readTravelCoreDb
 } from '../../helpers/fr-ac-eval-circuit.js';
 import {
-  DEFAULT_CARRIER_ID,
-  DEFAULT_OWNER_ID,
+  circuitCarrierId,
+  circuitOwnerId,
   frConfigOrNull,
   HANDOFF_PATH,
-  optionalInt,
   readBooks,
   writeHandoff,
   type FrS3Handoff
 } from '../../helpers/fr-circuit.js';
+import { loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { AdminCircuitFlow } from '../../steps/trips/adminCircuit.steps.js';
 import { round2 } from '../../utils/money.js';
 
@@ -58,8 +58,8 @@ test.describe('Circuito Francia S3 prepare (alta + asignacion, cierre por app)',
     const cfg = frGate.config as FrCircuitConfig;
     // Sin key de Xray a proposito: prepara datos; el veredicto lo da su `verify` (fr-1901-keys.ts).
     testInfo.annotations.push({ type: 'tc', description: 'FR-S3-prepare' });
-    const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
-    const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const ownerId = circuitOwnerId();
+    const expectedCarrier = circuitCarrierId();
     const batch = { driverUserId: cfg.driverId, vehicleId: cfg.vehicleId }; // DRIVER.ID
     const surrenderClient = new SurrenderClient(carrierApi, carrierSession);
     const flow = new AdminCircuitFlow(travelsApi, checkingAccountApi);
@@ -112,7 +112,7 @@ test.describe('Circuito Francia S3 prepare (alta + asignacion, cierre por app)',
       page,
       client: cfg.clientQuery,
       paymentMethod: PAYMENT_METHOD,
-      region: 'FR',
+      circuitProfile: loadCarrierProfile(),
       assertBeforeSubmit: ({ simulatedAmount, resolvedOrigin, resolvedDestination }) => {
         expect(
           resolvedOrigin !== resolvedDestination,
@@ -179,7 +179,7 @@ test.describe('Circuito Francia S3 prepare (alta + asignacion, cierre por app)',
           driverInDetail === undefined || driverInDetail === null ? null : Number(driverInDetail),
         core: assignedDb
       });
-      expect(v.ok, formatMismatches('chofer 4965 (DRIVER.ID)', v.mismatches)).toBe(true);
+      expect(v.ok, formatMismatches(`chofer ${cfg.driverId} (DRIVER.ID)`, v.mismatches)).toBe(true);
       return {
         detailDriverId: driverInDetail ?? null,
         dbDriverId: assignedDb.DRIVER_ID,

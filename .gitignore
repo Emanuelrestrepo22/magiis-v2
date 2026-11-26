@@ -4,14 +4,13 @@
 .mcp*
 # Excepcion: la plantilla SIN secretos si se versiona (referencia para el equipo).
 !.mcp.json.example
-.env
-.env.local
-.env.*.local
-.env.test
-.env.uat
-.env.prod
-# .env.example SI se commitea (plantilla publica sin secretos)
+# Mismo criterio que .mcp*: un patron catch-all en vez de enumerar ambiente por ambiente.
+# La enumeracion dejaba afuera los BACKUPS (.env.uat.bak-2026-09-02 aparecia como untracked,
+# con credenciales adentro) y cualquier ambiente nuevo (.env.qa, .env.staging...).
+.env*
+# Excepciones: plantillas SIN secretos, que si se versionan.
 !.env.example
+!.env*.example
 
 # Node
 node_modules/
@@ -70,3 +69,6 @@ allure-report/
 
 # Snapshots/logs del playwright-cli (relevamiento contra ambientes compartidos): no versionar
 .playwright-cli/
+
+# Recon / diagnostico local de corridas (trazas, capturas): no versionar
+.recon/

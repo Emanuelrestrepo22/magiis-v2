@@ -18,11 +18,12 @@ import {
   DEFAULT_LOCALE,
   getCurrentEnv,
   regionStorageStatePath,
+  regionStorageStateCandidates,
   type CarrierRegion
 } from '../config/runtime.js';
 
 // La ruta vive en runtime.ts: global-setup la usa para crear la sesión de región en CI.
-export { regionStorageStatePath };
+export { regionStorageStatePath, regionStorageStateCandidates };
 
 type RegionFixtures = {
   /** Abre una página autenticada como el carrier de la región (se cierra sola al terminar el test). */

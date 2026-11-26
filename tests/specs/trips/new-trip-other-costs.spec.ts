@@ -38,7 +38,7 @@ import {
   type OtherCostContext
 } from '../../fixtures/factories/otherCostFactory.js';
 import { getCurrentEnv } from '../../config/runtime.js';
-import { otherCostsDataFor } from '../../data/carrier-v2/trips/other-costs.js';
+import { isCostSwitchEnabled, otherCostsDataFor } from '../../data/carrier-v2/trips/other-costs.js';
 import { expectedLineAmount } from '../../data/carrier-v2/trips/other-costs.rules.f1.js';
 import {
   NewTripOtherCostsFlow,
@@ -62,6 +62,24 @@ const TM_TC109 = 'TM-1090';
 const TM_TC110 = 'TM-1091';
 const TM_TC115 = 'TM-1277';
 const TM_TC116 = 'TM-1279';
+
+// Contrato MG-1601: el concepto debe ser del tipo del tarifador del cliente. Con tarifador de venta
+// (TEST, «Stripe, Cliente») los conceptos se crean sin costo; los Tests cuyo objeto es el costo se
+// saltan con motivo explícito (un 409 OTHER_COST_RATE_TYPE_MISMATCH nunca se oculta ni se ajusta).
+// R6-4: las Xray de TM-1085/1086/1087/1090/1091 exigen un carrier habilitado para Costo (o un concepto
+// con costo); decide el carrier (espejo del front), no el modo de tarifador.
+const COST_CONFIGURED = DATA !== null && isCostSwitchEnabled(DATA.carrierId);
+const costOf = (value: number): number | undefined => (COST_CONFIGURED ? value : undefined);
+const costNote = (value: number): string =>
+  COST_CONFIGURED ? String(value) : 'sin costo (tarifador de venta)';
+const NEEDS_COST_TARIFF =
+  'el objeto del Test es el Costo encendido: exige un cliente con tarifador por costo (6203, ' +
+  'pasajero D3 pendiente); con el tarifador de venta del cliente el concepto por costo no se ofrece (MG-1601)';
+
+const NEEDS_COST_CARRIER =
+  'la precondición Xray exige un carrier habilitado para Costo (front V2: carriers 1040/1481/2602/1060, ' +
+  'OTHER_COSTS_COST_ENABLED_CARRIERS) o un concepto con costo; este carrier no lo está (TEST 1521). ' +
+  'Corrida válida: UAT 1481';
 
 const MAX_VALUE_ERROR = /cannot exceed the maximum value|no puede superar el valor m[aá]ximo/i;
 
@@ -121,6 +139,7 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
       flow,
       travelsApi
     }) => {
+      test.skip(!COST_CONFIGURED, NEEDS_COST_TARIFF);
       makeAnnotate(TM_TC103, ROUTE)('TC103', 'HP');
       const a = flow.data.amounts.tm1084;
       const concept = await flow.createConcept(
@@ -183,21 +202,22 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
       flow,
       travelsApi
     }) => {
+      test.skip(!COST_CONFIGURED, NEEDS_COST_CARRIER);
       makeAnnotate(TM_TC109, ROUTE)('TC109', 'HP');
       const a = flow.data.amounts.tm1090;
       const fixed = await flow.createConcept(
         fixedOtherCost(await flow.conceptContext({ label: 'F' }), a.fixedSale, {
-          cost: a.fixedCost
+          cost: costOf(a.fixedCost)
         })
       );
       const quantity = await flow.createConcept(
         quantityOtherCost(await flow.conceptContext({ label: 'Q' }), a.quantitySale, {
-          cost: a.quantityCost
+          cost: costOf(a.quantityCost)
         })
       );
       const percentage = await flow.createConcept(
         percentageOtherCost(await flow.conceptContext({ label: 'P' }), a.percent, {
-          cost: a.costPercent
+          cost: costOf(a.costPercent)
         })
       );
 
@@ -302,10 +322,11 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
       flow,
       travelsApi
     }) => {
+      test.skip(!COST_CONFIGURED, NEEDS_COST_CARRIER);
       makeAnnotate(TM_TC104, ROUTE)('TC104', 'HP');
       const a = flow.data.amounts.tm1085;
       const concept = await flow.createConcept(
-        quantityOtherCost(await flow.conceptContext(), a.unitSale, { cost: a.unitCost })
+        quantityOtherCost(await flow.conceptContext(), a.unitSale, { cost: costOf(a.unitCost) })
       );
       const expected = expectedLineAmount({ type: 'QTY', sale: a.unitSale, quantity: a.quantity });
 
@@ -342,7 +363,7 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
         detail: travelDetailView(detail)
       });
       flow.comment(
-        `${header} Concepto QTY ${concept.id} (unitario ${a.unitSale}, costo ${a.unitCost}) × ${a.quantity}. ` +
+        `${header} Concepto QTY ${concept.id} (unitario ${a.unitSale}, costo ${costNote(a.unitCost)}) × ${a.quantity}. ` +
           `UI: línea ${line}, Otros Costos ${before.otherCosts}→${after.otherCosts}, Total ${after.total}. ` +
           `Alta ${saved.travelId} (${ui.tripCode}): request ${JSON.stringify(saved.requestOtherCosts)}. ` +
           `API: price ${persisted?.price ?? 'ausente'}, cantidad ${persisted?.quantity ?? '-'}. ` +
@@ -362,10 +383,13 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
       flow,
       travelsApi
     }) => {
+      test.skip(!COST_CONFIGURED, NEEDS_COST_CARRIER);
       makeAnnotate(TM_TC105, ROUTE)('TC105', 'HP');
       const a = flow.data.amounts.tm1086;
       const concept = await flow.createConcept(
-        percentageOtherCost(await flow.conceptContext(), a.percent, { cost: a.costPercent })
+        percentageOtherCost(await flow.conceptContext(), a.percent, {
+          cost: costOf(a.costPercent)
+        })
       );
 
       const before = await flow.startQuotedTrip('long');
@@ -392,7 +416,7 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
         detail: travelDetailView(detail)
       });
       flow.comment(
-        `${header} Concepto PCT ${concept.id} (${a.percent}%, costo ${a.costPercent}%), ruta larga. ` +
+        `${header} Concepto PCT ${concept.id} (${a.percent}%, costo ${COST_CONFIGURED ? `${a.costPercent}%` : costNote(a.costPercent)}), ruta larga. ` +
           `UI: vehículo ${vehiclePrice}, línea ${line}, Total ${before.total}→${after.total}. ` +
           `Alta ${saved.travelId} (${ui.tripCode}): request (sin redondear, solo se registra) ${JSON.stringify(saved.requestOtherCosts)}. ` +
           `API: tarifa ${fare ?? '-'}, price ${persisted?.price ?? 'ausente'}. Widget del detalle ${ui.budgetedOtherCosts ?? 'sin fila'}.`
@@ -417,10 +441,14 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
       flow,
       travelsApi
     }) => {
+      test.skip(!COST_CONFIGURED, NEEDS_COST_CARRIER);
       makeAnnotate(TM_TC106, ROUTE)('TC106', 'HP');
       const a = flow.data.amounts.tm1087;
       const concept = await flow.createConcept(
-        variableOtherCost(await flow.conceptContext(), { maxSale: a.maxSale, maxCost: a.maxCost })
+        variableOtherCost(await flow.conceptContext(), {
+          maxSale: a.maxSale,
+          maxCost: costOf(a.maxCost)
+        })
       );
       const expected = expectedLineAmount({ type: 'VAR', amount: Number(a.amount) });
 
@@ -446,7 +474,7 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
         detail: travelDetailView(detail)
       });
       flow.comment(
-        `${header} Concepto VAR ${concept.id} (topes ${a.maxSale}/${a.maxCost}), importe tecleado ${a.amount}. ` +
+        `${header} Concepto VAR ${concept.id} (topes ${a.maxSale}/${COST_CONFIGURED ? a.maxCost : 'sin costo'}), importe tecleado ${a.amount}. ` +
           `UI: línea ${line}, Total ${before.total}→${after.total}. Alta ${saved.travelId} (${ui.tripCode}): ` +
           `request ${JSON.stringify(saved.requestOtherCosts)}. API price ${persisted?.price ?? 'ausente'}. ` +
           `Widget del detalle ${ui.budgetedOtherCosts ?? 'sin fila'}.`
@@ -469,10 +497,11 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
       flow,
       travelsApi
     }) => {
+      test.skip(!COST_CONFIGURED, NEEDS_COST_CARRIER);
       makeAnnotate(TM_TC110, ROUTE)('TC110', 'EC');
       const a = flow.data.amounts.tm1091;
       const concept = await flow.createConcept(
-        fixedOtherCost(await flow.conceptContext(), a.sale, { cost: a.cost })
+        fixedOtherCost(await flow.conceptContext(), a.sale, { cost: costOf(a.cost) })
       );
       const expected = expectedLineAmount({ type: 'FIX', sale: a.sale });
 
@@ -530,6 +559,7 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
     test('TC115 Respeta el tope de venta de un Variable con ambos topes al agregarlo en el alta', async ({
       flow
     }) => {
+      test.skip(!COST_CONFIGURED, NEEDS_COST_TARIFF);
       makeAnnotate(TM_TC115, ROUTE)('TC115', 'EC');
       const a = flow.data.amounts.tm1277;
       const concept = await flow.createConcept(
@@ -611,6 +641,11 @@ test.describe('Nuevo Viaje - otros costos (MG-995/MG-996 fase 1, ATR TM-1280)', 
     test('TC116 Agrega conceptos Fijo con Costo encendido en cero, Costo apagado, disponibilidad compartida y valor negativo', async ({
       flow
     }) => {
+      test.skip(
+        !COST_CONFIGURED,
+        'las clases A (Costo ON en cero) y B (Costo OFF) conviven en un mismo viaje: ningún tarifador ' +
+          'admite ambas (MG-1601); el Test debe rediseñarse por tipo de tarifador'
+      );
       makeAnnotate(TM_TC116, ROUTE)('TC116', 'EC');
       const a = flow.data.amounts.tm1279;
       const ctx = (extra: Partial<OtherCostContext>) => flow.conceptContext(extra);

@@ -134,7 +134,9 @@ export const AC = {
   'AC-FR-95':
     'KI: App Driver 2.6.17 conserva la oferta de un viaje cancelado asignado a mano (Firebase huérfano)',
   'AC-FR-96':
-    'KI: par de movimientos residual 11.312.004 (viaje 71533) en libros de propietario y chofer'
+    'KI: par de movimientos residual 11.312.004 (viaje 71533) en libros de propietario y chofer',
+  'AC-FR-97':
+    'Comprobante de la rendición manual: PDF válido (%PDF, > 1 KB) en la respuesta del confirm y en la copia guardada'
   /* AC-REGISTRY:END */
 } as const satisfies Record<`AC-FR-${string}`, string>;
 

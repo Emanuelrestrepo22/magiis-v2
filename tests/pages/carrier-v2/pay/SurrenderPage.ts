@@ -21,6 +21,8 @@ import type { Locator, Page, Request, Response } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { isFrGateOpen } from '../../../config/runtime.js';
 import { BasePage } from '../../shared/BasePage.js';
+import { parseDeliverBase, type DeliverBalanceBase } from '../../../helpers/f5-surrender-oracle.js';
+import { parseMoney } from '../../../utils/money.js';
 
 export type SurrenderBatchKey = { driverUserId: number; vehicleId: number };
 
@@ -40,6 +42,9 @@ type SummaryRow = { driverId: number; vehicleId: number };
 const SUMMARY_URL = /\/travels\/driversSurrenderSummary\?/;
 const BATCH_URL = /\/travels\/toSurrend\?/;
 const TOTALS_URL = /\/travels\/toTravelsSurrender\?/;
+/** Escrituras de la rendicion: POST toTravelsSurrender (confirma) y PUT travelsSurrender (automatica). */
+const WRITE_URL =
+  /\/travels\/toTravelsSurrender(\?|$)|\/vehicles\/\d+\/carrier\/\d+\/travelsSurrender/;
 
 export class SurrenderPage extends BasePage {
   readonly pendingPath = '/carrier/#/pay/travels';
@@ -55,6 +60,9 @@ export class SurrenderPage extends BasePage {
   private batchResponse: Response | null = null;
   private totalsResponse: Response | null = null;
   private sawSurrenderPost = false;
+  private blockedWrites = 0;
+  private confirmReceipt: Buffer | null = null;
+  private confirmRequestBody: Record<string, unknown> | null = null;
 
   constructor(page: Page) {
     super(page);
@@ -188,6 +196,152 @@ export class SurrenderPage extends BasePage {
       { timeout: 60_000 }
     );
     await this.confirmButton.click();
-    return (await post).status();
+    const response = await post;
+    // Body que el front mando (importes de la rendicion; sin headers ni token).
+    this.confirmRequestBody = (() => {
+      try {
+        return JSON.parse(response.request().postData() ?? 'null') as Record<
+          string,
+          unknown
+        > | null;
+      } catch {
+        return null;
+      }
+    })();
+    // TravelController.java:2545: con 200 el cuerpo trae el comprobante en base64 (`file`).
+    const body = (await response.json().catch(() => null)) as { file?: unknown } | null;
+    this.confirmReceipt = typeof body?.file === 'string' ? Buffer.from(body.file, 'base64') : null;
+    return response.status();
+  }
+
+  /**
+   * Guardia de red de las vistas previas: aborta toda escritura de la rendicion (POST
+   * toTravelsSurrender y PUT vehicles/{id}/carrier/{id}/travelsSurrender) y las cuenta. Invocarla ANTES
+   * de navegar; los GET pasan. Es defensa en profundidad: ningun metodo de lectura pulsa Confirmar.
+   */
+  async blockWrites(): Promise<void> {
+    await this.page.route(WRITE_URL, async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.continue();
+        return;
+      }
+      this.blockedWrites += 1;
+      await route.abort('blockedbyclient');
+    });
+  }
+
+  /** Escrituras de la rendicion abortadas por `blockWrites()` (0 = la vista previa fue solo lectura). */
+  writeAttempts(): number {
+    return this.blockedWrites;
+  }
+
+  /**
+   * Abre el acordeon «Total Amount Collected» (colapsado por defecto en algunos lotes: sus lineas, entre
+   * ellas la de no comisionables, no existen en el texto visible hasta abrirlo). Solo cambia la vista.
+   */
+  async expandCollected(): Promise<void> {
+    const header = this.page.getByText('Total Amount Collected', { exact: true }).first();
+    const cashTrips = this.page.getByText('Cash Trips', { exact: true }).first();
+    if (!(await cashTrips.isVisible())) await header.click();
+    await expect(cashTrips).toBeVisible({ timeout: 10_000 });
+  }
+
+  /** Renglones de texto de la pantalla (innerText, uno por linea); sin interpretar ni aseverar. */
+  async readBodyLines(): Promise<string[]> {
+    await this.expandCollected();
+    const text = await this.page.locator('body').innerText();
+    return text.split(/\r?\n/);
+  }
+
+  /** Tarjeta de balance (la que contiene «Amount due to»). */
+  private get balanceCard(): Locator {
+    return this.page.locator('.card', { hasText: 'Amount due to' }).first();
+  }
+
+  /**
+   * Campo «Entregar» (etiqueta «Cash»): el unico `input[currencyinput]` dentro de un `.input-group` de la
+   * tarjeta de balance que no es de gastos (`.expense-input`: Combustible / Otros gastos, que en 1521
+   * conviven en pantalla). Sin `.first()`/`.nth()`: si hay 0 o 2+ coincidencias Playwright falla (strict
+   * mode) en vez de operar sobre otro campo. Ademas `assertDeliverFieldIsEntregar` lo contrasta por valor.
+   */
+  get deliverInput(): Locator {
+    return this.balanceCard.locator(
+      '.input-group:not(.expense-input):has(> span.input-group-text) > input[currencyinput]:not(.expense-input)'
+    );
+  }
+
+  /** Importes de la formula del saldo leidos de la tarjeta (base = Total Cash − deducciones − comisiones + financieros). */
+  async readDeliverBase(): Promise<DeliverBalanceBase> {
+    const text = (await this.balanceCard.innerText()).replace(/\s+/g, ' ');
+    const base = parseDeliverBase(text);
+    if (base === null) {
+      throw new Error(
+        `[SurrenderPage] la tarjeta de balance no trae la formula completa del saldo: «${text}»`
+      );
+    }
+    return base;
+  }
+
+  /**
+   * Guarda anti-campo-equivocado: ANTES de teclear, «Entregar» viene precargado con el monto a entregar
+   * (|base|, igual al «Amount due to»). Si el locator apuntara a «Combustible»/«Otros gastos» (precarga 0.00)
+   * esto falla en voz alta con ambos valores. Devuelve la base ya validada.
+   */
+  async assertDeliverFieldIsEntregar(): Promise<DeliverBalanceBase> {
+    const base = await this.readDeliverBase();
+    const preload = parseMoney(await this.deliverInput.inputValue());
+    if (Math.abs(preload - Math.abs(base.base)) > 0.005) {
+      throw new Error(
+        `[SurrenderPage] el campo localizado como «Entregar» tiene precarga ${preload} y el monto a entregar ` +
+          `de la tarjeta es ${Math.abs(base.base)} (Total Cash ${base.totalCash} − deducciones ${base.deductions} − ` +
+          `comisiones ${base.commissions} + financieros ${base.financialCosts}): se esta leyendo OTRO campo`
+      );
+    }
+    return base;
+  }
+
+  /** Teclea un valor en «Entregar» (borra antes) SIN pulsar Confirmar; devuelve el estado resultante. */
+  async typeDeliver(
+    raw: string,
+    options: { guardShown?: boolean; paste?: boolean } = {}
+  ): Promise<{
+    shown: string;
+    confirmDisabled: boolean;
+    balanceKind: 'Company' | 'Driver' | null;
+    balanceText: string | null;
+  }> {
+    const input = this.deliverInput;
+    await input.click();
+    await this.page.keyboard.press('Control+A');
+    await this.page.keyboard.press('Delete');
+    await expect(input).toHaveValue('');
+    // `paste`: fill() dispara el evento `input` de una vez (equivale a pegar): el campo recorta a 2 decimales.
+    if (raw !== '') {
+      if (options.paste === true) await input.fill(raw);
+      else await input.pressSequentially(raw, { delay: 60 });
+    }
+    // Guarda tecnica anti-carrera: el campo debe mostrar lo tipeado antes de leer el saldo (sin ella un
+    // caracter perdido produce un saldo de OTRO importe). Las entradas que el campo transforma a
+    // proposito (decimales de mas, signo, letras) se leen sin esta guarda.
+    if (options.guardShown !== false) await expect(input).toHaveValue(raw);
+    const card = this.balanceCard;
+    const cardText = (await card.innerText()).replace(/\s+/g, ' ');
+    const due = /Due to (Company|Driver):\s*([^\s].*?)(?:\s+Confirm|$)/.exec(cardText);
+    return {
+      shown: await input.inputValue(),
+      confirmDisabled: await this.confirmButton.isDisabled(),
+      balanceKind: due ? (due[1] as 'Company' | 'Driver') : null,
+      balanceText: due ? due[2].trim() : null
+    };
+  }
+
+  /** Body JSON del POST del ultimo confirm() (null si no hubo o no era JSON). Solo lectura. */
+  readConfirmRequestBody(): Record<string, unknown> | null {
+    return this.confirmRequestBody;
+  }
+
+  /** PDF del comprobante devuelto por el ultimo confirm() (null si no vino). Solo lectura. */
+  readConfirmReceipt(): Buffer | null {
+    return this.confirmReceipt;
   }
 }

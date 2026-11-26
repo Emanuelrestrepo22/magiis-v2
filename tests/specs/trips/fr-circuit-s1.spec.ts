@@ -25,7 +25,14 @@ import { requireOracle } from '../../helpers/db-gate.js';
 import { readIsolation } from '../../helpers/fr-preflight.js';
 import { assertOutsideCronWindow } from '../../helpers/run-window.js';
 import { FR_FACTS } from '../../helpers/fr-facts.js';
-import { requireNumberField } from '../../helpers/fr-circuit.js';
+import {
+  circuitCarrierId,
+  circuitOwnerId,
+  PCT,
+  requireNumberField,
+  thousandsSeparatorKnownIssueNote
+} from '../../helpers/fr-circuit.js';
+import { currencyMatcher, loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { test, expect } from '../../fixtures/carrierApiFixture.js';
 import { attachXrayEvidence } from '../../TestBase.js';
 import { SurrenderClient } from '../../api/clients/surrender.client.js';
@@ -37,6 +44,7 @@ import {
   type FrCircuitConfig
 } from '../../config/runtime.js';
 import { verifyAc, knownIssue } from '../../helpers/acceptance.js';
+import { pollUntil } from '../../helpers/poll.js';
 import { deltaMovements, snapshotBook, type CcSnapshot } from '../../helpers/cc-delta.js';
 import { COST_SALE_SCOPE_NOTE, evaluateCostEqualsSale } from '../../helpers/cost-sale.js';
 import { evaluateSaleCostPairs, evaluateSurrenderRow } from '../../helpers/db-oracle-eval.js';
@@ -53,6 +61,7 @@ import {
   evaluatePaymentColumn,
   evaluateSurrenderHeader,
   expectedManualSurrender,
+  evaluateSurrenderReceipt,
   formatMismatches,
   nullAsZeroWhereExpectedZero,
   readBatchState,
@@ -69,6 +78,8 @@ import {
 import { readSaleCostData, readSurrenderRow } from '../../steps/trips/dbOracles.steps.js';
 import { AdminCircuitFlow } from '../../steps/trips/adminCircuit.steps.js';
 import { SurrenderFlow } from '../../steps/trips/surrender.steps.js';
+import { verifyF5Surrender } from './f5-verify.js';
+import { countryThousandsSeparator } from '../../steps/trips/f5Surrender.steps.js';
 import { round2 } from '../../utils/money.js';
 import { FR_1901_S1_TARGETS, FR_1901_SCOPE_NOTES } from '../../data/xray/fr-1901-keys.js';
 import { makeAnnotate } from '../../utils/traceability.js';
@@ -78,12 +89,6 @@ const TS_KEY = FR_1901_S1_TARGETS;
 const PAYMENT_METHOD = 'Cash';
 const STATE_DONE = /^DONE$/i;
 const STATE_CANCELLED = /^(CANCELL?ED|7)$/i;
-const KNOWN_ISSUE_NOTE =
-  'TEST FR THOUSANDS_SEPARATOR SPACE -> surrender PDF 500 (rendicion persistida)';
-const DEFAULT_OWNER_ID = 2927;
-const DEFAULT_CARRIER_ID = 1901;
-// Comisiones sobre venta del vehiculo 3765 (datos-1901 §«lote B»): propietario 40, chofer 40, agencia 20.
-const PCT = { owner: 0.4, driver: 0.4, agency: 0.2 } as const;
 
 function frConfigOrNull(): { config: FrCircuitConfig | null; reason: string } {
   if (getCurrentEnv() !== 'test') return { config: null, reason: 'FR S1 corre solo con ENV=test' };
@@ -105,14 +110,6 @@ function frConfigOrNull(): { config: FrCircuitConfig | null; reason: string } {
 
 const frGate = frConfigOrNull();
 
-const optionalInt = (name: string, fallback: number): number => {
-  const raw = process.env[name]?.trim();
-  if (!raw) return fallback;
-  const n = Number(raw);
-  if (!Number.isInteger(n) || n <= 0) throw new Error(`${name} no es un entero positivo`);
-  return n;
-};
-
 const bookKey = (row: DriverBookRow | OwnerBookRow): string => String(row.origin ?? 'null');
 
 test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', () => {
@@ -131,8 +128,8 @@ test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', 
     const cfg = frGate.config as FrCircuitConfig;
     makeAnnotate(TS_KEY, ROUTE)('FR-S1', 'HP');
     testInfo.annotations.push({ type: 'xray_comment', description: FR_1901_SCOPE_NOTES.S1 });
-    const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
-    const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const ownerId = circuitOwnerId();
+    const expectedCarrier = circuitCarrierId();
     // MAGIIS "driverUserId" path/query params are DRIVER.ID (DriverResponseDTO.driverUserId = DRIVER.ID), not USER_ID.
     const batch = { driverUserId: cfg.driverId, vehicleId: cfg.vehicleId };
     const surrenderClient = new SurrenderClient(carrierApi, carrierSession);
@@ -194,7 +191,7 @@ test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', 
           page,
           client: cfg.clientQuery,
           paymentMethod: PAYMENT_METHOD,
-          region: 'FR',
+          circuitProfile: loadCarrierProfile(),
           assertBeforeSubmit: ({ simulatedAmount, resolvedOrigin, resolvedDestination }) => {
             expect(
               resolvedOrigin !== resolvedDestination,
@@ -237,7 +234,10 @@ test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', 
       const currency = (created.simulationPrice as Record<string, unknown> | null | undefined)
         ?.currencyCode;
       if (currency !== undefined && currency !== null) {
-        expect(String(currency), 'moneda de la cotizacion debe ser EUR').toMatch(/EUR|€/i);
+        expect(
+          String(currency),
+          `moneda de la cotizacion debe ser ${loadCarrierProfile().currency.code}`
+        ).toMatch(currencyMatcher(loadCarrierProfile().currency));
       }
       return {
         currencyCode: currency ?? null,
@@ -319,7 +319,7 @@ test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', 
         detailDriverId: driverMeasured,
         core: doneDb
       });
-      expect(v.ok, formatMismatches('chofer 4965 (DRIVER.ID)', v.mismatches)).toBe(true);
+      expect(v.ok, formatMismatches(`chofer ${cfg.driverId} (DRIVER.ID)`, v.mismatches)).toBe(true);
       return { detailDriverId: driverMeasured, dbDriverId: doneDb.DRIVER_ID, notes: v.notes };
     });
 
@@ -452,15 +452,29 @@ test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', 
     const confirmStatus = await test.step('6. Confirm surrender (irreversible)', async () =>
       surrender.confirm());
 
+    // F5 (M7): un 500 en la confirmacion solo se tolera como known-issue si COUNTRY.THOUSANDS_SEPARATOR del
+    // carrier es SPACE segun un SELECT en vivo; con NONE/COMMA/POINT el 500 es un FALLO real.
+    const liveSeparator =
+      confirmStatus >= 500 ? await countryThousandsSeparator(oracle, expectedCarrier) : null;
+    const pdf500Tolerated = confirmStatus >= 500 && liveSeparator === 'SPACE';
+
     await verifyAc(testInfo, 'AC-FR-25', async () => {
       if (confirmStatus >= 500) {
+        expect(
+          pdf500Tolerated,
+          `POST toTravelsSurrender respondio ${confirmStatus} y COUNTRY.THOUSANDS_SEPARATOR del carrier es ${liveSeparator} (no SPACE): el 500 es un fallo real, no el known-issue`
+        ).toBe(true);
         // El 500 llega tras el commit (PDF): se verifica la persistencia por API; falla si no se persistio.
         const persisted = await readBatchStateUntilEmpty(surrenderClient, batch, travelId);
         expect(
           persisted.settled,
           `POST toTravelsSurrender respondio ${confirmStatus} y el viaje ${travelId} sigue pendiente tras ${persisted.elapsedMs} ms: la rendicion NO se persistio (fallo real, no el known-issue del PDF)`
         ).toBe(true);
-        knownIssue(testInfo, 'AC-FR-90', `POST ${confirmStatus}: ${KNOWN_ISSUE_NOTE}`);
+        knownIssue(
+          testInfo,
+          'AC-FR-90',
+          `POST ${confirmStatus}: ${thousandsSeparatorKnownIssueNote()}`
+        );
       } else {
         expect(confirmStatus, 'POST toTravelsSurrender debe responder 2xx').toBeGreaterThanOrEqual(
           200
@@ -477,11 +491,57 @@ test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', 
       ).toBe(true);
       return { stillPending: r.value.stillPending, elapsedMs: r.elapsedMs };
     });
+
+    // ---- Comprobante PDF de la rendicion (AC-FR-97): respuesta del confirm + copia guardada ----
+    const receiptIdPoll = await test.step('Comprobante: id de la rendicion del viaje', async () =>
+      pollUntil(
+        async () => (await surrenderIdsOfTrips(oracle, [travelId])).get(travelId) ?? null,
+        (id) => id !== null,
+        { timeoutMs: 30_000 }
+      ));
+
+    const receiptSurrenderId = receiptIdPoll.value;
+    const receipt =
+      receiptSurrenderId === null
+        ? null
+        : await test.step('Comprobante: PDF del confirm y copia guardada', async () =>
+            surrender.readReceipt(receiptSurrenderId));
+    const receiptVerdict = receipt === null ? null : evaluateSurrenderReceipt(receipt);
+    if (pdf500Tolerated && receiptVerdict !== null && !receiptVerdict.ok) {
+      knownIssue(
+        testInfo,
+        'AC-FR-97',
+        `POST ${confirmStatus}: ${formatMismatches(`comprobante de la rendicion ${receiptSurrenderId}`, receiptVerdict.mismatches)}`
+      );
+    } else {
+      await verifyAc(testInfo, 'AC-FR-97', async () => {
+        expect(
+          receipt,
+          `el viaje ${travelId} no obtuvo TRAVELSSURRENDER_ID tras confirmar: no hay comprobante que leer`
+        ).not.toBeNull();
+        const v = receiptVerdict as NonNullable<typeof receiptVerdict>;
+        expect(
+          v.ok,
+          formatMismatches(`comprobante de la rendicion ${receiptSurrenderId}`, v.mismatches)
+        ).toBe(true);
+        await testInfo.attach(`surrender-receipt-${receiptSurrenderId}.pdf`, {
+          body: (receipt as NonNullable<typeof receipt>).stored.body,
+          contentType: 'application/pdf'
+        });
+        return {
+          surrenderId: receiptSurrenderId,
+          inlineBytes: v.inlineBytes,
+          storedBytes: v.storedBytes
+        };
+      });
+    }
     await attachXrayEvidence(testInfo, page, {
       name: `fr-s1-confirmed-${travelId}`,
       comment:
         `FR S1 viaje ${travelId}: rendicion confirmada, POST status ${confirmStatus}.` +
-        (confirmStatus >= 500 ? ` Rendicion persistida (lote vacio). ${KNOWN_ISSUE_NOTE}.` : '')
+        (pdf500Tolerated
+          ? ` Rendicion persistida (lote vacio). ${thousandsSeparatorKnownIssueNote()}.`
+          : '')
     });
 
     // ---- 7. Delta de libros de chofer y propietario ----
@@ -644,6 +704,25 @@ test.describe('Circuito Francia S1 (cash · cierre admin · rendicion manual)', 
         formatMismatches('comision de agencia sin fila de libro', agency.mismatches)
       ).toBe(true);
       return { surrenderId: dbSurrenderId, header, row: rowDb, expectedRow };
+    });
+    // ---- F5 (MG-1024/MG-1027): no comisionables en la rendicion (columnas, TDOC, Clearing, body del POST) ----
+    const f5Pdf =
+      receipt === null
+        ? null
+        : (receipt.inline ?? (receipt.stored.body.length > 0 ? receipt.stored.body : null));
+    await verifyF5Surrender({
+      testInfo,
+      oracle,
+      trips: [{ travelId, paymentMethod: 'CASH' }],
+      surrender: { travelId },
+      automatic: false,
+      ownerRows: ownerNew.map((r) => ({
+        CHECKINGACCOUNTCODE: r.checkingAccountCode ?? null,
+        DEBIT: null,
+        CREDIT: Number(r.amount ?? 0)
+      })),
+      clearingPdf: f5Pdf,
+      postBody: surrender.readConfirmBody()
     });
     await verifyAc(testInfo, 'AC-FR-31', async () => {
       const driverBalance = evaluateBalanceDelta(driverDelta.added, driverDelta.balanceDelta);

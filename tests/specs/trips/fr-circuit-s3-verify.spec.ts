@@ -21,6 +21,7 @@ import type { DriverBookRow, OwnerBookRow } from '../../api/clients/checkingAcco
 import type { FrCircuitConfig } from '../../config/runtime.js';
 import { requireOracle } from '../../helpers/db-gate.js';
 import { knownIssue, verifyAc } from '../../helpers/acceptance.js';
+import { pollUntil } from '../../helpers/poll.js';
 import { deltaMovements } from '../../helpers/cc-delta.js';
 import { COST_SALE_SCOPE_NOTE, evaluateCostEqualsSale } from '../../helpers/cost-sale.js';
 import { evaluateSaleCostPairs, evaluateSurrenderRow } from '../../helpers/db-oracle-eval.js';
@@ -33,20 +34,22 @@ import {
   evaluatePaymentColumn,
   evaluateSurrenderHeader,
   expectedManualSurrender,
+  evaluateSurrenderReceipt,
   formatMismatches,
   nullAsZeroWhereExpectedZero,
   readBatchStateUntilEmpty,
   splitSaleCostMismatches
 } from '../../helpers/fr-ac-eval-circuit.js';
 import {
-  DEFAULT_CARRIER_ID,
+  circuitCarrierId,
   frConfigOrNull,
-  optionalInt,
   PCT,
   readBooks,
   readHandoff,
-  requireNumberField
+  requireNumberField,
+  thousandsSeparatorKnownIssueNote
 } from '../../helpers/fr-circuit.js';
+import { currencyMatcher, loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { FR_FACTS } from '../../helpers/fr-facts.js';
 import {
   movementsOfTravel,
@@ -55,6 +58,8 @@ import {
 } from '../../steps/trips/autoSurrender.steps.js';
 import { readSaleCostData, readSurrenderRow } from '../../steps/trips/dbOracles.steps.js';
 import { SurrenderFlow } from '../../steps/trips/surrender.steps.js';
+import { verifyF5Surrender } from './f5-verify.js';
+import { countryThousandsSeparator } from '../../steps/trips/f5Surrender.steps.js';
 import { round2 } from '../../utils/money.js';
 import { FR_1901_KEYS, FR_1901_SCOPE_NOTES } from '../../data/xray/fr-1901-keys.js';
 import { makeAnnotate } from '../../utils/traceability.js';
@@ -63,8 +68,6 @@ const ROUTE = '/carrier/#/travel/create';
 const TS_KEY = FR_1901_KEYS.S3_VERIFY;
 const STATE_DONE = /^(DONE|6)$/i;
 const CLOSE_TIMEOUT_MS = 10 * 60_000;
-const KNOWN_ISSUE_NOTE =
-  'TEST FR THOUSANDS_SEPARATOR SPACE -> surrender PDF 500 (rendicion persistida)';
 
 const frGate = frConfigOrNull('FR S3 verify', ['FR_CONFIRM_SURRENDER']);
 
@@ -96,7 +99,7 @@ test.describe('Circuito Francia S3 verify (cierre por app, rendicion)', () => {
         body: JSON.stringify(data, null, 2),
         contentType: 'application/json'
       });
-    const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const expectedCarrier = circuitCarrierId();
     const stateOf = async (): Promise<string> =>
       String((await travelsApi.getDetail(travelId)).state ?? '');
     // AC-FR-95 (oferta vieja de App Driver) no se anota aca: este flujo cierra por app y no lo ejercita.
@@ -125,13 +128,19 @@ test.describe('Circuito Francia S3 verify (cierre por app, rendicion)', () => {
       // TODO(verificar en TEST): la moneda EUR solo se asevera si el detalle trae
       // simulationPrice.currencyCode; si no, queda null en la evidencia (revisar la captura).
       if (currency !== undefined && currency !== null) {
-        expect(String(currency), 'moneda del viaje debe ser EUR').toMatch(/EUR/i);
+        expect(
+          String(currency),
+          `moneda del viaje debe ser ${loadCarrierProfile().currency.code}`
+        ).toMatch(currencyMatcher(loadCarrierProfile().currency, { symbol: false }));
       }
       return { finalPrice, currencyCode: currency ?? null };
     });
     await verifyAc(testInfo, 'AC-FR-02', async () => {
       if (currency !== undefined && currency !== null) {
-        expect(String(currency), 'moneda del viaje debe ser EUR').toMatch(/EUR|€/i);
+        expect(
+          String(currency),
+          `moneda del viaje debe ser ${loadCarrierProfile().currency.code}`
+        ).toMatch(currencyMatcher(loadCarrierProfile().currency));
       }
       return {
         currencyCode: currency ?? null,
@@ -290,15 +299,29 @@ test.describe('Circuito Francia S3 verify (cierre por app, rendicion)', () => {
     const confirmStatus = await test.step('4. Confirm surrender (irreversible)', async () =>
       surrender.confirm());
 
+    // F5 (M7): un 500 en la confirmacion solo se tolera como known-issue si COUNTRY.THOUSANDS_SEPARATOR del
+    // carrier es SPACE segun un SELECT en vivo; con NONE/COMMA/POINT el 500 es un FALLO real.
+    const liveSeparator =
+      confirmStatus >= 500 ? await countryThousandsSeparator(oracle, expectedCarrier) : null;
+    const pdf500Tolerated = confirmStatus >= 500 && liveSeparator === 'SPACE';
+
     await verifyAc(testInfo, 'AC-FR-25', async () => {
       if (confirmStatus >= 500) {
+        expect(
+          pdf500Tolerated,
+          `POST toTravelsSurrender respondio ${confirmStatus} y COUNTRY.THOUSANDS_SEPARATOR del carrier es ${liveSeparator} (no SPACE): el 500 es un fallo real, no el known-issue`
+        ).toBe(true);
         // El 500 llega tras el commit (PDF): se verifica la persistencia por API; falla si no se persistio.
         const r = await readBatchStateUntilEmpty(surrenderClient, batch, travelId);
         expect(
           r.settled,
           `POST toTravelsSurrender respondio ${confirmStatus} y el viaje ${travelId} sigue pendiente tras ${r.elapsedMs} ms: la rendicion NO se persistio (fallo real, no el known-issue del PDF)`
         ).toBe(true);
-        knownIssue(testInfo, 'AC-FR-90', `POST ${confirmStatus}: ${KNOWN_ISSUE_NOTE}`);
+        knownIssue(
+          testInfo,
+          'AC-FR-90',
+          `POST ${confirmStatus}: ${thousandsSeparatorKnownIssueNote()}`
+        );
       } else {
         expect(confirmStatus, 'POST toTravelsSurrender debe responder 2xx').toBeGreaterThanOrEqual(
           200
@@ -315,11 +338,57 @@ test.describe('Circuito Francia S3 verify (cierre por app, rendicion)', () => {
       ).toBe(true);
       return { stillPending: false, elapsedMs: r.elapsedMs };
     });
+
+    // ---- Comprobante PDF de la rendicion (AC-FR-97): respuesta del confirm + copia guardada ----
+    const receiptIdPoll = await test.step('Comprobante: id de la rendicion del viaje', async () =>
+      pollUntil(
+        async () => (await surrenderIdsOfTrips(oracle, [travelId])).get(travelId) ?? null,
+        (id) => id !== null,
+        { timeoutMs: 30_000 }
+      ));
+
+    const receiptSurrenderId = receiptIdPoll.value;
+    const receipt =
+      receiptSurrenderId === null
+        ? null
+        : await test.step('Comprobante: PDF del confirm y copia guardada', async () =>
+            surrender.readReceipt(receiptSurrenderId));
+    const receiptVerdict = receipt === null ? null : evaluateSurrenderReceipt(receipt);
+    if (pdf500Tolerated && receiptVerdict !== null && !receiptVerdict.ok) {
+      knownIssue(
+        testInfo,
+        'AC-FR-97',
+        `POST ${confirmStatus}: ${formatMismatches(`comprobante de la rendicion ${receiptSurrenderId}`, receiptVerdict.mismatches)}`
+      );
+    } else {
+      await verifyAc(testInfo, 'AC-FR-97', async () => {
+        expect(
+          receipt,
+          `el viaje ${travelId} no obtuvo TRAVELSSURRENDER_ID tras confirmar: no hay comprobante que leer`
+        ).not.toBeNull();
+        const v = receiptVerdict as NonNullable<typeof receiptVerdict>;
+        expect(
+          v.ok,
+          formatMismatches(`comprobante de la rendicion ${receiptSurrenderId}`, v.mismatches)
+        ).toBe(true);
+        await testInfo.attach(`surrender-receipt-${receiptSurrenderId}.pdf`, {
+          body: (receipt as NonNullable<typeof receipt>).stored.body,
+          contentType: 'application/pdf'
+        });
+        return {
+          surrenderId: receiptSurrenderId,
+          inlineBytes: v.inlineBytes,
+          storedBytes: v.storedBytes
+        };
+      });
+    }
     await attachXrayEvidence(testInfo, page, {
       name: `fr-s3-confirmed-${travelId}`,
       comment:
         `FR S3 viaje ${travelId}: rendicion confirmada, POST status ${confirmStatus}.` +
-        (confirmStatus >= 500 ? ` Rendicion persistida (lote vacio). ${KNOWN_ISSUE_NOTE}.` : '')
+        (pdf500Tolerated
+          ? ` Rendicion persistida (lote vacio). ${thousandsSeparatorKnownIssueNote()}.`
+          : '')
     });
 
     // ---- 5. Delta de libros de chofer y propietario ----
@@ -360,7 +429,7 @@ test.describe('Circuito Francia S3 verify (cierre por app, rendicion)', () => {
       base,
       expectedCommission,
       confirmStatus,
-      knownIssue: confirmStatus >= 500 ? KNOWN_ISSUE_NOTE : null,
+      knownIssue: pdf500Tolerated ? thousandsSeparatorKnownIssueNote() : null,
       driverBook: {
         added: mapRows(driverNew),
         balanceBefore: before.driver.balance,
@@ -471,6 +540,25 @@ test.describe('Circuito Francia S3 verify (cierre por app, rendicion)', () => {
         formatMismatches('comision de agencia sin fila de libro', agency.mismatches)
       ).toBe(true);
       return { surrenderId: dbSurrenderId, header, row: rowDb, expectedRow };
+    });
+    // ---- F5 (MG-1024/MG-1027): no comisionables en la rendicion (columnas, TDOC, Clearing, body del POST) ----
+    const f5Pdf =
+      receipt === null
+        ? null
+        : (receipt.inline ?? (receipt.stored.body.length > 0 ? receipt.stored.body : null));
+    await verifyF5Surrender({
+      testInfo,
+      oracle,
+      trips: [{ travelId, paymentMethod: 'CASH' }],
+      surrender: { travelId },
+      automatic: false,
+      ownerRows: ownerNew.map((r) => ({
+        CHECKINGACCOUNTCODE: r.checkingAccountCode ?? null,
+        DEBIT: null,
+        CREDIT: Number(r.amount ?? 0)
+      })),
+      clearingPdf: f5Pdf,
+      postBody: surrender.readConfirmBody()
     });
     await verifyAc(testInfo, 'AC-FR-31', async () => {
       const driverBalance = evaluateBalanceDelta(driverDelta.added, driverDelta.balanceDelta);

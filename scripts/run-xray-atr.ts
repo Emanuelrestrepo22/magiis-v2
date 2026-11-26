@@ -1,6 +1,9 @@
 /**
  * Corre una familia de specs con el xray-reporter apuntando a un ATR FIJO
  * (XRAY_EXECUTION_KEY), en vez de crear un Test Execution nuevo por corrida.
+ *   waypoints -> TM-1885 (MG-1132 Puntos de referencia, ATP TM-1841: regresion automatizada de los
+ *             51 Candidate, ambiente TEST; ver WAYPOINTS_ATR_KEYS)
+ *   waypoints-smoke -> TM-1886 (MG-1132 smoke automatizado, 15 Tests; ver WAYPOINTS_SMOKE_KEYS)
  *
  * Decision (2026-09-09): el orquestador ya creo los ATR fijos con sus casos
  * adjuntos -- uno por familia -- para que exista un unico lugar que muestre
@@ -48,6 +51,8 @@
  *           npm run test:xray:othercosts [-- <args extra de playwright>]
  *           npm run test:xray:othercosts-smoke [-- <args extra de playwright>]
  *           npm run test:xray:units [-- <args extra de playwright>]
+ *           npm run test:xray:waypoints [-- <args extra de playwright>]
+ *           npm run test:xray:waypoints-smoke [-- <args extra de playwright>]
  *
  * Familia `othercosts-smoke`: mismo criterio que `othercosts` (UAT, carrier-v2-desktop,
  * --workers=1, gate OTHER_COSTS_CREATE_DATA=1, REUSE_STORAGE_STATE=1 por defecto). Escribe su
@@ -132,6 +137,123 @@ const UNITS_ATR_KEYS = [
   'TM-1356'
 ];
 
+// Los 51 Tests Candidate del ATR TM-1885 (MG-1132, ATP TM-1841): MG-1757 (10), MG-1762 (17), MG-1761 (9)
+// y MG-1763 (15). Los creditos multiples a Tests Deferred (plan §6) se suman aca SOLO cuando el
+// orquestador los agregue como miembros del ATR: una key fuera de la allowlist se descarta.
+const WAYPOINTS_ATR_KEYS = [
+  // MG-1757 (backend)
+  'TM-1834',
+  'TM-1835',
+  'TM-1836',
+  'TM-1838',
+  'TM-1862',
+  'TM-1863',
+  'TM-1864',
+  'TM-1866',
+  'TM-1869',
+  'TM-1870',
+  // MG-1762 (buscador)
+  'TM-743',
+  'TM-1727',
+  'TM-1730',
+  'TM-1731',
+  'TM-1733',
+  'TM-1736',
+  'TM-1737',
+  'TM-1738',
+  'TM-1742',
+  'TM-1748',
+  'TM-1749',
+  'TM-1750',
+  'TM-1752',
+  'TM-1753',
+  'TM-1754',
+  'TM-1755',
+  'TM-1760',
+  // MG-1761 (alta rapida)
+  'TM-1773',
+  'TM-1777',
+  'TM-1778',
+  'TM-1790',
+  'TM-1793',
+  'TM-1794',
+  'TM-1795',
+  'TM-1797',
+  'TM-1802',
+  // MG-1763 (ABM y detalle)
+  'TM-1806',
+  'TM-1808',
+  'TM-1812',
+  'TM-1813',
+  'TM-1815',
+  'TM-1816',
+  'TM-1817',
+  'TM-1820',
+  'TM-1821',
+  'TM-1822',
+  'TM-1823',
+  'TM-1824',
+  'TM-1826',
+  'TM-1830',
+  'TM-1833',
+  // Creditos multiples a Tests Deferred (plan 6): filas que corren dentro de un Candidate. Deben ser
+  // miembros del ATR TM-1885 antes de publicar (hoy no lo son: ver MR-BORRADOR).
+  'TM-1735',
+  'TM-1774',
+  'TM-1775',
+  'TM-1779',
+  'TM-1791',
+  'TM-1792',
+  'TM-1865'
+];
+
+// Los 15 Tests @P1 del smoke automatizado (ATR TM-1886; plan §7). Sus titulos empiezan con `TM-xxxx:`.
+const WAYPOINTS_SMOKE_KEYS = [
+  'TM-1835',
+  'TM-1869',
+  'TM-1816',
+  'TM-1750',
+  'TM-1749',
+  'TM-1753',
+  'TM-1727',
+  'TM-1733',
+  'TM-1773',
+  'TM-1862',
+  'TM-1806',
+  'TM-1812',
+  'TM-1822',
+  'TM-1826',
+  'TM-1760'
+];
+
+// Creditos multiples (plan 6) de los Candidate @P1: filas Deferred que corren dentro de ellos. Solo van a la
+// allowlist (no al grep); deben ser miembros del ATR TM-1886 antes de publicar.
+const WAYPOINTS_SMOKE_CREDIT_KEYS = [
+  'TM-1735',
+  'TM-1774',
+  'TM-1775',
+  'TM-1791',
+  'TM-1792',
+  'TM-1865'
+];
+
+// Specs de los 5 paquetes (PK-1..PK-5). Los paquetes se agregan en ramas distintas: un path que aun no
+// existe no rompe la corrida (Playwright lo trata como filtro).
+const WAYPOINTS_SPECS = [
+  'tests/specs/settings/waypoints-autocomplete.api.spec.ts',
+  'tests/specs/settings/waypoints-crud.api.spec.ts',
+  'tests/specs/trips/places-check-place.api.spec.ts',
+  'tests/specs/trips/new-trip-reference-points-search.spec.ts',
+  'tests/specs/trips/new-trip-reference-points-instructions.spec.ts',
+  'tests/specs/settings/reference-points.spec.ts',
+  'tests/specs/settings/reference-points-limits.spec.ts',
+  'tests/specs/trips/new-trip-reference-point-origin.spec.ts',
+  'tests/specs/trips/trip-edit-reference-points.spec.ts',
+  'tests/specs/settings/reference-points-in-use.spec.ts',
+  'tests/specs/settings/reference-points-access.spec.ts',
+  'tests/specs/trips/new-trip-quick-reference-point.spec.ts'
+];
+
 const FAMILIES: Record<string, Family> = {
   trips: {
     executionKey: 'TM-1146',
@@ -207,6 +329,40 @@ const FAMILIES: Record<string, Family> = {
     resultsFile: 'xray-results.units.json',
     env: {
       XRAY_KEY_ALLOWLIST: UNITS_ATR_KEYS.join(','),
+      // Default seguro: sesion guardada, sin login con contrasena (opt-out: =0).
+      REUSE_STORAGE_STATE: process.env.REUSE_STORAGE_STATE ?? '1'
+    }
+  },
+  waypoints: {
+    executionKey: 'TM-1885',
+    specs: WAYPOINTS_SPECS,
+    // Ambiente TEST (decision D2 del 19/11: el ambiente sigue el estado del ticket).
+    defaultEnv: 'test',
+    projects: ['--project=carrier-v2-desktop'],
+    workers: 1,
+    resultsFile: 'xray-results.waypoints.json',
+    // Crea y borra puntos de referencia reales (prefijo «QA AUTO <runId>»); los specs limpian en su finally.
+    env: {
+      WAYPOINTS_CREATE_DATA: process.env.WAYPOINTS_CREATE_DATA ?? '1',
+      XRAY_KEY_ALLOWLIST: WAYPOINTS_ATR_KEYS.join(','),
+      // Default seguro: sesion guardada, sin login con contrasena (opt-out: =0).
+      REUSE_STORAGE_STATE: process.env.REUSE_STORAGE_STATE ?? '1'
+    }
+  },
+  'waypoints-smoke': {
+    executionKey: 'TM-1886',
+    specs: WAYPOINTS_SPECS,
+    // Smoke: solo los 15 @P1; el titulo del test contiene `TM-xxxx:` (sin ancla ^: Playwright compara el titulo completo; no hay tag @smoke).
+    grep: `(?:${WAYPOINTS_SMOKE_KEYS.join('|')}):`,
+    // Ambiente TEST (decision D2 del 19/11: el ambiente sigue el estado del ticket).
+    defaultEnv: 'test',
+    projects: ['--project=carrier-v2-desktop'],
+    workers: 1,
+    resultsFile: 'xray-results.waypoints-smoke.json',
+    // Crea y borra puntos de referencia reales (prefijo «QA AUTO <runId>»); los specs limpian en su finally.
+    env: {
+      WAYPOINTS_CREATE_DATA: process.env.WAYPOINTS_CREATE_DATA ?? '1',
+      XRAY_KEY_ALLOWLIST: [...WAYPOINTS_SMOKE_KEYS, ...WAYPOINTS_SMOKE_CREDIT_KEYS].join(','),
       // Default seguro: sesion guardada, sin login con contrasena (opt-out: =0).
       REUSE_STORAGE_STATE: process.env.REUSE_STORAGE_STATE ?? '1'
     }

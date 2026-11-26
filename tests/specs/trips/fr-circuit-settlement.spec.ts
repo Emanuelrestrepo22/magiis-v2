@@ -45,10 +45,9 @@ import {
 } from '../../api/clients/settlement.client.js';
 import type { FrCircuitConfig } from '../../config/runtime.js';
 import {
-  DEFAULT_CARRIER_ID,
-  DEFAULT_OWNER_ID,
+  circuitCarrierId,
+  circuitOwnerId,
   frConfigOrNull,
-  optionalInt,
   readBooks
 } from '../../helpers/fr-circuit.js';
 import {
@@ -140,8 +139,8 @@ test.describe('Circuito Francia - liquidaciones chofer y propietario', () => {
     const db = requireOracle(dbFixture, 'FR-SET-1');
     const cfg = frGate.config as FrCircuitConfig;
     makeAnnotate(FR_1901_KEYS.SET_1, ROUTE)('FR-SET-1', 'POS');
-    const carrierId = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
-    const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
+    const carrierId = circuitCarrierId();
+    const ownerId = circuitOwnerId();
     expect(carrierSession.carrierId, `la sesion guardada debe ser del carrier ${carrierId}`).toBe(
       carrierId
     );
@@ -334,7 +333,7 @@ test.describe('Circuito Francia - liquidaciones chofer y propietario', () => {
   }, testInfo) => {
     const db = requireOracle(dbFixture, 'FR-SET-2');
     makeAnnotate(FR_1901_KEYS.SET_2, '/carrier/#/travel/detail')('FR-SET-2', 'NEG');
-    const carrierId = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const carrierId = circuitCarrierId();
     expect(carrierSession.carrierId).toBe(carrierId);
     void carrierApi;
     const surrenders = await db.query<{ ID: number }>(
@@ -427,8 +426,8 @@ test.describe('Circuito Francia - liquidaciones chofer y propietario', () => {
           'requiere FR_CONFIRM_SETTLEMENT=1 (crea una liquidacion PAID irreversible)'
         );
         const db = requireOracle(dbFixture, `FR-SET-CONFIRM ${kind}`);
-        const carrierId = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
-        const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
+        const carrierId = circuitCarrierId();
+        const ownerId = circuitOwnerId();
         const accountId = kind === 'driver' ? cfg.driverId : ownerId;
         expect(carrierSession.carrierId).toBe(carrierId);
         const client = new SettlementClient(carrierApi, carrierSession);

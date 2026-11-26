@@ -21,6 +21,7 @@ import {
   evaluateNotInBatch,
   evaluatePaymentColumn,
   evaluateSurrenderEditDeltas,
+  evaluateSurrenderReceipt,
   expectedManualSurrender,
   nullAsZeroWhereExpectedZero,
   readBatchStateUntilEmpty,
@@ -439,5 +440,34 @@ describe('evaluateSurrenderEditDeltas', () => {
     const diffs = editDiffs({ fare: 90, total: 100 }, { fare: 100, total: 110 });
     const v = evaluateSurrenderEditDeltas('cc', base({}), base({}), diffs);
     assert.equal(v.ok, false);
+  });
+});
+
+describe('evaluateSurrenderReceipt (AC-FR-97)', () => {
+  const pdf = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(2048, 0x20)]);
+  const stored = (body: Buffer, status = 200) => ({ status, contentType: 'application/pdf', body });
+
+  it('accepts a valid PDF inline and stored', () => {
+    const v = evaluateSurrenderReceipt({ inline: pdf, stored: stored(pdf) });
+    assert.equal(v.ok, true);
+    assert.equal(v.storedBytes, pdf.length);
+  });
+
+  it('flags the 500 signature: no inline file and an empty 200 download', () => {
+    const v = evaluateSurrenderReceipt({ inline: null, stored: stored(Buffer.alloc(0)) });
+    assert.equal(v.ok, false);
+    assert.equal(v.mismatches.length, 2);
+    assert.equal(v.inlineBytes, null);
+  });
+
+  it('rejects a tiny or non-PDF body even with status 200', () => {
+    const tiny = Buffer.from('%PDF-1.4');
+    const html = Buffer.concat([Buffer.from('<html>'), Buffer.alloc(2048, 0x20)]);
+    assert.equal(evaluateSurrenderReceipt({ inline: tiny, stored: stored(pdf) }).ok, false);
+    assert.equal(evaluateSurrenderReceipt({ inline: pdf, stored: stored(html) }).ok, false);
+  });
+
+  it('rejects a non-200 download', () => {
+    assert.equal(evaluateSurrenderReceipt({ inline: pdf, stored: stored(pdf, 500) }).ok, false);
   });
 });

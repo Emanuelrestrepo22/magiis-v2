@@ -85,7 +85,9 @@ export class TravelDetailPage extends BaseDetailPage {
 
     this.budgetedCard = page.locator('app-travel-detail-budgeted-form');
     this.budgetedOtherCostsRow = this.budgetedCard
-      .locator('div.d-flex.justify-content-between.align-items-center.mb-1')
+      // Dos marcados: `div.bf-row` (build vigente de TEST, v2.0.17: label y `span.bf-amount`) y el
+      // layout anterior de UAT (`div.d-flex… mb-1`).
+      .locator('div.bf-row, div.d-flex.justify-content-between.align-items-center.mb-1')
       .filter({ has: page.getByText(/^\s*(otros costos|other costs)\s*$/i) });
   }
 

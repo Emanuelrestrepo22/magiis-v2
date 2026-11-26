@@ -3,7 +3,11 @@
 // Reglas: cada metodo es atomico (ninguno llama a otro; la secuencia la orquesta el spec); la
 // lectura nunca escribe; la confirmacion esta gateada por FR_CONFIRM_SURRENDER=1 en el POM.
 import type { Page } from '@playwright/test';
-import type { SurrenderBatch, SurrenderClient } from '../../api/clients/surrender.client.js';
+import type {
+  SurrenderBatch,
+  SurrenderClient,
+  SurrenderReceiptDownload
+} from '../../api/clients/surrender.client.js';
 import {
   SurrenderPage,
   type SurrenderUiPreview
@@ -37,4 +41,20 @@ export class SurrenderFlow {
   async confirm(): Promise<number> {
     return this.surrenderPage.confirm();
   }
+
+  /** Body JSON que el front mando en el POST del confirm() (importes de la rendicion; solo lectura). */
+  readConfirmBody(): Record<string, unknown> | null {
+    return this.surrenderPage.readConfirmRequestBody();
+  }
+
+  /** Comprobante de la rendicion: el PDF del confirm() y la copia guardada (solo lectura). */
+  async readReceipt(surrenderId: number): Promise<SurrenderReceiptFacts> {
+    const stored = await this.client.downloadReceipt(surrenderId);
+    return { inline: this.surrenderPage.readConfirmReceipt(), stored };
+  }
 }
+
+export type SurrenderReceiptFacts = {
+  inline: Buffer | null;
+  stored: SurrenderReceiptDownload;
+};

@@ -115,7 +115,7 @@ jobs:
         # limpia lo que crea y corre siempre; su gate MG19_CREATE_TRIP fue retirado el 2026-09-30.)
         # @db: oraculos contra Oracle (ORACLE_*_TEST + red interna), inalcanzables desde un runner
         # hosteado de GitHub; corren local o en el CI interno. @explore: discovery, no regresion.
-        run: npx playwright test --grep-invert "@visual|@e2e|@db|@explore" --project=carrier-v2-desktop --project=carrier-v2-laptop --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
+        run: npx playwright test --grep-invert "@visual|@e2e|@db|@explore|@mobile" --project=carrier-v2-desktop --project=carrier-v2-laptop --shard=${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}
 
       - uses: actions/upload-artifact@v4
         if: always()

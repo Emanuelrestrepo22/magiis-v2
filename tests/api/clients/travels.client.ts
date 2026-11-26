@@ -62,6 +62,9 @@ export type TravelDetail = {
   [extra: string]: unknown;
 };
 
+/** Motivo historico de la cancelacion de limpieza (default de `cancel`). */
+const CLEANUP_CANCEL_REASON = 'QA E2E OC limpieza automatizacion';
+
 export class TravelsClient {
   constructor(
     private readonly api: APIRequestContext,
@@ -87,14 +90,18 @@ export class TravelsClient {
     return body;
   }
 
-  /** Cancela un viaje creado por la automatizacion (limpieza en finally). */
-  async cancel(travelId: number): Promise<void> {
+  /**
+   * Cancela un viaje creado por la automatizacion. `reason` (opcional) es el motivo registrado: sin el, el de la
+   * limpieza historica; la preparacion de datos pasa uno trazable (`QA F5 UAT <escenario> <runId>`).
+   */
+  async cancel(travelId: number, reason: string = CLEANUP_CANCEL_REASON): Promise<void> {
+    if (!reason.trim()) throw new Error('[travels] el motivo de cancelacion no puede ser vacio');
     await sendOk(`travels/${travelId}/cancel`, () =>
       this.api.put(this.path(travelId, '/cancel'), {
         data: {
           carrierUserId: String(this.session.carrierId),
           travelId,
-          reasonForCancellation: 'QA E2E OC limpieza automatizacion',
+          reasonForCancellation: reason,
           canceledBy: this.session.role,
           name: this.session.subUserName,
           userId: String(this.session.subUserId),

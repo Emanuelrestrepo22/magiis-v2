@@ -102,7 +102,7 @@ jobs:
           # PASS_CARRIER_FR: ${{ secrets.PASS_CARRIER_FR }}
         # Smoke = @P1 funcional. Excluye @visual (corre en visual.yml con baseline propio)
         # y --testIgnore del project en playwright.config.ts si fuera necesario.
-        run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --grep-invert "@visual" --project=carrier-v2-desktop
+        run: npx playwright test --grep "${{ inputs.grep || '@P1' }}" --grep-invert "@visual|@mobile" --project=carrier-v2-desktop
 
       # FW-015: dashboard HTML consolidado de la corrida (sin deps). Se incluye en el artifact.
       - name: Generate dashboard (FW-015)

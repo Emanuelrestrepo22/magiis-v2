@@ -48,7 +48,14 @@ export class OwnerEditPage extends BasePage {
   private readonly modal: Locator;
   private readonly modalPrimary: Locator;
 
-  constructor(page: Page) {
+  /**
+   * `gates` (F5 W3): gates SEPARADOS por tipo de escritura (armar/desarmar vs disparar). Sin ellos rige el gate historico unico
+   * FR_TOGGLE_AUTO_SURRENDER (specs FR 1901). El disparo es irreversible: el spec F5 pasa `F5_AUTO_FIRE` solo para `fire`.
+   */
+  constructor(
+    page: Page,
+    private readonly gates?: { arm: () => boolean; fire: () => boolean }
+  ) {
     super(page);
     this.cashCollectorToggle = page.locator('input#cashCollector');
     this.updateButton = page.getByRole('button', { name: /^\s*(update|actualizar)\s*$/i });
@@ -58,8 +65,15 @@ export class OwnerEditPage extends BasePage {
     this.modalPrimary = page.locator('ngb-modal-window div.modal-footer button.btn.btn-primary');
   }
 
-  private assertGate(): void {
-    if (!isFrGateOpen('FR_TOGGLE_AUTO_SURRENDER')) throw new Error(GATE_MESSAGE);
+  private assertGate(kind: 'arm' | 'fire'): void {
+    const open = this.gates ? this.gates[kind]() : isFrGateOpen('FR_TOGGLE_AUTO_SURRENDER');
+    if (!open) {
+      throw new Error(
+        this.gates
+          ? `[OwnerEditPage] accion de escritura bloqueada: requiere ${kind === 'arm' ? 'F5_AUTO_ARM' : 'F5_AUTO_FIRE'}=1`
+          : GATE_MESSAGE
+      );
+    }
   }
 
   /** Abre el editor del propietario y espera el toggle (acordeon abierto por defecto) y la tabla. */
@@ -96,11 +110,12 @@ export class OwnerEditPage extends BasePage {
   async setCollectsCash(
     target: CollectsCash,
     opts: { persist: boolean; ownerId: number }
-  ): Promise<{ saveStatus: number | null; alreadyAtTarget: boolean }> {
-    this.assertGate();
+  ): Promise<{ saveStatus: number | null; alreadyAtTarget: boolean; saveBody?: string }> {
+    this.assertGate('arm');
     const alreadyAtTarget = (await this.readCollectsCash()) === target;
     if (!alreadyAtTarget) {
-      await this.cashCollectorToggle.setChecked(target === 'owner');
+      // `force`: el switch del FE V2 queda tapado por su etiqueta (receta UAT 10/11: check/uncheck con force).
+      await this.cashCollectorToggle.setChecked(target === 'owner', { force: true });
     }
     await expect.poll(() => this.readCollectsCash(), { timeout: 5_000 }).toBe(target);
     // Sin cambio de formulario el FE no emite el PUT: no se espera; el llamador verifica el flag en DB.
@@ -115,7 +130,9 @@ export class OwnerEditPage extends BasePage {
       ),
       this.updateButton.click()
     ]);
-    return { saveStatus: response.status(), alreadyAtTarget };
+    // El cuerpo permite distinguir el 400 VEHICLE_OWNER_HAS_PENDING_SURRENDER (orden de operacion) de una falla real.
+    const saveBody = (await response.text().catch(() => '')).slice(0, 500);
+    return { saveStatus: response.status(), alreadyAtTarget, saveBody };
   }
 
   private vehicleRow(domain: string): Locator {
@@ -140,8 +157,10 @@ export class OwnerEditPage extends BasePage {
     vehicleId: number;
     carrierId: number;
     domain: string;
+    /** F5 W3: si el modal NO es el de rendicion automatica, se cierra (Cancel) y se lanza SIN pulsar el boton primario. */
+    requireAutoModal?: boolean;
   }): Promise<VehicleSurrenderResult> {
-    this.assertGate();
+    this.assertGate('fire');
     const { vehicleId, carrierId, domain } = opts;
     const allowed = `/vehicles/${vehicleId}/carrier/${carrierId}/travelsSurrender`;
     const blocked: string[] = [];
@@ -170,6 +189,13 @@ export class OwnerEditPage extends BasePage {
         (await this.modal.locator('.modal-body').first().textContent()) ?? ''
       ).trim();
       const modalVariant = classifyModal(modalText);
+      if (opts.requireAutoModal && modalVariant !== 'auto') {
+        await this.page.keyboard.press('Escape');
+        throw new Error(
+          `[OwnerEditPage] modal inesperado para ${domain} (${modalVariant}: «${modalText.slice(0, 200)}»): ` +
+            'se esperaba el de rendicion automatica; no se pulso el boton primario.'
+        );
+      }
       const putResponse = this.page
         .waitForResponse(
           (r: Response) => r.request().method() === 'PUT' && r.url().includes(allowed),

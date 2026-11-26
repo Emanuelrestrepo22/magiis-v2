@@ -11,7 +11,31 @@
 //   4987). Nunca se hardcodea.
 import type { CostSalePair, TariffEvidence } from '../../helpers/cost-sale.js';
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
-import { getCurrentEnv, isFrGateOpen, type CarrierRegion } from '../../config/runtime.js';
+import {
+  getCurrentEnv,
+  isCircuitCreateGateOpen,
+  isCircuitGateOpen,
+  type CarrierRegion
+} from '../../config/runtime.js';
+import { requirePrep, type CarrierProfile, type PrepPair } from '../../config/carrier-profiles.js';
+import {
+  expectedQuote,
+  PREP_SCENARIOS,
+  scenarioCosts,
+  type ExpectedQuote,
+  type PrepScenario
+} from '../../data/carrier-v2/trips/prep-scenarios.js';
+import {
+  assertDriverMatchesPair,
+  assertEnvMatchesProfile,
+  detailDriverId,
+  evaluatePrepClosure,
+  type ClosureMismatch
+} from '../../helpers/circuit-guards.js';
+import {
+  TripEditPage,
+  type FinalPriceEditResult
+} from '../../pages/carrier-v2/trips/TripEditPage.js';
 import { ApiStatusError } from '../../api/clients/carrierSession.js';
 import type {
   CheckingAccountClient,
@@ -121,6 +145,11 @@ export class AdminCircuitFlow {
     /** Region del carrier; 'FR' usa la ruta FR_* y sobrescribe el origen autocompletado por el cliente. */
     region?: CarrierRegion;
     /**
+     * Perfil de carrier del circuito administrativo: equivale al comportamiento 'FR' (gate de alta, ruta
+     * <PREFIX>_*, origen sobrescrito) para el carrier del perfil. Tiene prioridad sobre `region`.
+     */
+    circuitProfile?: CarrierProfile;
+    /**
      * Precondiciones anti-vacuidad del SPEC (origen != destino, cotizado > 0). Se invoca tras leer la
      * cotizacion y ANTES de enviar: si lanza, no se crea ningun viaje. Por convencion es obligatorio;
      * sin callback se emite un console.warn (el step no asevera reglas de negocio).
@@ -139,14 +168,16 @@ export class AdminCircuitFlow {
       otherCostAmount,
       authorizer,
       region,
+      circuitProfile,
       assertBeforeSubmit
     } = params;
-    if (region === 'FR' && !isFrGateOpen('FR_CIRCUIT_CREATE_TRIP')) {
+    const isCircuitTrip = circuitProfile !== undefined || region === 'FR';
+    if (isCircuitTrip && !isCircuitCreateGateOpen()) {
       throw new Error(
-        '[adminCircuit] el alta FR crea un viaje real; requiere FR_CIRCUIT_CREATE_TRIP=1'
+        '[adminCircuit] el alta del circuito crea un viaje real; requiere FR_CIRCUIT_CREATE_TRIP=1 (o CIRCUIT_PREP_CREATE_TRIPS=1)'
       );
     }
-    const route = quoteRouteFor(region);
+    const route = quoteRouteFor(region, circuitProfile?.envPrefix);
     const trip = new NewTripPage(page);
     await trip.goto();
     await trip.selectClient(client);
@@ -154,32 +185,182 @@ export class AdminCircuitFlow {
       await trip.selectAuthorizer(authorizer);
     }
     await trip.selectPaymentMethod(paymentMethod);
-    if (region === 'FR') await trip.overwriteOrigin(route.origin);
+    if (isCircuitTrip) await trip.overwriteOrigin(route.origin);
     else await trip.fillOrigin(route.origin);
     await trip.fillFirstDestination(route.destination);
     const resolvedOrigin = ((await trip.resolvedOriginValue.textContent()) ?? '').trim();
     const resolvedDestination = ((await trip.resolvedDestinationValue.textContent()) ?? '').trim();
+    const caller = (new Error().stack ?? '').split('\n')[2]?.trim() ?? 'caller desconocido';
+    const created = await this.quoteAndSubmit(trip, {
+      costs: otherCostName !== undefined ? [{ name: otherCostName, amount: otherCostAmount }] : [],
+      resolvedOrigin,
+      resolvedDestination,
+      readBase: false,
+      assertBeforeSubmit,
+      caller
+    });
+    return {
+      travelId: created.travelId,
+      simulatedAmount: created.simulatedAmount,
+      summary: created.summary,
+      resolvedOrigin,
+      resolvedDestination
+    };
+  }
+
+  /**
+   * Cuerpo comun del alta (extraido de `createViaUi`, plan D5): cotiza, agrega los conceptos, lee el resumen, corre
+   * el aserto anti-vacuidad del SPEC y envia con «Enviar Manual». El travelId sale de la respuesta del POST y se
+   * registra en el ledger `admin-circuit`. `readBase` lee el total tras cotizar y ANTES de los conceptos
+   * (`baseAmount`: base del total esperado); con false queda null y no se hace la lectura extra.
+   */
+  private async quoteAndSubmit(
+    trip: NewTripPage,
+    p: {
+      costs: ReadonlyArray<{ name: string; amount?: number }>;
+      resolvedOrigin: string;
+      resolvedDestination: string;
+      readBase: boolean;
+      assertBeforeSubmit?: (quote: {
+        simulatedAmount: number;
+        resolvedOrigin: string;
+        resolvedDestination: string;
+        baseAmount: number | null;
+      }) => void | Promise<void>;
+      caller: string;
+    }
+  ): Promise<AdminCircuitCreated & { baseAmount: number | null }> {
     await trip.quoteTrip();
-    if (otherCostName !== undefined) {
-      await trip.addOtherCost({ name: otherCostName, amount: otherCostAmount });
+    const baseAmount = p.readBase ? parseMoney((await trip.readPriceSummary()).total) : null;
+    for (const cost of p.costs) {
+      await trip.addOtherCost({ name: cost.name, amount: cost.amount });
     }
     const summary = await trip.readPriceSummary();
     const simulatedAmount = parseMoney(summary.total);
     // Anti-vacuidad: un cotizado en 0 haria pasar `0 == 0` en vacio (run 2026-10-13: cliente 'test'
     // + ruta por defecto cotizo 0 y TM-1403 quedo verde sin probar nada). Lo asevera el spec ANTES de crear.
-    if (assertBeforeSubmit) {
-      await assertBeforeSubmit({ simulatedAmount, resolvedOrigin, resolvedDestination });
+    if (p.assertBeforeSubmit) {
+      await p.assertBeforeSubmit({
+        simulatedAmount,
+        resolvedOrigin: p.resolvedOrigin,
+        resolvedDestination: p.resolvedDestination,
+        baseAmount
+      });
     } else {
-      const caller = (new Error().stack ?? '').split('\n')[2]?.trim() ?? 'caller desconocido';
       console.warn(
-        `[adminCircuit] createViaUi sin assertBeforeSubmit (inseguro: una cotizacion en 0 crearia un viaje real igual). Caller: ${caller}`
+        `[adminCircuit] createViaUi sin assertBeforeSubmit (inseguro: una cotizacion en 0 crearia un viaje real igual). Caller: ${p.caller}`
       );
     }
 
     const created = await trip.sendManualAndCaptureCreate();
     const travelId = Number(created.travelId);
     recordAdminCircuitTrip(getCurrentEnv(), travelId, this.runId);
-    return { travelId, simulatedAmount, summary, resolvedOrigin, resolvedDestination };
+    return {
+      travelId,
+      simulatedAmount,
+      summary,
+      resolvedOrigin: p.resolvedOrigin,
+      resolvedDestination: p.resolvedDestination,
+      baseAmount
+    };
+  }
+
+  /**
+   * Alta por UI desde el PERFIL del carrier (preparacion multi-carrier, plan D5): cliente (atajo de pasajero o
+   * typeahead) -> [Authorizer] -> medio de pago del escenario -> origen -> destino -> nota de trazabilidad ->
+   * cotizar -> conceptos del escenario (por nombre exacto) -> «Enviar Manual» (NUNCA «Send Service» ni el boton
+   * «A»). Gate: `CIRCUIT_PREP_CREATE_TRIPS=1`. El spec debe pasar `assertBeforeSubmit` (cotizado > 0, origen !=
+   * destino, total = `expected.total`); recibe tambien `baseAmount` y el total esperado (`expected`).
+   */
+  async createFromProfile(params: {
+    page: Page;
+    profile: CarrierProfile;
+    scenario: PrepScenario;
+    /** Nota general del viaje: `QA F5 UAT <escenario> <runId>`. */
+    note: string;
+    assertBeforeSubmit: (quote: {
+      simulatedAmount: number;
+      resolvedOrigin: string;
+      resolvedDestination: string;
+      baseAmount: number;
+      expected: ExpectedQuote;
+    }) => void | Promise<void>;
+  }): Promise<AdminCircuitCreated & { baseAmount: number; expected: ExpectedQuote }> {
+    const { page, profile, scenario, note, assertBeforeSubmit } = params;
+    if (!isCircuitGateOpen('CIRCUIT_PREP_CREATE_TRIPS')) {
+      throw new Error(
+        '[adminCircuit] la preparacion crea un viaje permanente; requiere CIRCUIT_PREP_CREATE_TRIPS=1'
+      );
+    }
+    assertEnvMatchesProfile(profile);
+    if (scenario.payment === null) {
+      throw new Error(`[adminCircuit] el escenario ${scenario.id} no crea viajes`);
+    }
+    const prep = requirePrep(profile);
+    const customer = scenario.payment === 'cash' ? prep.customers.cash : prep.customers.account;
+    const paymentMethod =
+      scenario.payment === 'cash' ? prep.paymentMethods.cash : prep.paymentMethods.account;
+    if (!customer || !paymentMethod) {
+      throw new Error(
+        `[adminCircuit] perfil "${profile.id}": falta cliente o medio de pago de ${scenario.payment} (TODO de descubrimiento)`
+      );
+    }
+    const costs = scenarioCosts(profile, scenario);
+
+    const trip = new NewTripPage(page);
+    await trip.goto();
+    if (customer.shortcut !== undefined) {
+      await trip.pickPassengerShortcut(customer.shortcut);
+    } else if (customer.query !== undefined) {
+      await trip.selectClient(customer.query, customer.optionText);
+    } else {
+      throw new Error(
+        `[adminCircuit] perfil "${profile.id}": el cliente no define shortcut ni query`
+      );
+    }
+    if (customer.authorizer !== undefined) await trip.selectAuthorizer(customer.authorizer);
+    await trip.selectPaymentMethod(paymentMethod);
+    if (customer.origin === null) {
+      await expect(
+        trip.resolvedOriginValue,
+        'el cliente debe autocompletar el origen (perfil con origin null)'
+      ).toHaveCount(1, { timeout: 30_000 });
+    } else {
+      await trip.fillOrigin(customer.origin);
+    }
+    await trip.fillFirstDestination(customer.destination);
+    const resolvedOrigin = ((await trip.resolvedOriginValue.textContent()) ?? '').trim();
+    const resolvedDestination = ((await trip.resolvedDestinationValue.textContent()) ?? '').trim();
+    await trip.addNotes({ general: note });
+
+    let expected: ExpectedQuote | null = null;
+    const created = await this.quoteAndSubmit(trip, {
+      costs: costs.map((c) => ({ name: c.name })),
+      resolvedOrigin,
+      resolvedDestination,
+      readBase: true,
+      caller: 'createFromProfile',
+      assertBeforeSubmit: async (quote) => {
+        const baseAmount = quote.baseAmount as number;
+        expected = expectedQuote(profile, scenario, baseAmount);
+        await assertBeforeSubmit({
+          simulatedAmount: quote.simulatedAmount,
+          resolvedOrigin: quote.resolvedOrigin,
+          resolvedDestination: quote.resolvedDestination,
+          baseAmount,
+          expected
+        });
+      }
+    });
+    return {
+      travelId: created.travelId,
+      simulatedAmount: created.simulatedAmount,
+      summary: created.summary,
+      resolvedOrigin,
+      resolvedDestination,
+      baseAmount: created.baseAmount as number,
+      expected: expected as unknown as ExpectedQuote
+    };
   }
 
   /**
@@ -210,19 +391,61 @@ export class AdminCircuitFlow {
     return { tripCode, statusText, row };
   }
 
-  /** Cancela el viaje por API (sin cargo en ola 1). Falla rapido ante no-2xx. */
-  async cancel(params: { travelId: number }): Promise<void> {
-    await this.travels.cancel(params.travelId);
+  /**
+   * Cancela el viaje por API (sin cargo en ola 1). `reason` opcional (preparacion: motivo trazable
+   * `QA F5 UAT <escenario> <runId>`); sin el, el motivo historico. Falla rapido ante no-2xx.
+   */
+  async cancel(params: { travelId: number; reason?: string }): Promise<void> {
+    await this.travels.cancel(params.travelId, params.reason);
   }
 
   /**
-   * Finalizacion administrativa por API con el chofer de `ADMIN_FINALIZE_DRIVER_ID`. Un 200 puede
-   * traer body `false`: el resultado se verifica con `readDetail`, no con este metodo.
+   * Finalizacion administrativa por API. `driverId` (DRIVER.ID del par PROPIO) tiene prioridad; sin el, el chofer
+   * de `ADMIN_FINALIZE_DRIVER_ID` (comportamiento historico). Un 200 puede traer body `false`: el resultado se
+   * verifica con `readDetail`/`assertClosedWithPair`, no con este metodo.
    */
-  async finalizeAdmin(params: { travelId: number }): Promise<void> {
+  async finalizeAdmin(params: { travelId: number; driverId?: number }): Promise<void> {
     await this.travels.finalizeAdmin({
       travelId: params.travelId,
-      driverId: adminFinalizeDriverId()
+      driverId: params.driverId ?? adminFinalizeDriverId()
+    });
+  }
+
+  /**
+   * Lee el detalle tras el cierre administrativo de la preparacion y GARANTIZA el chofer del par: un chofer ajeno
+   * lanza (guarda tecnica, incidente 723585). Devuelve el detalle y las diferencias contra lo esperado del
+   * escenario (estado, medio de pago, conceptos); el spec asevera que no haya diferencias.
+   */
+  async assertClosedWithPair(params: {
+    travelId: number;
+    pair: PrepPair;
+    scenario: PrepScenario;
+    profile: CarrierProfile;
+  }): Promise<{ detail: TravelDetail; mismatches: ClosureMismatch[] }> {
+    const detail = await this.travels.getDetail(params.travelId);
+    assertDriverMatchesPair(detailDriverId(detail), params.pair);
+    const mismatches = evaluatePrepClosure(detail, {
+      pair: params.pair,
+      scenario: PREP_SCENARIOS[params.scenario.id],
+      costs: scenarioCosts(params.profile, params.scenario)
+    });
+    return { detail, mismatches };
+  }
+
+  /**
+   * EF-FARE0: edita la tarifa final del viaje PROPIO a `newAmount` por UI (PUT updateFinalPrices + POST
+   * updateFinalPricesProcess). Delega en `TripEditPage.updateFinalPrice`, que exige `FR_EDIT_AFTER_SURRENDER=1`.
+   */
+  async editFinalFare(params: {
+    page: Page;
+    travelId: number;
+    newAmount: number;
+    reason: string;
+  }): Promise<FinalPriceEditResult> {
+    return new TripEditPage(params.page).updateFinalPrice({
+      travelId: params.travelId,
+      newAmount: params.newAmount,
+      reason: params.reason
     });
   }
 

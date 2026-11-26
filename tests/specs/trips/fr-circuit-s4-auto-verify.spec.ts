@@ -35,7 +35,12 @@ import {
 } from '../../helpers/fr-ac-eval-auto-settlement.js';
 import { evaluateAppRecalc, evaluateClientCcBalance } from '../../helpers/fr-ac-eval-circuit.js';
 import { FR_FACTS } from '../../helpers/fr-facts.js';
-import { frConfigOrNull, requireNumberField } from '../../helpers/fr-circuit.js';
+import {
+  circuitCityTaxFraction,
+  frConfigOrNull,
+  requireNumberField
+} from '../../helpers/fr-circuit.js';
+import { loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { readSaleCostData } from '../../steps/trips/dbOracles.steps.js';
 import { movementsOfTravel, surrenderIdsOfTrips } from '../../steps/trips/autoSurrender.steps.js';
 import { round2 } from '../../utils/money.js';
@@ -46,7 +51,6 @@ const ROUTE = '/carrier/#/travel/create';
 const TS_KEY = FR_1901_KEYS.S4_VERIFY;
 const STATE_DONE = /^(DONE|6)$/i;
 const CLOSE_TIMEOUT_MS = 10 * 60_000;
-const CITY_TAX_PCT = 0.1;
 const CITY_TAX_TOL = 0.02; // el redondeo del backend puede diferir 1 centavo por linea.
 
 const frGate = frConfigOrNull('FR S4 auto verify', []);
@@ -95,7 +99,7 @@ test.describe('Circuito Francia S4 auto verify (cierre por app, CC y destino en 
 
     const done = await travelsApi.getDetail(travelId);
     const finalPrice = round2(Number(done.amount));
-    const currency = evaluateCurrencyEur(done);
+    const currency = evaluateCurrencyEur(done, loadCarrierProfile().currency);
 
     // ---- 2. Precio final > 0 en EUR (AC-09), costo = venta API + DB (AC-08), recalculo (AC-10), city taxes (AC-11) ----
     await verifyAc(testInfo, 'AC-FR-09', () => {
@@ -157,13 +161,20 @@ test.describe('Circuito Francia S4 auto verify (cierre por app, CC y destino en 
     const parking = requireNumberField(done, FR_FACTS.detailFields.parking.value);
     const base = round2(finalPrice - cityTax - tolls - parking);
     await verifyAc(testInfo, 'AC-FR-11', () => {
+      if (loadCarrierProfile().cityTax.present) {
+        expect(
+          cityTax,
+          `el detalle del viaje ${travelId} debe traer otherCost (city taxes) > 0`
+        ).toBeGreaterThan(0);
+      } else {
+        expect(
+          cityTax,
+          `perfil sin city tax: el detalle del viaje ${travelId} no debe traer otherCost`
+        ).toBe(0);
+      }
       expect(
-        cityTax,
-        `el detalle del viaje ${travelId} debe traer otherCost (city taxes) > 0`
-      ).toBeGreaterThan(0);
-      expect(
-        Math.abs(cityTax - round2(CITY_TAX_PCT * base)),
-        `city taxes ${cityTax} debe ser 10 % de la base ${base} (venta ${finalPrice})`
+        Math.abs(cityTax - round2(circuitCityTaxFraction() * base)),
+        `city taxes ${cityTax} debe ser ${circuitCityTaxFraction() * 100} % de la base ${base} (venta ${finalPrice})`
       ).toBeLessThanOrEqual(CITY_TAX_TOL);
       return { cityTax, base, tolls, parking };
     });

@@ -287,6 +287,7 @@ export class NewTripOtherCostsFlow {
     const r = this.data.route;
     await this.newTrip.goto();
     await this.newTrip.selectClient(r.clientQuery);
+    if (this.data.paymentMethod) await this.newTrip.selectPaymentMethod(this.data.paymentMethod);
     await this.newTrip.fillOrigin(r.originQuery);
     if (route === 'long') {
       await this.newTrip.fillFirstDestinationMatching(
@@ -296,8 +297,23 @@ export class NewTripOtherCostsFlow {
     } else {
       await this.newTrip.fillFirstDestination(r.destinationQuery);
     }
+    // Precondiciones: origen y destino resueltos distintos y tarifa > 0. Con el mismo punto la
+    // cotización da 0 y los oráculos de importe (Porcentaje, Total) pasarían en vacío.
+    const resolvedOrigin = ((await this.newTrip.resolvedOriginValue.textContent()) ?? '').trim();
+    const resolvedDestination = (
+      (await this.newTrip.resolvedDestinationValue.textContent()) ?? ''
+    ).trim();
+    expect(
+      resolvedOrigin !== resolvedDestination,
+      `precondición: origen y destino resueltos deben diferir (ambos «${resolvedOrigin}» darían distancia 0 y precio 0)`
+    ).toBe(true);
     await this.newTrip.quoteTrip();
-    return this.readSummary();
+    const summary = await this.readSummary();
+    expect(
+      summary.subtotal,
+      'precondición: la cotización debe dar un Subtotal > 0 (si no, los importes no prueban nada)'
+    ).toBeGreaterThan(0);
+    return summary;
   }
 
   /** Resumen de importes parseado con `parseMoney`. */

@@ -12,19 +12,27 @@ export const QUOTE_DESTINATION_QUERY =
 /**
  * Ruta de cotizacion por region. Region 'FR' (carrier Francia, p. ej. Cannes -> Nice) toma
  * FR_ORIGIN_QUERY / FR_DESTINATION_QUERY y falla rapido si faltan (no cae en la ruta de Florida).
+ * `circuitEnvPrefix` (envPrefix del perfil de carrier del circuito, p. ej. 'US') fuerza la ruta
+ * <PREFIX>_ORIGIN_QUERY / <PREFIX>_DESTINATION_QUERY con la misma regla fail-fast.
  * Cualquier otra region conserva el par por defecto de arriba.
  */
-export function quoteRouteFor(region: '' | 'AR' | 'US' | 'MX' | 'FR' = ''): {
+export function quoteRouteFor(
+  region: '' | 'AR' | 'US' | 'MX' | 'FR' = '',
+  circuitEnvPrefix?: string
+): {
   origin: string;
   destination: string;
 } {
-  if (region !== 'FR') {
+  const prefix = circuitEnvPrefix ?? (region === 'FR' ? 'FR' : undefined);
+  if (prefix === undefined) {
     return { origin: QUOTE_ORIGIN_QUERY, destination: QUOTE_DESTINATION_QUERY };
   }
-  const origin = process.env.FR_ORIGIN_QUERY?.trim();
-  const destination = process.env.FR_DESTINATION_QUERY?.trim();
+  const origin = process.env[`${prefix}_ORIGIN_QUERY`]?.trim();
+  const destination = process.env[`${prefix}_DESTINATION_QUERY`]?.trim();
   if (!origin || !destination) {
-    throw new Error('Missing FR_ORIGIN_QUERY / FR_DESTINATION_QUERY for region FR');
+    throw new Error(
+      `Missing ${prefix}_ORIGIN_QUERY / ${prefix}_DESTINATION_QUERY for region ${circuitEnvPrefix === undefined ? region : prefix}`
+    );
   }
   return { origin, destination };
 }

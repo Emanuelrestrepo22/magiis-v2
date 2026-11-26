@@ -10,9 +10,10 @@
 // - Overrides por variable de entorno autoexplicativa (patrón MG19_CLIENT_QUERY): OC_CLIENT_QUERY,
 //   OC_ORIGIN_QUERY, OC_DESTINATION_QUERY, OC_LONG_DESTINATION_QUERY.
 //
-// La familia corre solo en UAT en la fase 1 (plan §6): TEST y PROD valen null y el spec se salta
-// con motivo estructural (sin datos de ruta para ese ambiente).
+// UAT (fase 1) y TEST (stock TM-1361, docs/plans/OTHER-COSTS-TEST-PLAN.md); PROD vale null y el spec
+// se salta con motivo estructural (sin datos de ruta para ese ambiente).
 import type { AppEnv } from '../../../config/runtime.js';
+import { QUOTE_DESTINATION_QUERY, QUOTE_ORIGIN_QUERY } from './quote-route.js';
 
 export type OtherCostsRoute = {
   /** Query del typeahead de cliente (busca por apellido, 3+ caracteres). */
@@ -64,6 +65,14 @@ export type OtherCostsAmounts = {
 
 export type OtherCostsEnvData = {
   carrierId: number;
+  /**
+   * Tipo de tarifador del cliente (MG-1601): el concepto debe ser del mismo tipo (si no, 409
+   * `OTHER_COST_RATE_TYPE_MISMATCH`). `cost`: conceptos con Costo ON. `sale`: sin costo (Regla G);
+   * los Tests cuyo objeto es el costo se saltan con motivo explícito.
+   */
+  rateType: 'cost' | 'sale';
+  /** Método de pago a elegir tras el cliente; undefined = el default del cliente. */
+  paymentMethod?: string;
   /** Código de moneda del carrier: el currencyId del concepto se descubre del catálogo por este código. */
   currencyCode: string;
   route: OtherCostsRoute;
@@ -72,6 +81,7 @@ export type OtherCostsEnvData = {
 
 const UAT: OtherCostsEnvData = {
   carrierId: 1481,
+  rateType: 'cost',
   currencyCode: 'USD',
   route: {
     clientQuery: 'EEUU',
@@ -100,8 +110,38 @@ const UAT: OtherCostsEnvData = {
   }
 };
 
+// TEST, carrier 1521: «Stripe, Cliente» (tarifador 2261, venta) y la ruta que cotiza > 0 (47.22) del
+// circuito admin. La ruta larga (Porcentaje) es la misma: 20 % de 47.22 = 9.44, no queda en centavos.
+// Montos = los de UAT. Override: OC_CLIENT_QUERY / OC_ORIGIN_QUERY / OC_DESTINATION_QUERY.
+const TEST: OtherCostsEnvData = {
+  ...UAT,
+  carrierId: 1521,
+  rateType: 'sale',
+  paymentMethod: 'Cash',
+  route: {
+    clientQuery: 'Stripe, Cliente',
+    originQuery: QUOTE_ORIGIN_QUERY,
+    destinationQuery: QUOTE_DESTINATION_QUERY,
+    longDestinationQuery: QUOTE_DESTINATION_QUERY,
+    longDestinationOption: /10101 Collins/i
+  }
+};
+
+/**
+ * Carriers para los que el front V2 muestra el interruptor «Costo» del ABM de Otros Costos.
+ * Espejo de `OTHER_COSTS_COST_ENABLED_CARRIERS` en magiis-fe-carrier-v2,
+ * `settings-otherCosts.component.ts:22` (lista transitoria, MG-996). Si el front la cambia, esta
+ * constante debe seguirla. TEST 1040 no se escribe nunca desde la automatización; el carrier de
+ * TEST de la automatización (1521) no está en la lista.
+ */
+export const COST_SWITCH_ENABLED_CARRIERS: readonly number[] = [1040, 1481, 2602, 1060];
+
+export function isCostSwitchEnabled(carrierId: number): boolean {
+  return COST_SWITCH_ENABLED_CARRIERS.includes(carrierId);
+}
+
 const DATA_BY_ENV: Record<AppEnv, OtherCostsEnvData | null> = {
-  test: null,
+  test: TEST,
   uat: UAT,
   prod: null
 };

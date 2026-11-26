@@ -8,6 +8,7 @@
 // - genericReport 024T (totales): [{ Col1: metodo, Col2: monto }].
 // - GET surrendersReports/paginated y /totals (DTO plano de la grilla Closed).
 // - GET checking-accounts/carrier/{id}/(clients|drivers|owners)/paginated.
+import { COMMISSION_SPLIT } from '../config/carrier-profiles.js';
 import { round2 } from '../utils/money.js';
 
 export type Discrepancy = {
@@ -246,8 +247,8 @@ export function driverGridExtras(s: DbSurrender): number {
 }
 
 export type CommissionSplit = { owner: number; driver: number; agency: number };
-/** Comisiones sobre venta del vehiculo 3765 (datos-1901 lote B): propietario 40, chofer 40, agencia 20. */
-export const FR_SPLIT: CommissionSplit = { owner: 0.4, driver: 0.4, agency: 0.2 };
+/** Reparto del perfil de carrier activo (1901: propietario 40, chofer 40, agencia 20; datos-1901 lote B). */
+export const FR_SPLIT: CommissionSplit = COMMISSION_SPLIT;
 
 /** Grilla Closed vs TRAVELSSURRENDER: presencia, importes, comisiones y 40/40/20 sobre la facturacion. */
 export function compareSurrenders(

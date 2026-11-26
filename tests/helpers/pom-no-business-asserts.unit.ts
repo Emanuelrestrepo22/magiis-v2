@@ -74,6 +74,15 @@ export const TECHNICAL_EXCEPTIONS: Readonly<Record<string, { max: number; reason
   'shared/FlatpickrCalendar.ts::toBeGreaterThanOrEqual': {
     max: 1,
     reason: 'el mes visible del calendario es reconocible (control de UI)'
+  },
+  'steps/trips/newTripWithOtherCosts.steps.ts::toBe': {
+    max: 1,
+    reason:
+      'precondicion anti-vacuidad: origen y destino resueltos difieren (distancia 0 daria precio 0)'
+  },
+  'steps/trips/newTripWithOtherCosts.steps.ts::toBeGreaterThan': {
+    max: 1,
+    reason: 'precondicion anti-vacuidad: la cotizacion da Subtotal > 0 antes de medir importes'
   }
 };
 

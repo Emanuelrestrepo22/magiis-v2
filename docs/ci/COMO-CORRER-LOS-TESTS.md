@@ -19,12 +19,12 @@ Vas a ver cuatro campos con valores ya puestos. **Si no querés cambiar nada,
 dejalos como están y andá al paso 3** — los valores por defecto corren la suite
 completa de Nuevo Viaje y actualizan Jira.
 
-| Campo | Qué hace | Valor por defecto |
-| --- | --- | --- |
-| `QUE_CORRER` | Qué se ejecuta. La primera opción corre toda la suite de Nuevo Viaje; las demás, un archivo puntual si querés ir más rápido. | `tests/specs/trips` |
-| `PROYECTO` | Resolución de pantalla del navegador. | `carrier-v2-desktop` |
-| `XRAY_EXECUTION_KEY` | El Test Execution de Xray que recibe los resultados. | `TM-1146` |
-| `IMPORTAR_A_XRAY` | Si querés correr los tests **sin** tocar Jira, ponelo en `no`. | `si` |
+| Campo                | Qué hace                                                                                                                     | Valor por defecto    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `QUE_CORRER`         | Qué se ejecuta. La primera opción corre toda la suite de Nuevo Viaje; las demás, un archivo puntual si querés ir más rápido. | `tests/specs/trips`  |
+| `PROYECTO`           | Resolución de pantalla del navegador.                                                                                        | `carrier-v2-desktop` |
+| `XRAY_EXECUTION_KEY` | El Test Execution de Xray que recibe los resultados.                                                                         | `TM-1146`            |
+| `IMPORTAR_A_XRAY`    | Si querés correr los tests **sin** tocar Jira, ponelo en `no`.                                                               | `si`                 |
 
 Apretá **`Run pipeline`**.
 
@@ -32,11 +32,11 @@ Apretá **`Run pipeline`**.
 
 El pipeline tarda unos **7 minutos**. Vas a ver tres cuadraditos en fila:
 
-| Job | Qué hace |
-| --- | --- |
-| `conectividad` | ~15 segundos. Revisa que el ambiente de TEST esté vivo. |
-| `tests-nuevo-viaje` | Corre la suite (~6 min). Es el que más tarda. Queda en rojo si algún test falla, que es lo esperado cuando hay un bug. |
-| `importar-a-xray` | Manda los resultados a TM-1146. Corre **siempre**, también cuando hay tests en rojo — justamente ahí es cuando importa. |
+| Job                 | Qué hace                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `conectividad`      | ~15 segundos. Revisa que el ambiente de TEST esté vivo.                                                                 |
+| `tests-nuevo-viaje` | Corre la suite (~6 min). Es el que más tarda. Queda en rojo si algún test falla, que es lo esperado cuando hay un bug.  |
+| `importar-a-xray`   | Manda los resultados a TM-1146. Corre **siempre**, también cuando hay tests en rojo — justamente ahí es cuando importa. |
 
 **El detalle test por test está en la pestaña `Tests`**, arriba de todo en la
 página del pipeline. Ahí ves cada caso con su nombre, cuánto tardó, y —en los
@@ -76,11 +76,70 @@ refleja el estado de la **última** corrida, no un historial acumulado.
 
 ---
 
+## Correr todo en local (por carriles)
+
+Primero el chequeo previo: dice en segundos si la máquina puede correr la suite (Node, `.env`,
+navegador, TEST arriba y, con `--hybrid`, Appium, emuladores y apps). Sale con error si algo
+bloquea; no imprime valores del `.env`.
+
+```bash
+npx cross-env ENV=test npm run doctor:local              # carriles 1-4
+npx cross-env ENV=test npm run doctor:local -- --hybrid  # + carril 5 (app)
+```
+
+| Carril                   | Comando                                                                                                                                                                       | Notas                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1. Unit                  | `npm run test:unit`                                                                                                                                                           | Sin red ni navegador.                                                                                          |
+| 2. Web funcional         | `npx cross-env ENV=test REGION_SESSIONS=AR playwright test --grep-invert "@visual\|@e2e\|@db\|@explore" --project=carrier-v2-desktop --project=carrier-v2-laptop --workers=4` | Mismo filtro que regression en CI. `REGION_SESSIONS=AR` crea la sesión del carrier métrico.                    |
+| 3. Visual                | `npm run test:visual`                                                                                                                                                         | En Windows compara contra las baselines `-win32`; las `-linux` (las de CI) solo se reproducen en Linux/Docker. |
+| 4. A11y                  | `npm run test:a11y` y después `npm run a11y:gate`                                                                                                                             | El gate falla si crecen las violations respecto de `tests/fixtures/a11y-baseline.json`.                        |
+| 5. Híbrido (app)         | —                                                                                                                                                                             | Pendiente: requiere `doctor:local -- --hybrid` en verde.                                                       |
+| 6. Circuitos F5/FR/admin | ver la sección de abajo                                                                                                                                                       | Crean datos permanentes; solo con su gate.                                                                     |
+
+Reglas para no ensuciar los resultados:
+
+- **Un solo carril pesado por vez contra TEST.** Dos suites en paralelo saturan el ambiente y
+  aparecen timeouts que no son bugs (2026-11-11: smoke + regression a la vez → 21 fallos falsos).
+- **Evitar 09:00-10:30 ART de lunes a viernes**: es la corrida diaria agendada de GitHub Actions.
+  **Tampoco correr en el horario de deploy de TEST (tarde)**: un deploy en curso tumba el ambiente
+  y deja fallos que no son bugs. TEST además está apagado de 21:00 a 04:00 ART.
+- Clonar el repo **fuera de OneDrive** (p. ej. `C:\dev`): ahí npm es más lento y `ALLURE=1` falla.
+
+---
+
+## Preparación de datos F5 en UAT (local, no corre en CI)
+
+Para preparar viajes cerrados del circuito administrativo (alta por «Send Manual»
+→ cancelar → «Administrative finalization» con el chofer del par propio de QA) y
+verificar el lote pendiente antes de rendir. Se corre **a mano y con Node** (no
+Bun: cuelga el pipe de Playwright en Windows). No entra en `test:smoke` ni en CI.
+
+1. Perfil: `CIRCUIT_CARRIER=1040-uat` (AR), `1481-uat` (US) o `2021-uat` (FR), con
+   `ENV=uat`. Credenciales y URL en `.env.uat` (ignorado por git); la sesión sale
+   de `storage/state-carrier-<ar|us|fr>-uat.json` con `REUSE_STORAGE_STATE=1`.
+   FR: copiar `state-carrier-uat-fr.json` a `state-carrier-fr-uat.json`.
+2. Verificación (solo lectura, sin gates):
+   `npx cross-env CIRCUIT_CARRIER=1040-uat REUSE_STORAGE_STATE=1 npm run test:f5:prep:verify`
+3. Preparación (crea un viaje **permanente** por escenario; gate exacto `1`):
+   `npx cross-env CIRCUIT_CARRIER=1040-uat REUSE_STORAGE_STATE=1 CIRCUIT_PREP_CREATE_TRIPS=1 F5_PREP_SCENARIOS=EF-NC-COM npm run test:f5:prep`
+   Escenarios: `EF-NC-COM`, `CC`, `EF-PLAIN`, `EF-NC-ONLY`, `EF-FARE0`. Par:
+   `F5_PREP_PAIR` (1481: `P1`/`P2`/`P3`; por defecto el del perfil).
+4. Un escenario por par por vez: la rendición consume todo el lote del par. Verificá
+   (paso 2) antes de crear el siguiente.
+
+Nunca rinde, liquida, edita propietario/vehículo ni usa el botón «A»: una guarda de
+red aborta cualquier escritura fuera de la lista permitida y el test falla. Los viajes
+quedan anotados en `evidence/uat/admin-circuit-done-trips.json`; el handoff de cada
+corrida en `evidence/uat/f5-prep/`.
+
+---
+
 ## Preguntas frecuentes
 
 **¿Puedo romper algo corriendo esto?**
 No. La suite sólo lee y navega la pantalla: no crea viajes ni modifica datos. El
-único caso que daría de alta un viaje real está desactivado a propósito.
+único caso que daría de alta un viaje real está desactivado a propósito (igual que
+la preparación F5 de arriba, que exige su gate).
 
 **Falló `conectividad` y no corrió nada.**
 El ambiente de TEST está caído. El log te dice cuál de las dos capas falló:

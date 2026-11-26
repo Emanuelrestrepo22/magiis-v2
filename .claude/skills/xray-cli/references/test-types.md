@@ -1,0 +1,261 @@
+# Xray Test Types
+
+## Overview
+
+Xray supports three test types, each designed for different testing approaches:
+
+| Type | ID | Purpose | Data Field |
+|------|----|---------|------------|
+| Manual | `Manual` | Step-by-step human execution | `steps[]` |
+| Generic | `Generic` | Automated tests (any framework) | `unstructured` (definition) |
+| Cucumber | `Cucumber` | BDD tests with Gherkin syntax | `gherkin` |
+
+## Manual Tests
+
+Manual tests contain structured steps that a tester follows.
+
+### Structure
+
+```json
+{
+  "testType": "Manual",
+  "steps": [
+    {
+      "id": "step-1",
+      "action": "Navigate to login page",
+      "data": "https://app.example.com/login",
+      "result": "Login form is displayed"
+    },
+    {
+      "id": "step-2",
+      "action": "Enter valid credentials",
+      "data": "user@test.com / P@ssw0rd",
+      "result": "Credentials accepted"
+    }
+  ]
+}
+```
+
+### Creating Manual Tests
+
+Manual steps are created in **two phases**: create the test WITHOUT inline steps,
+then add each step with its own `test add-step` call.
+
+```bash
+# 1. Create the Manual test (no inline steps)
+bun xray test create --project DEMO --summary "Verify login" --type Manual
+
+# 2. Add each step (one call per step) — this is the reliable path
+bun xray test add-step --test <issueId> --action "Open app" --result "Login form displayed"
+bun xray test add-step --test <issueId> --action "Enter credentials" --data "user@test.com" --result "Success"
+
+# Remove a step you no longer want
+bun xray test remove-step --test <issueId> --step <stepId>
+```
+
+> **Why two phases (gotcha).** Xray Cloud's `createTest` mutation accepts a `steps`
+> argument but does **not** persist it — steps silently drop (observed `stepCount:0`
+> right after a "Test created" success). The `--step` flag on `test create` is
+> therefore **deprecated**: if passed, the test is still created but the CLI prints a
+> loud WARNING listing the exact `test add-step` commands to run. Always verify steps
+> landed with `bun xray test get <key>` (or the GraphQL `getTest { steps { id } }`).
+
+### Step Fields (add-step)
+
+`test add-step` takes one step per call via explicit flags:
+- `--action <text>` - what the tester does (required)
+- `--data <text>` - input values / test data (optional)
+- `--result <text>` - expected observable outcome (optional)
+
+## Generic Tests
+
+Generic tests store a definition (usually automation code reference or command).
+
+### Structure
+
+```json
+{
+  "testType": "Generic",
+  "unstructured": "tests/e2e/login.spec.ts::should login successfully"
+}
+```
+
+### Creating Generic Tests
+
+```bash
+bun xray test create --project DEMO --summary "API health check" --type Generic \
+  --definition "curl -s https://api.example.com/health | jq '.status'"
+
+bun xray test create --project DEMO --summary "Login E2E" --type Generic \
+  --definition "tests/e2e/login.spec.ts::should login with valid credentials"
+```
+
+### Use Cases
+
+- Link to automated test files
+- Store CLI commands for execution
+- Reference external test suites
+- Store test automation identifiers
+
+## Cucumber Tests
+
+Cucumber tests contain Gherkin feature syntax for BDD.
+
+### Structure
+
+```json
+{
+  "testType": "Cucumber",
+  "gherkin": "Feature: User Login\n  Scenario: Valid login\n    Given I am on the login page\n    When I enter valid credentials\n    Then I should see the dashboard"
+}
+```
+
+### Creating Cucumber Tests
+
+```bash
+bun xray test create --project DEMO --summary "Login Feature" --type Cucumber \
+  --gherkin "Feature: Login
+  Scenario: Valid credentials
+    Given I am on the login page
+    When I enter 'user@test.com' and 'password'
+    Then I should see the dashboard"
+```
+
+### Multi-line Gherkin
+
+> **Windows gotcha**: a heredoc-style `--gherkin "$(cat <<'EOF' ... EOF)"` only
+> works in a POSIX shell (bash/zsh). On Windows, a child process's argv is
+> serialized into a single command-line string — any inline `--gherkin` value
+> with embedded newlines (heredoc-built or not) routinely arrives at the CLI
+> **truncated to its first line**, silently. The mutation still reports success,
+> so a "Test created" message does not confirm the content survived. This is
+> exactly what caused a mass-truncation of Cucumber tests in a bulk import
+> (73 tests affected). **Use `--gherkin-file <path>` instead — it reads the raw
+> file and never touches argv, so it is immune on every platform.**
+
+```bash
+bun xray test create --project DEMO --summary "Complete Login Feature" --type Cucumber \
+  --gherkin-file ./complete-login.feature
+```
+
+```gherkin
+# complete-login.feature
+Feature: User Authentication
+
+  Background:
+    Given the application is running
+
+  Scenario: Successful login
+    Given I am on the login page
+    When I enter valid credentials
+    And I click the login button
+    Then I should be redirected to dashboard
+
+  Scenario: Invalid password
+    Given I am on the login page
+    When I enter an invalid password
+    Then I should see an error message
+```
+
+Piping into stdin works the same way — pass `-` as the path:
+
+```bash
+cat complete-login.feature | bun xray test create --project DEMO --summary "Complete Login Feature" --type Cucumber --gherkin-file -
+```
+
+The heredoc form above still works on bash/zsh for short features, but prefer
+`--gherkin-file` for anything you'd want to review, diff, or re-run — and treat
+it as required, not optional, on Windows. As a safety net, `--gherkin` inline
+prints a WARNING when the value is a single line starting with `#` or `@`
+(a Gherkin comment/tag alone is never a complete feature — that shape is the
+fingerprint of a truncated paste).
+
+## Type Conversion
+
+### Changing Test Type
+
+When restoring backups with `--sync` mode, the CLI can update test types:
+
+```bash
+# If a test exists as Manual but backup has it as Cucumber
+bun xray backup restore --file backup.json --project DEMO --sync
+# The test type will be updated via GraphQL mutation
+```
+
+### GraphQL Mutation
+
+```graphql
+mutation UpdateTestType($issueId: String!, $testTypeId: String!) {
+  updateTestType(issueId: $issueId, testType: { id: $testTypeId }) {
+    test {
+      issueId
+      testType { name }
+    }
+  }
+}
+```
+
+## Best Practices
+
+### When to Use Each Type
+
+| Scenario | Recommended Type |
+|----------|-----------------|
+| Exploratory testing | Manual |
+| Regression test suites (automated) | Generic |
+| BDD/ATDD workflows | Cucumber |
+| Step-by-step verification | Manual |
+| CI/CD integration | Generic |
+| Living documentation | Cucumber |
+
+### Naming Conventions
+
+```
+Manual: "Verify [feature] [scenario]"
+  Example: "Verify login with valid credentials"
+
+Generic: "[Module] - [Test Name]"
+  Example: "Auth - should authenticate user with JWT"
+
+Cucumber: "[Feature Name]"
+  Example: "User Authentication"
+```
+
+### Step Guidelines (Manual)
+
+1. **Action**: What the tester does (imperative verb)
+2. **Data**: Input values or test data needed
+3. **Result**: Expected observable outcome
+
+```
+Good:
+  Action: Click the "Submit" button
+  Result: Form is submitted and success message appears
+
+Bad:
+  Action: Submit
+  Result: Works
+```
+
+## CLI Examples
+
+### List Tests by Type
+
+```bash
+# All Manual tests
+bun xray test list --jql "project = DEMO AND 'Test Type' = Manual"
+
+# All Cucumber tests
+bun xray test list --jql "project = DEMO AND 'Test Type' = Cucumber"
+
+# All Generic tests
+bun xray test list --jql "project = DEMO AND 'Test Type' = Generic"
+```
+
+### Export by Type
+
+```bash
+# Export only tests with actual Xray data
+bun xray backup export --project DEMO --only-with-data
+# This filters out tests that have no steps/definition/gherkin
+```

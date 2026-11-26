@@ -19,8 +19,13 @@ import {
   type OtherCostPayload
 } from '../../fixtures/factories/otherCostFactory.js';
 
-/** Conceptos preexistentes del carrier 1481 que la automatizacion nunca edita ni borra. */
-export const PROTECTED_OTHER_COST_IDS: readonly number[] = [27, 34, 38];
+/**
+ * Conceptos preexistentes que la automatizacion nunca edita ni borra: carrier 1481 (27, 34, 38) y
+ * los de QA manual de 1521 (29, 30, 47, 135, 136, 143-149, 164-169).
+ */
+export const PROTECTED_OTHER_COST_IDS: readonly number[] = [
+  27, 34, 38, 29, 30, 47, 135, 136, 143, 144, 145, 146, 147, 148, 149, 164, 165, 166, 167, 168, 169
+];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

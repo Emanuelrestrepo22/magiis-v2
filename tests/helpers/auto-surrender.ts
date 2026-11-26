@@ -15,7 +15,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { round2 } from '../utils/money.js';
 import type { FrBooksSnapshot } from './fr-circuit.js';
-import { PCT } from './fr-circuit.js';
+import { COMMISSION_FIXED, PCT } from './fr-circuit.js';
+import type { CommissionSplit } from '../config/carrier-profiles.js';
 import {
   evaluateOneMovementPerTravel,
   type MovementRow,
@@ -61,6 +62,8 @@ export type AutoTrip = {
     cityTax: number;
     tolls: number;
     parking: number;
+    /** Otros costos NO comisionables (F5): salen de TOTALCASH y de la base de comision (14182: 3015,80 − 15). */
+    noCom?: number;
     closedAt: string;
   };
 };
@@ -157,11 +160,20 @@ export type ExpectedAutoSurrender = {
   ownerBook: { TDCV: number | null };
 };
 
-const split = (base: number) => ({
-  owner: round2(PCT.owner * base),
-  driver: round2(PCT.driver * base),
-  agency: round2(PCT.agency * base)
+const split = (base: number, pct: Readonly<CommissionSplit> = PCT) => ({
+  owner: round2(pct.owner * base),
+  driver: round2(pct.driver * base),
+  agency: round2(pct.agency * base)
 });
+
+/**
+ * Reparto y comision fija del par (F5 W3): por defecto los del perfil activo (`PCT`/`COMMISSION_FIXED`); el spec
+ * multi-carrier los pasa desde `prep.pairs[*].commission` (no hay 40/40/20 universal).
+ */
+export type AutoCommissionOptions = {
+  pct?: Readonly<CommissionSplit>;
+  fixed?: { readonly owner: number; readonly agency: number };
+};
 
 /**
  * Esperado de la fila automatica a partir de los viajes cerrados. Formula medida en TEST 1901
@@ -169,7 +181,14 @@ const split = (base: number) => ({
  * (incluye city taxes), propietario 40 % y agencia 20 % por medio de pago; TOTALOTHERCOST = otros costos
  * de viajes CC; TDCV = comision de agencia sobre la base en efectivo.
  */
-export function expectedAutoSurrender(trips: readonly AutoTrip[]): ExpectedAutoSurrender {
+export function expectedAutoSurrender(
+  trips: readonly AutoTrip[],
+  /** Dias de viaje distintos del lote: la comision fija (solo carriers con fija en DB) entra por dia. */
+  fixedDays = 1,
+  options: AutoCommissionOptions = {}
+): ExpectedAutoSurrender {
+  const pct = options.pct ?? PCT;
+  const fixed = options.fixed ?? COMMISSION_FIXED;
   if (trips.length === 0) throw new Error('[fr-auto] expectedAutoSurrender sin viajes');
   let cashBase = 0;
   let ccBase = 0;
@@ -181,23 +200,27 @@ export function expectedAutoSurrender(trips: readonly AutoTrip[]): ExpectedAutoS
   for (const trip of trips) {
     const closed = trip.closed;
     if (!closed) throw new Error(`[fr-auto] viaje ${trip.travelId} (${trip.scenario}) sin cerrar`);
-    const base = round2(closed.finalPrice - closed.tolls - closed.parking);
+    const noCom = closed.noCom ?? 0;
+    const base = round2(closed.finalPrice - closed.tolls - closed.parking - noCom);
     if (trip.paymentMethod === 'CASH') {
       cashBase += base;
-      cashTotal += closed.finalPrice;
+      cashTotal += round2(closed.finalPrice - noCom);
       cashQty += 1;
     } else {
       ccBase += base;
-      ccTotal += closed.finalPrice;
+      ccTotal += round2(closed.finalPrice - noCom);
       ccQty += 1;
       ccOtherCost += closed.cityTax;
     }
   }
   cashBase = round2(cashBase);
   ccBase = round2(ccBase);
-  const cash = split(cashBase);
-  const cc = split(ccBase);
-  const ownerTotal = round2(cash.owner + cc.owner);
+  const cash = split(cashBase, pct);
+  const cc = split(ccBase, pct);
+  const driverTotal = round2(cash.driver + cc.driver);
+  const ownerFixed = round2(fixed.owner * fixedDays);
+  const agencyFixed = round2(fixed.agency * fixedDays);
+  const ownerTotal = round2(cash.owner + cc.owner + ownerFixed);
   return {
     travelIds: trips.map((t) => t.travelId),
     row: {
@@ -206,12 +229,14 @@ export function expectedAutoSurrender(trips: readonly AutoTrip[]): ExpectedAutoS
       TOTALCASHQTY: cashQty,
       TOTALCHECKINGACCOUNT: round2(ccTotal),
       TOTALCHECKACCQTY: ccQty,
-      CASHCOMMISSION: cash.owner,
-      CHECKINGACCOUNTCOMMISSION: cc.owner,
-      COMMISSIONSUM: ownerTotal,
+      CASHCOMMISSION: cash.driver,
+      CHECKINGACCOUNTCOMMISSION: cc.driver,
+      COMMISSIONSUM: driverTotal,
       OWNER_TOTALCOMMISSION: ownerTotal,
-      AGENCY_TOTALCOMMISSION: round2(cash.agency + cc.agency),
+      AGENCY_TOTALCOMMISSION: round2(cash.agency + cc.agency + agencyFixed),
       TOTALOTHERCOST: round2(ccOtherCost),
+      // Medido en TEST: la automatica deja TOTALOTHERCOST_NOCOM = 0 aun con NC 15 (14182); la manual no es
+      // consistente (14181 = 15, 14185 = 0 con NC 450): no se predice, se mantiene lo verificado en 14182.
       TOTALOTHERCOST_NOCOM: 0
     },
     bases: { cash: cashBase, checkingAccount: ccBase },

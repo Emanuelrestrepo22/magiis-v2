@@ -37,21 +37,20 @@ import {
   readTravelDriverId
 } from '../../helpers/fr-ac-eval-auto-settlement.js';
 import {
-  DEFAULT_CARRIER_ID,
-  DEFAULT_OWNER_ID,
+  circuitCarrierId,
+  circuitOwnerId,
   frConfigOrNull,
-  optionalInt,
-  readBooks
+  readBooks,
+  circuitCcPaymentMethod,
+  circuitCityTaxFraction
 } from '../../helpers/fr-circuit.js';
+import { loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { AdminCircuitFlow } from '../../steps/trips/adminCircuit.steps.js';
 import {
   pendingTripIdsOfVehicle,
   readOwnerCashCollector
 } from '../../steps/trips/autoSurrender.steps.js';
 import { parseMoney } from '../../utils/money.js';
-
-const PAYMENT_METHOD = process.env.FR_CC_PAYMENT_METHOD?.trim() || 'Credit Account';
-const CITY_TAX_PCT = 0.1;
 
 const frGate = frConfigOrNull('FR S4 auto prepare', ['FR_CIRCUIT_CREATE_TRIP']);
 
@@ -71,8 +70,8 @@ test.describe('Circuito Francia S4 auto prepare (CC + city taxes, alta y asignac
     const cfg = frGate.config as FrCircuitConfig;
     // Sin key de Xray a proposito: prepara datos; el veredicto lo da su `verify` (fr-1901-keys.ts).
     testInfo.annotations.push({ type: 'tc', description: 'FR-S4-auto-prepare' });
-    const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
-    const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const ownerId = circuitOwnerId();
+    const expectedCarrier = circuitCarrierId();
     const flow = new AdminCircuitFlow(travelsApi, checkingAccountApi);
     const attachJson = (name: string, data: unknown) =>
       testInfo.attach(name, {
@@ -132,13 +131,15 @@ test.describe('Circuito Francia S4 auto prepare (CC + city taxes, alta y asignac
       ...iso
     });
 
+    const cityTaxPresent = loadCarrierProfile().cityTax.present;
+
     // ---- 2. Alta por UI: Luis, pago CC, otro costo «QA City Taxes» ----
     const { travelId, simulatedAmount, summary } = await flow.createViaUi({
       page,
       client: cfg.clientQuery,
-      paymentMethod: PAYMENT_METHOD,
-      otherCostName: cfg.otherCostName,
-      region: 'FR',
+      paymentMethod: circuitCcPaymentMethod(),
+      otherCostName: cityTaxPresent ? cfg.otherCostName : undefined,
+      circuitProfile: loadCarrierProfile(),
       assertBeforeSubmit: ({ simulatedAmount, resolvedOrigin, resolvedDestination }) => {
         expect(
           resolvedOrigin !== resolvedDestination,
@@ -162,7 +163,9 @@ test.describe('Circuito Francia S4 auto prepare (CC + city taxes, alta y asignac
     writeAutoHandoff({ ...base, trips: { ...base.trips, S4: trip } });
 
     const subtotal = parseMoney(summary.subtotal);
-    const cityTaxLine = summary.lines.find((l) => l.label.startsWith(cfg.otherCostName));
+    const cityTaxLine = cityTaxPresent
+      ? summary.lines.find((l) => l.label.startsWith(cfg.otherCostName))
+      : undefined;
     const cityTax = cityTaxLine === undefined ? 0 : parseMoney(cityTaxLine.amount);
     await verifyAc(testInfo, 'AC-FR-01', () => {
       const quote = evaluateQuote(simulatedAmount, process.env.FR_EXPECTED_QUOTE);
@@ -170,25 +173,32 @@ test.describe('Circuito Francia S4 auto prepare (CC + city taxes, alta y asignac
       return { simulatedAmount, expectedQuote: process.env.FR_EXPECTED_QUOTE?.trim() ?? null };
     });
     await verifyAc(testInfo, 'AC-FR-03', () => {
-      expect(
-        cityTaxLine,
-        `el resumen debe listar la linea del otro costo «${cfg.otherCostName}» (lineas: ${JSON.stringify(summary.lines.map((l) => l.label))})`
-      ).toBeDefined();
+      if (cityTaxPresent) {
+        expect(
+          cityTaxLine,
+          `el resumen debe listar la linea del otro costo «${cfg.otherCostName}» (lineas: ${JSON.stringify(summary.lines.map((l) => l.label))})`
+        ).toBeDefined();
+      } else {
+        expect(
+          cityTaxLine,
+          `perfil sin city tax: el resumen no debe listar un otro costo de impuesto de ciudad`
+        ).toBeUndefined();
+      }
       const v = evaluateCityTaxSummary({
         base: subtotal,
-        cityTaxLineAmount: cityTaxLine === undefined ? null : cityTax,
+        cityTaxLineAmount: cityTaxLine === undefined ? (cityTaxPresent ? null : 0) : cityTax,
         otherCostsHeader: parseMoney(summary.otherCosts),
         fixedFees: summary.fixedFees === null ? 0 : parseMoney(summary.fixedFees),
         taxes: summary.taxes === null ? 0 : parseMoney(summary.taxes),
         simulatedTotal: simulatedAmount,
-        pct: CITY_TAX_PCT
+        pct: circuitCityTaxFraction()
       });
       expect(v.ok, formatMismatches('resumen city taxes S4', v.mismatches)).toBe(true);
       return { subtotal, cityTax, total: simulatedAmount };
     });
     await verifyAc(testInfo, 'AC-FR-02', async () => {
       const created = await flow.readDetail({ travelId });
-      const cur = evaluateCurrencyEur(created);
+      const cur = evaluateCurrencyEur(created, loadCarrierProfile().currency);
       expect(cur.ok, formatMismatches('moneda S4', cur.mismatches)).toBe(true);
       if (!cur.verified) {
         observation(

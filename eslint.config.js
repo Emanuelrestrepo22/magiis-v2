@@ -12,6 +12,10 @@ export default [
       'refs/**',
       'playwright-report/**',
       'test-results/**',
+      // Scratch de sesiones agenticas (ya ignorado por git, ver .gitignore): son scripts
+      // descartables de diagnostico, no codigo de la suite. Sin esta exclusion `npm run lint`
+      // falla por reglas de estilo sobre archivos que nadie mantiene.
+      'tmp/**',
       '*.config.js',
       '*.config.mjs'
     ]
@@ -68,6 +72,14 @@ export default [
       'no-debugger': 'error',
       'prefer-const': 'error',
       eqeqeq: ['error', 'always']
+    }
+  },
+  {
+    // Unit tests de la plataforma mobile usan node:test + node:assert, no Playwright.
+    files: ['tests/mobile/**/*.unit.ts'],
+    rules: {
+      'playwright/expect-expect': 'off',
+      'playwright/no-duplicate-hooks': 'off'
     }
   }
 ];

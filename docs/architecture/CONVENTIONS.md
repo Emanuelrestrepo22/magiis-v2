@@ -162,8 +162,20 @@ Flujo verificado end-to-end (MG-682, piloto TM-1139..TM-1143, 2026-09-09):
      `TM-770`, `TM-783`, `TM-784`, `TM-843`, `TM-844`, `TM-538`, `TM-772`,
      `TM-817`, `TM-789`, `TM-802`, `TM-819`. `TM-500` (TC059) fue retirado el
      2026-09-30: era un `fixme` sin lógica; en Xray se quitó del ATR y volvió a Manual.
-   - **`TM-1147`** — _ATR · Carrier v2 — MG-682 flags de ruta (automatizado,
-     estado vigente)_ — 5 casos: `TM-1139`..`TM-1143`.
+   - **`TM-1147`** — _ATR · MG-682 flags de ruta — UI (automatizado, estado
+     vigente)_ — 5 casos: `TM-1139`..`TM-1143`.
+   - **Separación UI/API (2026-09-10)**: `TM-1147` llegó a recibir también los
+     runs de la suite API de `magiis-api-e2e` (mismo nombre de familia `mg682`
+     en los dos repos, un solo ATR compartido) — el estado agregado dejó de
+     ser interpretable (una suite en rojo, la otra en verde, sobre el mismo
+     ATR; medido el 2026-09-09: `magiis-api-e2e` con `PASSED=0, FAILED=1`
+     mientras esta suite UI tenía casos en verde). Se creó `TM-1167` — _ATR ·
+     MG-682 flags de ruta — API (automatizado, estado vigente)_ — como
+     destino exclusivo de `magiis-api-e2e`, y `TM-1147` quedó reservado solo
+     para esta suite UI. Los 13 runs de API que habían quedado en `TM-1147` se
+     conservan ahí como historial congelado al 2026-09-09 (no se removieron,
+     para no perder evidencia de ejecución que no se puede regenerar sin
+     volver a correr specs que crean datos reales); no reciben más runs.
    - **`TM-1280`** — _ATR de automatización de Otros Costos en Nuevo Viaje
      (MG-995/MG-996, estado vigente)_ — 11 casos. La fase 1 automatiza 8:
      `TM-1084`, `TM-1085`, `TM-1086`, `TM-1087`, `TM-1090`, `TM-1091`, `TM-1277`,

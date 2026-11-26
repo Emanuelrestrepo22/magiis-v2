@@ -1,5 +1,5 @@
 // tests/api/clients/surrender.client.ts
-// Cliente de LECTURA de la rendicion de un chofer (lote pendiente). Solo GET: no existe ningun
+// Cliente de LECTURA de la rendicion de un chofer (lote pendiente y comprobante). No existe ningun
 // metodo de escritura (el POST toTravelsSurrender es la confirmacion irreversible y se hace por UI).
 //
 // Contrato (magiis-be, rama develop, TravelController, @RequestMapping("carriers/{carrierId}/travels")):
@@ -15,6 +15,9 @@
 //     OJO: el mismo path con POST (TravelController.java:2523-2524) CONFIRMA la rendicion.
 // - driversSurrenderSummary: GET .../driversSurrenderSummary?page&size&column&sort&search
 //     Grilla de pendientes; mapea chofer/vehiculo -> driverUserId (campo `driverId` del front).
+// - surrender:         POST .../surrender?surrenderId (TravelController.java:2559-2579). Descarga la
+//     copia guardada del comprobante PDF (storage). Es POST pero NO escribe. Si la copia no existe,
+//     el BE solo loguea y responde 200 con cuerpo vacio: el llamador decide por los bytes.
 // Front equivalente (magiis-fe-carrier-v2 develop): services/surrenders/surrenders.service.ts y
 // services/carrier/command/{getDriverCashSurrender,getDriversSurrenderSummary}.command.ts,
 // services/travel/command/getTravelsSurrender.command.ts.
@@ -174,4 +177,21 @@ export class SurrenderClient {
     }
     return body.content;
   }
+
+  /** Copia guardada del comprobante PDF de una rendicion (POST de solo lectura). Sin interpretar. */
+  async downloadReceipt(surrenderId: number): Promise<SurrenderReceiptDownload> {
+    assertPositiveInt('surrenderId', surrenderId);
+    const response = await this.api.post(this.base('surrender'), { params: { surrenderId } });
+    return {
+      status: response.status(),
+      contentType: response.headers()['content-type'] ?? null,
+      body: await response.body().catch(() => Buffer.alloc(0))
+    };
+  }
 }
+
+export type SurrenderReceiptDownload = {
+  status: number;
+  contentType: string | null;
+  body: Buffer;
+};

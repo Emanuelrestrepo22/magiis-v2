@@ -57,3 +57,40 @@ UI no puede dar de forma estable ni barata:
   bloquearía) y no permite la clase negativa. El ABM tendrá su propia familia.
 - **Validar persistencia contra el widget del detalle**: D1 lo invalida para conceptos Cantidad.
 - **Validar contra la base**: no alcanzable desde V2 (BL-046).
+
+## Enmienda 2026-11-19 — contrato API de features de Carrier V2 con pantalla compartida (MG-1132)
+
+- **Estado**: Aceptada por el owner (decisión D1 del 19/11/2026, plan `MG-1132/automation-plan.md`).
+- **Alcance de la enmienda**: acotado. No reabre el resto de la sección «Fuera de alcance».
+
+### Contexto
+
+El feature Puntos de referencia (MG-1132) tiene 20 Tests Candidate que son contrato API puro
+(autocompletado, ABM por servicio, ruteabilidad `checkPlace`). Los mismos clientes
+(`waypoints.client.ts`, `places.client.ts`) y la misma fixture (`waypointsFixture.ts`) los usan los
+Tests de pantalla del mismo feature (buscador de Nuevo Viaje, ABM de Configuración, puntero) como
+precondición, limpieza y oráculo. Mantener el contrato en otro repo duplicaría clientes, datos y
+guardas de limpieza.
+
+### Decisión
+
+1. Se admiten tests cuyo objetivo es la API (`*.api.spec.ts`) **solo** para features de Carrier V2
+   cuyos Tests de UI comparten los mismos clientes y fixtures. Hoy: MG-1132. Otro feature necesita
+   su propia enmienda o ADR.
+2. Los tests de contrato siguen las guardas del punto 5 de la decisión original: errores redactados,
+   token nunca impreso, `401/403` = STOP, prefijo propio en los datos, nunca tocar datos
+   preexistentes, limpieza en `finally`.
+3. Siguen fuera de alcance: performance, seguridad y mocks del backend.
+4. **Evidencia**: cada test API adjunta una imagen al run de Xray (la medición JSON renderizada como
+   tabla HTML en una página en blanco y capturada, `tests/helpers/api-evidence.ts`), además del
+   comentario `xray_comment`.
+5. **Ambiente**: los datos de este feature son por ambiente; hoy solo `test` (el ambiente sigue el
+   estado del ticket).
+
+### Consecuencias
+
+- Positivas: un solo juego de clientes y guardas para contrato y pantalla; la evidencia de API es
+  visible en el ATR.
+- Negativas: un cambio de contrato rompe tests de objetivo, no solo preparación; hay que mantener las
+  citas de endpoint al día. El repo hermano `magiis-api-e2e` sigue siendo el dueño por defecto de los
+  contratos de otros features.

@@ -36,7 +36,7 @@ import { test as base, expect } from '../../fixtures/carrierApiFixture.js';
 import { OtherCostsClient } from '../../api/clients/otherCosts.client.js';
 import { fixedOtherCost, quantityOtherCost } from '../../fixtures/factories/otherCostFactory.js';
 import { getCurrentEnv } from '../../config/runtime.js';
-import { otherCostsDataFor } from '../../data/carrier-v2/trips/other-costs.js';
+import { isCostSwitchEnabled, otherCostsDataFor } from '../../data/carrier-v2/trips/other-costs.js';
 import { otherCostsAbmAmountsFor } from '../../data/carrier-v2/settings/other-costs-abm.js';
 import { OTHER_COSTS_GRID_HEADERS } from '../../pages/carrier-v2/settings/SettingsOtherCostsPage.js';
 import {
@@ -61,6 +61,15 @@ const UPDATED_TOAST = /modificado con [ée]xito|updated successfully/i;
 const DELETED_TOAST = /eliminado con [ée]xito|deleted successfully/i;
 /** Aviso cruzado de Costo OFF (es-ar / en-us `cross_validation`); cubre la redacción del paso. */
 const SALE_CAP_WARNING = /tope de venta.*distinto de cero|sale cap.*different from zero/i;
+
+// R6-1/R6-2: las Xray de este ABM exigen «Carrier habilitado para el switch Costo». El front V2 solo
+// muestra el interruptor para los carriers de COST_SWITCH_ENABLED_CARRIERS (espejo de
+// OTHER_COSTS_COST_ENABLED_CARRIERS, magiis-fe-carrier-v2 settings-otherCosts.component.ts:22). Se decide
+// por carrier, no contando el interruptor: en un carrier habilitado un interruptor ausente es un FALLO.
+const COST_ENABLED = DATA !== null && isCostSwitchEnabled(DATA.carrierId);
+const NEEDS_COST_CARRIER =
+  'la precondición Xray exige un carrier habilitado para el switch Costo (front V2: 1040/1481/2602/1060); ' +
+  'este carrier no lo está (TEST 1521, interruptor no renderizado, medido 2026-10-13). Corrida válida: UAT 1481';
 
 const test = base.extend<{ flow: OtherCostsAbmFlow }>({
   flow: async ({ page, carrierSession, otherCostsApi }, use, testInfo) => {
@@ -88,6 +97,7 @@ test.describe('@P1 @functional @migration MG-995 MG-996 Otros Costos ABM - smoke
     process.env.OTHER_COSTS_CREATE_DATA !== '1',
     'crea y borra conceptos reales en el ambiente; correr con OTHER_COSTS_CREATE_DATA=1'
   );
+  test.skip(!COST_ENABLED, NEEDS_COST_CARRIER);
   test.skip(
     DATA === null || AMOUNTS === null,
     `el smoke ABM de Otros Costos no tiene datos para ENV=${ENV} (fase 1: solo uat)`
@@ -114,6 +124,10 @@ test.describe('@P1 @functional @migration MG-995 MG-996 Otros Costos ABM - smoke
     await flow.openSettings();
     const header = await flow.commentHeader();
     await flow.openNewCostModal();
+    await expect(
+      flow.modal.costSwitch,
+      'en un carrier habilitado el modal debe renderizar el interruptor Costo'
+    ).toHaveCount(1);
     await flow.modal.fillDescription(name);
     await flow.modal.selectType('QTY');
     await flow.modal.setSaleValue(a.sale);
@@ -352,6 +366,10 @@ test.describe('@P1 @functional @migration MG-995 MG-996 Otros Costos ABM - smoke
     await flow.openSettings();
     const header = await flow.commentHeader();
     await flow.openEditModal(concept.concept);
+    await expect(
+      flow.modal.costSwitch,
+      'en un carrier habilitado el modal debe renderizar el interruptor Costo'
+    ).toHaveCount(1);
     await expect(
       flow.modal.costSwitch,
       'el interruptor Costo debe abrir apagado'

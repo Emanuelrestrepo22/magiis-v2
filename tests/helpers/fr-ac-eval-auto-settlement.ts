@@ -6,6 +6,7 @@
 import type { TravelDetail } from '../api/clients/travels.client.js';
 import type { OracleDb } from '../db/OracleDb.js';
 import { round2 } from '../utils/money.js';
+import { currencyMatcher } from '../config/carrier-profiles.js';
 import { PCT } from './fr-circuit.js';
 import { formatMismatches, type Mismatch, type OracleVerdict } from './oracle-result.js';
 
@@ -43,17 +44,25 @@ export function evaluateQuote(simulated: number, expectedQuote?: string | null):
 
 export type CurrencyVerdict = OracleVerdict & { verified: boolean; currency: string | null };
 
-/** AC-FR-02: moneda EUR del detalle. `verified=false` si el detalle no expone `currencyCode` (se observa, no se aprueba en vacio). */
-export function evaluateCurrencyEur(detail: TravelDetail): CurrencyVerdict {
+/**
+ * AC-FR-02: moneda del carrier (default EUR = 1901; los specs pasan la del perfil activo) en el detalle.
+ * `verified=false` si el detalle no expone `currencyCode` (se observa, no se aprueba en vacio).
+ */
+export function evaluateCurrencyEur(
+  detail: TravelDetail,
+  expected: { code: string; symbol: string } = { code: 'EUR', symbol: '€' }
+): CurrencyVerdict {
   const raw = (detail.simulationPrice as Record<string, unknown> | null | undefined)?.currencyCode;
   if (raw === undefined || raw === null) {
     return { ok: true, mismatches: [], verified: false, currency: null };
   }
   const currency = String(raw);
-  const ok = /EUR|€/i.test(currency);
+  const ok = currencyMatcher(expected).test(currency);
   return {
     ok,
-    mismatches: ok ? [] : [{ field: 'moneda del viaje', expected: 'EUR', actual: currency }],
+    mismatches: ok
+      ? []
+      : [{ field: 'moneda del viaje', expected: expected.code, actual: currency }],
     verified: true,
     currency
   };

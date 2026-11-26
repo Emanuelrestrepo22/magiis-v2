@@ -12,7 +12,9 @@
 // - Precondition: the test driver (AUTO_CLOSE_DRIVER_ID = DRIVER.USER_ID) must have no open or
 //   incoming trip. If blocked the test FAILS before creating anything (never skips, never touches
 //   the other trip).
-import { test, expect } from '../../fixtures/carrierApiFixture.js';
+// - Driver leg through `driverChannel` (hybrid flow phase 1): DRIVER_CHANNEL=api (default) drives
+//   the driver app's endpoints; the same spec will run through the real app with `app` (phase 2).
+import { test, expect } from '../../fixtures/hybridFixture.js';
 import { attachXrayEvidence } from '../../TestBase.js';
 import {
   assignTravelToDriver,
@@ -52,7 +54,6 @@ const ROWS: Row[] = [
 ];
 
 const STATE_DONE = /^DONE$/i;
-const TERMINAL_STATE = /^(DONE|CANCELL?ED|LOST)$/i;
 const ADMIN_CLOSED_LABEL = /^Adm\. Closed$/i;
 const stateOf = (detail: TravelDetail): string => String(detail.state ?? '');
 
@@ -157,35 +158,16 @@ test.describe('Driver circuit closure (cost == sale)', () => {
       carrierSession,
       travelsApi,
       checkingAccountApi,
-      driverTravelsApi
+      driverChannel
     }, testInfo) => {
       makeAnnotate(TM_DRIVER_CLOSURE, ROUTE)('F-CH', 'HP');
       const driverUserId = requirePositiveEnv('AUTO_CLOSE_DRIVER_ID');
 
       const flow = new AdminCircuitFlow(travelsApi, checkingAccountApi);
-      // Precondition (read-only): busy = a current trip, or an incoming trip that is not terminal.
-      // incomingTripId keeps pointing to the last trip even when DONE, so its state is read; if
-      // that read fails (5xx seen on 71215) we proceed and let the backend decide at assign.
-      const status = await driverTravelsApi.getStatus(driverUserId);
-      if (status.currentTrip !== null) {
-        throw new Error(`[driver-circuit] BLOCKED: driver ${driverUserId} has a current trip`);
-      }
-      if (status.incomingTripId !== null) {
-        const incomingState = await flow
-          .readDetail({ travelId: status.incomingTripId })
-          .then((d) => stateOf(d))
-          .catch((e: unknown) => {
-            console.log(
-              `[driver-circuit] incoming trip ${status.incomingTripId} detail unreadable, deferring to assign: ${e instanceof Error ? e.message.slice(0, 200) : String(e)}`
-            );
-            return null;
-          });
-        if (incomingState !== null && !TERMINAL_STATE.test(incomingState)) {
-          throw new Error(
-            `[driver-circuit] BLOCKED: driver ${driverUserId} has an open incoming trip ${status.incomingTripId} (${incomingState})`
-          );
-        }
-      }
+      // Precondition (read-only): busy = a current trip, or an incoming trip that is not terminal
+      // (driverIdleVerdict). If the incoming detail is unreadable (5xx seen on 71215) the backend
+      // decides at assign.
+      await driverChannel.ensureIdle(driverUserId);
 
       const { travelId, simulatedAmount } = await flow.createViaUi({
         page,
@@ -214,12 +196,10 @@ test.describe('Driver circuit closure (cost == sale)', () => {
           );
         }
       );
-      await driverTravelsApi.confirm(travelId, driverUserId);
-      await driverTravelsApi.goingToDestination({ travelId });
-      await driverTravelsApi.arriveToDestination({ travelId });
-      await driverTravelsApi.finalize({
+      const closure = await driverChannel.completeTrip({
         travelId,
-        payload: appFinalizePayload(quoted, finalKm, row.paymentMethod, simulatedAmount)
+        driverId: driverUserId,
+        finalize: appFinalizePayload(quoted, finalKm, row.paymentMethod, simulatedAmount)
       });
 
       await expect
@@ -258,6 +238,7 @@ test.describe('Driver circuit closure (cost == sale)', () => {
             pairs,
             tariff: tariffEvidence(done, row.tariff),
             gridStatusText: grid.statusText,
+            driverChannel: closure,
             ledger: 'admin-circuit',
             measuredAt: new Date().toISOString()
           },
@@ -270,7 +251,7 @@ test.describe('Driver circuit closure (cost == sale)', () => {
         name: `driver-circuit-${travelId}`,
         locator: grid.row,
         comment:
-          `Trip ${travelId} (${grid.tripCode}) ${row.label}: simulated ${simulatedAmount}, driver finalize finalKm ${finalKm} without cost fields -> ${stateOf(done)} amount ${done.amount}; ` +
+          `Trip ${travelId} (${grid.tripCode}) ${row.label}: simulated ${simulatedAmount}, driver finalize via ${closure.channel} channel finalKm ${finalKm} without cost fields -> ${stateOf(done)} amount ${done.amount}; ` +
           `grid «${grid.statusText}». Pairs: ${pairs.map((p) => `${p.pair} ${p.sale}/${p.cost}`).join(', ')}.`
       });
     });

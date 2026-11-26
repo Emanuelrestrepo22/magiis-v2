@@ -209,7 +209,9 @@ const NULL_AS_ZERO = new Set<SurrenderColumn>(['TOTALOTHERCOST_NOCOM']);
  * Comisiones esperadas segun la formula verificada 56/56 en el baseline 2001: base por medio de pago
  * = Σ(FINALPRICE − peaje − estacionamiento); comision propietario = pctOwner · base; agencia =
  * pctAgency · (efectivo + cuenta corriente) (sin casos de tarjeta en la historia: no verificado para
- * agencia). Los porcentajes salen de TRAVEL.*_COMMISSION_PCT, NO de COMMISSIONSETTINGS.
+ * agencia). Los porcentajes salen de TRAVEL.*_COMMISSION_PCT, NO de COMMISSIONSETTINGS (el backend los
+ * fija al finalizar el viaje desde COMMISSIONSETTINGS/DRIVERSETTLPARAM: ver helpers/commission-settings.ts).
+ * Chofer y propietario tienen pct propios (`pctDriver`).
  */
 export function expectedCommissions(input: {
   cashBase: number;
@@ -217,6 +219,11 @@ export function expectedCommissions(input: {
   creditCardBase: number;
   pctOwner: number;
   pctAgency: number;
+  /** Porcentaje del chofer (CASH/CHECKINGACCOUNT/CREDITCARDCOMMISSION, COMMISSIONSUM); default = pctOwner. */
+  pctDriver?: number;
+  /** Comision fija del lote (por dia de viaje) que suma a OWNER_/AGENCY_TOTALCOMMISSION; default 0. */
+  ownerFixed?: number;
+  agencyFixed?: number;
 }): Pick<
   SurrenderRow,
   | 'CASHCOMMISSION'
@@ -226,17 +233,24 @@ export function expectedCommissions(input: {
   | 'OWNER_TOTALCOMMISSION'
   | 'AGENCY_TOTALCOMMISSION'
 > {
-  const cash = cents(input.pctOwner * input.cashBase);
-  const checking = cents(input.pctOwner * input.checkingAccountBase);
-  const card = cents(input.pctOwner * input.creditCardBase);
-  const total = cents(cash + checking + card);
+  const pctDriver = input.pctDriver ?? input.pctOwner;
+  const cash = cents(pctDriver * input.cashBase);
+  const checking = cents(pctDriver * input.checkingAccountBase);
+  const card = cents(pctDriver * input.creditCardBase);
+  const ownerVariable = cents(
+    cents(input.pctOwner * input.cashBase) +
+      cents(input.pctOwner * input.checkingAccountBase) +
+      cents(input.pctOwner * input.creditCardBase)
+  );
   return {
     CASHCOMMISSION: cash,
     CHECKINGACCOUNTCOMMISSION: checking,
     CREDITCARDCOMMISSION: card,
-    COMMISSIONSUM: total,
-    OWNER_TOTALCOMMISSION: total,
-    AGENCY_TOTALCOMMISSION: cents(input.pctAgency * (input.cashBase + input.checkingAccountBase))
+    COMMISSIONSUM: cents(cash + checking + card),
+    OWNER_TOTALCOMMISSION: cents(ownerVariable + (input.ownerFixed ?? 0)),
+    AGENCY_TOTALCOMMISSION: cents(
+      input.pctAgency * (input.cashBase + input.checkingAccountBase) + (input.agencyFixed ?? 0)
+    )
   };
 }
 

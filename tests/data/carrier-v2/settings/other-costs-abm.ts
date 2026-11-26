@@ -6,7 +6,8 @@
 // - Conceptos: GENERATE en cada test (por API para TM-1007/1008/1017; por la UI para TM-985/1014,
 //   cuyo objeto es el alta). Acá solo los importes, para que un cambio de contrato (fase 2) edite
 //   este archivo y no los tests.
-// - Solo UAT en la fase 1: TEST y PROD valen null y el spec se salta con motivo estructural.
+// - UAT y TEST (mismos importes: el ABM trabaja el catálogo del carrier, sin depender del tarifador);
+//   PROD vale null y el spec se salta con motivo estructural.
 import type { AppEnv } from '../../../config/runtime.js';
 
 export type OtherCostsAbmAmounts = {
@@ -34,7 +35,7 @@ const UAT: OtherCostsAbmAmounts = {
 };
 
 const AMOUNTS_BY_ENV: Record<AppEnv, OtherCostsAbmAmounts | null> = {
-  test: null,
+  test: UAT,
   uat: UAT,
   prod: null
 };

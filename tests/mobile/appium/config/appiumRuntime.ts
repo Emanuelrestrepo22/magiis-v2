@@ -1,0 +1,337 @@
+/**
+ * Appium Runtime Config — MAGIIS
+ * Portado de V1 (C-03); no carga archivos .env al importarse (ver loadDeviceEnv).
+ * Resuelve configuración para cada actor mobile (driver, passenger) por ambiente.
+ *
+ * Portado de V1 (C-03). No carga archivos .env al importarse: ver loadDeviceEnv().
+ *
+ * Apps ya instaladas en el emulador Pixel_7:
+ *   test  → com.magiis.app.test.driver     / com.magiis.app.test.passenger
+ *   uat   → com.magiis.app.uat.driver      / com.magiis.app.uat.passenger
+ *   prod  → com.magiis.app.driver          / com.magiis.app.passenger
+ *
+ * Modo de lanzamiento (resuelto automáticamente):
+ *   App instalada (default): usa appPackage + appActivity, no requiere APK.
+ *   APK: si ANDROID_DRIVER_APP_PATH / ANDROID_PASSENGER_APP_PATH están definidos,
+ *        Appium instala el APK antes de lanzar.
+ *
+ * Variables de entorno requeridas:
+ *   APPIUM_SERVER_URL             — URL del servidor Appium (ej: http://localhost:4723)
+ *
+ * Variables opcionales:
+ *   ENV                           — Ambiente: test | uat | prod (default: test)
+ *   ANDROID_DRIVER_APP_PATH       — APK path driver (solo si la app NO está instalada)
+ *   ANDROID_PASSENGER_APP_PATH    — APK path passenger (solo si la app NO está instalada)
+ *   ANDROID_DRIVER_APP_PACKAGE    — Override del package driver
+ *   ANDROID_PASSENGER_APP_PACKAGE — Override del package passenger
+ *   ANDROID_DEVICE_NAME           — Nombre del emulador (default: Pixel_7)
+ *   ANDROID_PLATFORM_VERSION      — Versión de Android (default: 15.0)
+ *   ANDROID_UDID                  — UDID del dispositivo (ej: emulator-5554)
+ *   APPIUM_BASE_PATH              — Base path del servidor (default: /)
+ *   APPIUM_NEW_COMMAND_TIMEOUT    — Timeout comandos en segundos (default: 120)
+ *   APPIUM_NO_RESET               — No resetear la app (default: true cuando app instalada)
+ *   APPIUM_FULL_RESET             — Resetear completamente la app (default: false)
+ *   APPIUM_CHROMEDRIVER_AUTODOWNLOAD — true: Appium baja el chromedriver que coincide con el WebView
+ *                                   (default: false). EXIGE arrancar el servidor con
+ *                                   `--allow-insecure uiautomator2:chromedriver_autodownload`;
+ *                                   si no, Appium rechaza la sesión.
+ *   APPIUM_CHROMEDRIVER_EXECUTABLE — Ruta a un chromedriver local que coincide con el WebView
+ *                                   (cuando la autodescarga no consigue la versión).
+ *   APPIUM_CHROMEDRIVER_DISABLE_BUILD_CHECK — true: `appium:chromedriverDisableBuildCheck` (default: false). Hace
+ *                                   falta cuando el WebView va por delante del chromedriver fijo (ej. WebView 157
+ *                                   con chromedriver 154).
+ *   ANDROID_DRIVER_SYSTEM_PORT    — `appium:systemPort` del driver (cae a ANDROID_SYSTEM_PORT). Hace falta para
+ *   ANDROID_PASSENGER_SYSTEM_PORT   correr dos dispositivos a la vez: cada uno necesita su propio puerto (ej: 8200
+ *   ANDROID_SYSTEM_PORT             teléfono, 8201 emulador). Sin definir, Appium usa el suyo (8200).
+ *   ANDROID_LANGUAGE              — `appium:language` (ej: es). Sin definir, la app usa el idioma del dispositivo.
+ *   ANDROID_LOCALE                — `appium:locale` (ej: AR). Sin definir, la app usa la región del dispositivo.
+ *   APPIUM_FORCE_APP_LAUNCH       — `appium:forceAppLaunch` (default: false, no se manda). Con noReset=true, si la otra
+ *                                   app MAGIIS ya está en primer plano la sesión se engancha a ELLA en silencio (se
+ *                                   pide driver y responde passenger). Con true Appium relanza la app pedida.
+ *   APPIUM_ADB_EXEC_TIMEOUT       — `appium:adbExecTimeout` en ms (sin definir: el default de Appium, 20000). Con el
+ *                                   emulador cargado, `am start -S` puede superar los 20 s (medido 24/11/2026, load ~13).
+ */
+
+// Sin efectos al importar (decisión provisional G-04): quien consuma este módulo debe llamar antes a
+// `loadDeviceEnv()` (./deviceEnv.js) para aplicar el overlay de dispositivo; aquí solo se lee `process.env`.
+
+export type MobileActor = 'driver' | 'passenger';
+export type MobileEnvironment = 'test' | 'uat' | 'prod' | 'savio';
+
+// ─── Package map — apps instaladas en emulador Pixel_7 y Galaxy A05 ──────────
+// Descubiertos con: adb shell pm list packages | Select-String "magiis"
+// Confirmados en: emulator-5554 (Pixel_7) y R92XB0B8F3J (Samsung Galaxy A05)
+const APP_PACKAGES: Record<MobileEnvironment, Partial<Record<MobileActor, string>>> = {
+  test: {
+    driver: 'com.magiis.app.test.driver',
+    passenger: 'com.magiis.app.test.passenger'
+  },
+  uat: {
+    driver: 'com.magiis.app.uat.driver',
+    passenger: 'com.magiis.app.uat.passenger'
+  },
+  prod: {
+    driver: 'com.magiis.app.driver',
+    passenger: 'com.magiis.app.passenger'
+  },
+  // Ambiente savio: solo passenger (white-label / cliente específico)
+  // Confirmado en Samsung Galaxy A05 (R92XB0B8F3J)
+  savio: {
+    passenger: 'com.magiis.app.savio.passenger'
+  }
+};
+
+// Activity principal de todas las apps MAGIIS (relativa al package)
+const MAGIIS_MAIN_ACTIVITY = '.MainActivity';
+
+// ─── Tipos públicos ───────────────────────────────────────────────────────────
+
+export type MobileActorConfig = {
+  actor: MobileActor;
+  environment: MobileEnvironment;
+  appiumServerUrl: string;
+  appiumBasePath: string;
+  /** Ruta al APK. null cuando la app ya está instalada en el emulador. */
+  appPath: string | null;
+  appPackage: string | null;
+  appActivity: string | null;
+  deviceName: string;
+  platformVersion: string;
+  udid: string | null;
+  newCommandTimeout: number;
+  noReset: boolean;
+  fullReset: boolean;
+  chromedriverAutodownload: boolean;
+  chromedriverExecutable: string | null;
+  chromedriverDisableBuildCheck: boolean;
+  /** `appium:systemPort` de la sesión UiAutomator2. null = lo elige Appium. */
+  systemPort: number | null;
+  /** `appium:language` (ej. 'es'). null = el idioma del dispositivo. */
+  language: string | null;
+  /** `appium:locale` (ej. 'AR'). null = la región del dispositivo. */
+  locale: string | null;
+  /** `appium:forceAppLaunch`. false = no se manda (comportamiento histórico). */
+  forceAppLaunch: boolean;
+  /** `appium:adbExecTimeout` en ms. null = el default de Appium. */
+  adbExecTimeout: number | null;
+};
+
+export type AppiumRemoteConnection = {
+  protocol: 'http' | 'https';
+  hostname: string;
+  port: number;
+  path: string;
+};
+
+// ─── Helpers de env ───────────────────────────────────────────────────────────
+
+function readRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  return value;
+}
+
+function readOptionalEnv(name: string): string | null {
+  return process.env[name] ?? null;
+}
+
+function readOptionalBooleanEnv(name: string, defaultValue: boolean): boolean {
+  const value = readOptionalEnv(name);
+  if (value === null) return defaultValue;
+  return value === 'true' || value === '1';
+}
+
+function readOptionalNumberEnv(name: string, defaultValue: number): number {
+  const value = readOptionalEnv(name);
+  if (value === null) return defaultValue;
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Invalid numeric environment variable: ${name}=${value}`);
+  }
+  return parsed;
+}
+
+/** Texto opcional: vacío o ausente es "sin definir" (una línea `ANDROID_LANGUAGE=` no debe mandar `''` a Appium). */
+function readOptionalTextEnv(name: string): string | null {
+  const value = readOptionalEnv(name)?.trim();
+  return value ? value : null;
+}
+
+/** Puerto opcional: ausente o vacío es null; lo definido debe ser un entero de puerto válido. */
+function readOptionalPortEnv(name: string): number | null {
+  const value = readOptionalTextEnv(name);
+  if (value === null) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
+    throw new Error(`Invalid port environment variable: ${name}=${value}`);
+  }
+  return parsed;
+}
+
+/** Milisegundos opcionales: ausente o vacío es null; lo definido debe ser un entero positivo. */
+function readOptionalMillisEnv(name: string): number | null {
+  const value = readOptionalTextEnv(name);
+  if (value === null) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid milliseconds environment variable: ${name}=${value}`);
+  }
+  return parsed;
+}
+
+function normalizeBasePath(rawPath: string | null): string {
+  if (!rawPath || rawPath === '/') return '/';
+  const withLeadingSlash = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+  return withLeadingSlash.replace(/\/+$/, '') || '/';
+}
+
+function resolveBasePathFromServerUrl(serverUrl: string): string {
+  const parsed = new URL(serverUrl);
+  if (parsed.pathname && parsed.pathname !== '/') {
+    return normalizeBasePath(parsed.pathname);
+  }
+  return normalizeBasePath(readOptionalEnv('APPIUM_BASE_PATH'));
+}
+
+function resolveEnvironment(): MobileEnvironment {
+  const raw = (readOptionalEnv('ENV') ?? 'test').toLowerCase();
+  if (raw === 'test' || raw === 'uat' || raw === 'prod' || raw === 'savio') {
+    return raw;
+  }
+  // Fallar es deliberado. Antes esto avisaba y caía a "test": un typo (`uta`, `UAT2`) producía una
+  // corrida verde contra el ambiente equivocado, indistinguible de evidencia buena salvo que
+  // alguien mirara el paquete a mano. Mismo criterio que `scripts/_shared/resolveDriverTarget.ts`,
+  // que ya fallaba; tener dos políticas distintas para la misma decisión era la fuga.
+  throw new Error(
+    `ENV="${readOptionalEnv('ENV')}" no es un ambiente válido. Usá uno de: test | uat | prod | savio.`
+  );
+}
+
+// ─── Config builder ───────────────────────────────────────────────────────────
+
+function buildActorConfig(
+  actor: MobileActor,
+  appPathEnvVar: string,
+  appPackageEnvVar: string
+): MobileActorConfig {
+  const appiumServerUrl = readRequiredEnv('APPIUM_SERVER_URL');
+  const environment = resolveEnvironment();
+
+  // Si hay APK path en el entorno → modo instalación de APK
+  const appPath = readOptionalEnv(appPathEnvVar);
+
+  // Package: override de env var > package map por ambiente
+  const appPackage = readOptionalEnv(appPackageEnvVar) ?? APP_PACKAGES[environment][actor] ?? null;
+
+  // noReset: true por default cuando usamos app instalada (no APK)
+  const usingInstalledApp = appPath === null;
+
+  return {
+    actor,
+    environment,
+    appiumServerUrl,
+    appiumBasePath: resolveBasePathFromServerUrl(appiumServerUrl),
+    appPath,
+    appPackage,
+    appActivity: MAGIIS_MAIN_ACTIVITY,
+    deviceName: readOptionalEnv('ANDROID_DEVICE_NAME') ?? 'Pixel_7',
+    platformVersion: readOptionalEnv('ANDROID_PLATFORM_VERSION') ?? '15.0',
+    // Rol primero, genérica como fallback — misma convención que `tests/config/runtime.ts`
+    // (`USER_CARRIER` → `USER`). `.env.test` ya declaraba `ANDROID_DRIVER_UDID`, que hasta
+    // ahora no leía nadie: el código sólo miraba `ANDROID_UDID`.
+    udid: readOptionalEnv(`ANDROID_${actor.toUpperCase()}_UDID`) ?? readOptionalEnv('ANDROID_UDID'),
+    newCommandTimeout: readOptionalNumberEnv('APPIUM_NEW_COMMAND_TIMEOUT', 120),
+    noReset: readOptionalBooleanEnv('APPIUM_NO_RESET', usingInstalledApp),
+    fullReset: readOptionalBooleanEnv('APPIUM_FULL_RESET', false),
+    chromedriverAutodownload: readOptionalBooleanEnv('APPIUM_CHROMEDRIVER_AUTODOWNLOAD', false),
+    chromedriverExecutable: readOptionalEnv('APPIUM_CHROMEDRIVER_EXECUTABLE'),
+    chromedriverDisableBuildCheck: readOptionalBooleanEnv(
+      'APPIUM_CHROMEDRIVER_DISABLE_BUILD_CHECK',
+      false
+    ),
+    // Opcionales y sin default: si no están en el entorno las capabilities salen igual que antes, así que
+    // el flujo del teléfono (que no las declara) no cambia. Mismo criterio rol-primero que el udid.
+    systemPort:
+      readOptionalPortEnv(`ANDROID_${actor.toUpperCase()}_SYSTEM_PORT`) ??
+      readOptionalPortEnv('ANDROID_SYSTEM_PORT'),
+    language: readOptionalTextEnv('ANDROID_LANGUAGE'),
+    locale: readOptionalTextEnv('ANDROID_LOCALE'),
+    forceAppLaunch: readOptionalBooleanEnv('APPIUM_FORCE_APP_LAUNCH', false),
+    adbExecTimeout: readOptionalMillisEnv('APPIUM_ADB_EXEC_TIMEOUT')
+  };
+}
+
+// ─── API pública ──────────────────────────────────────────────────────────────
+
+export function getDriverAppConfig(): MobileActorConfig {
+  return buildActorConfig('driver', 'ANDROID_DRIVER_APP_PATH', 'ANDROID_DRIVER_APP_PACKAGE');
+}
+
+export function getPassengerAppConfig(): MobileActorConfig {
+  return buildActorConfig(
+    'passenger',
+    'ANDROID_PASSENGER_APP_PATH',
+    'ANDROID_PASSENGER_APP_PACKAGE'
+  );
+}
+
+export function buildAppiumRemoteConnection(config: MobileActorConfig): AppiumRemoteConnection {
+  const appiumUrl = new URL(config.appiumServerUrl);
+  return {
+    protocol: (appiumUrl.protocol.replace(':', '') as 'http' | 'https') || 'http',
+    hostname: appiumUrl.hostname,
+    port: Number(appiumUrl.port) || 4723,
+    path: config.appiumBasePath
+  };
+}
+
+/**
+ * Construye las capabilities para WebdriverIO/Appium.
+ *
+ * Modo app instalada: usa appPackage + appActivity (no incluye appium:app).
+ * Modo APK:           incluye appium:app + opcionalmente appPackage/appActivity.
+ */
+export function buildAndroidCapabilities(config: MobileActorConfig): Record<string, unknown> {
+  const useInstalledApp = config.appPath === null && config.appPackage !== null;
+
+  return {
+    platformName: 'Android',
+    'appium:deviceName': config.deviceName,
+    'appium:platformVersion': config.platformVersion,
+    'appium:automationName': 'UiAutomator2',
+    'appium:newCommandTimeout': config.newCommandTimeout,
+    'appium:noReset': config.noReset,
+    'appium:fullReset': config.fullReset,
+    ...(config.chromedriverAutodownload ? { 'appium:chromedriverAutodownload': true } : {}),
+    ...(config.chromedriverExecutable
+      ? { 'appium:chromedriverExecutable': config.chromedriverExecutable }
+      : {}),
+    // Chromedriver fijo para el WebView (opcional): cuando el WebView del dispositivo va por delante de
+    // los chromedrivers descargables, Appium no logra entrar al contexto WEBVIEW. Sin las variables,
+    // las capabilities quedan exactamente como antes.
+    ...(config.chromedriverDisableBuildCheck
+      ? { 'appium:chromedriverDisableBuildCheck': true }
+      : {}),
+    ...(config.udid ? { 'appium:udid': config.udid } : {}),
+    // Solo si están definidos: no se manda `appium:systemPort`/`language`/`locale` a quien no los configuró.
+    ...(config.systemPort !== null ? { 'appium:systemPort': config.systemPort } : {}),
+    ...(config.language ? { 'appium:language': config.language } : {}),
+    ...(config.locale ? { 'appium:locale': config.locale } : {}),
+    ...(config.forceAppLaunch ? { 'appium:forceAppLaunch': true } : {}),
+    ...(config.adbExecTimeout !== null ? { 'appium:adbExecTimeout': config.adbExecTimeout } : {}),
+    ...(useInstalledApp
+      ? {
+          // App instalada: lanzar por package, sin instalar APK
+          'appium:appPackage': config.appPackage,
+          'appium:appActivity': config.appActivity
+        }
+      : {
+          // APK: Appium instala la app antes de lanzar
+          'appium:app': config.appPath,
+          ...(config.appPackage ? { 'appium:appPackage': config.appPackage } : {}),
+          ...(config.appActivity ? { 'appium:appActivity': config.appActivity } : {})
+        })
+  };
+}

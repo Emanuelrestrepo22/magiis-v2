@@ -5,6 +5,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { chromium, type Browser, type FullConfig } from '@playwright/test';
 import dotenv from 'dotenv';
 import {
+  circuitCredentialRegion,
   DEFAULT_LOCALE,
   getCurrentEnv,
   getEnvFile,
@@ -84,7 +85,7 @@ async function attemptLogin(
     await page.goto(loginPath, { waitUntil: 'domcontentloaded', timeout: 45_000 });
 
     // Selectores validados contra refs/v2/src/app/account/login/carrier/login-carrier.component.html.
-    // El submit lleva texto i18n `login.sign_in` que en EN renderiza "Sign In" y en ES "Iniciar sesion".
+    // El submit lleva texto i18n `login.sign_in` que en EN renderiza "Sign In" (o "Log In" desde el build de 11/2026) y en ES "Iniciar sesion".
     const emailInput = page.locator('input#email, input[formcontrolname="email"]').first();
     const passwordInput = page
       .locator('input#password-input, input[formcontrolname="password"]')
@@ -93,7 +94,7 @@ async function attemptLogin(
     await emailInput.fill(username);
     await passwordInput.fill(password);
     await page
-      .getByRole('button', { name: /sign\s*in|iniciar|ingresar/i })
+      .getByRole('button', { name: /sign\s*in|log\s*in|iniciar|ingresar/i })
       .first()
       .click();
 
@@ -211,7 +212,7 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   }
 
   const baseURL = resolveBaseURL();
-  const { username, password } = resolveCredentials();
+  const { username, password } = resolveCredentials(circuitCredentialRegion());
   const loginPath = resolveLoginPath();
   const dashboardPattern = resolveDashboardPattern();
   // Antes del login: una REGION_SESSIONS mal escrita falla aca, no como reintento del login primario.

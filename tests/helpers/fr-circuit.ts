@@ -15,12 +15,22 @@ import {
   isFrGateOpen,
   type FrCircuitConfig
 } from '../config/runtime.js';
+import {
+  cityTaxFraction,
+  COMMISSION_FIXED,
+  COMMISSION_SPLIT,
+  loadCarrierProfile,
+  type CommissionSplit
+} from '../config/carrier-profiles.js';
 import { snapshotBook, snapshotClientCc, type CcSnapshot } from './cc-delta.js';
 
-export const DEFAULT_OWNER_ID = 2927;
-export const DEFAULT_CARRIER_ID = 1901;
-/** Comisiones sobre venta del vehiculo 3765 (datos-1901 lote B): propietario 40, chofer 40, agencia 20. */
-export const PCT = { owner: 0.4, driver: 0.4, agency: 0.2 } as const;
+/**
+ * Reparto de comision del perfil de carrier activo (1901: propietario 40, chofer 40, agencia 20 sobre la
+ * venta del vehiculo 3765, datos-1901 lote B). Se resuelve al leer cada campo, no al importar.
+ */
+export const PCT: Readonly<CommissionSplit> = COMMISSION_SPLIT;
+/** Comision fija por dia de viaje del perfil activo (0 en 1901; 1521 la lee de DB). */
+export { COMMISSION_FIXED };
 export const HANDOFF_PATH = 'evidence/test/fr-s3-handoff.json';
 
 export type FrGateName =
@@ -44,6 +54,49 @@ export function frConfigOrNull(
   } catch (e) {
     return { config: null, reason: (e as Error).message };
   }
+}
+
+/** OWNER.ID del circuito: FR_OWNER_ID o el del perfil activo. */
+export function circuitOwnerId(): number {
+  return optionalInt('FR_OWNER_ID', loadCarrierProfile().fixtures.ownerId);
+}
+
+/** CARRIER.ID esperado en la sesion: FR_CARRIER_ID o el del perfil activo. */
+export function circuitCarrierId(): number {
+  return optionalInt('FR_CARRIER_ID', loadCarrierProfile().carrierId);
+}
+
+/** Etiqueta del separador de miles del perfil activo (1901: «TEST FR THOUSANDS_SEPARATOR SPACE»). */
+export function thousandsSeparatorLabel(): string {
+  const p = loadCarrierProfile();
+  return `TEST ${p.region} THOUSANDS_SEPARATOR ${p.thousandsSeparator}`;
+}
+
+/** Nota del known issue de separador de miles: 500 en la confirmacion de rendicion con la rendicion persistida. */
+export function thousandsSeparatorKnownIssueNote(): string {
+  return `${thousandsSeparatorLabel()} -> surrender PDF 500 (rendicion persistida)`;
+}
+
+/** Metodo de pago CC del alta: FR_CC_PAYMENT_METHOD o el del perfil activo. */
+export function circuitCcPaymentMethod(): string {
+  return process.env.FR_CC_PAYMENT_METHOD?.trim() || loadCarrierProfile().fixtures.ccPaymentMethod;
+}
+
+/** Dominio del vehiculo del circuito (mayusculas): FR_VEHICLE_DOMAIN o el del perfil activo. */
+export function circuitVehicleDomain(): string {
+  const domain =
+    process.env.FR_VEHICLE_DOMAIN?.trim() || loadCarrierProfile().fixtures.vehicleDomain;
+  if (!domain) {
+    throw new Error(
+      'Dominio del vehiculo del circuito no definido (perfil sin vehicleDomain: N/A)'
+    );
+  }
+  return domain.toUpperCase();
+}
+
+/** Fraccion del city tax del perfil activo (0.1 = 10 %); 0 si el perfil declara que no existe. */
+export function circuitCityTaxFraction(): number {
+  return cityTaxFraction(loadCarrierProfile());
 }
 
 export function optionalInt(name: string, fallback: number): number {

@@ -31,6 +31,9 @@ if (env === 'prod') {
 export default defineConfig({
   testDir: './tests',
 
+  // La plataforma mobile (Appium) corre solo con playwright.mobile.config.ts.
+  testIgnore: ['**/tests/mobile/**'],
+
   // Timeouts equilibrados entre estabilidad y feedback rapido.
   timeout: 60 * 1000,
   expect: {

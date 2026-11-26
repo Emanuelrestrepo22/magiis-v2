@@ -18,6 +18,7 @@
 import { round2 } from '../utils/money.js';
 import type { OracleDb } from '../db/OracleDb.js';
 import type { Mismatch } from './oracle-result.js';
+import type { PrepSettlement } from '../config/carrier-profiles.js';
 
 export type { Mismatch };
 
@@ -271,6 +272,282 @@ export function evaluateBooksUntouched(input: {
   return out;
 }
 
+/// ───────────────────────── modo «lista de rendiciones» (sin DB, UAT) ─────────────────────────
+// En UAT no hay DB: el oraculo sale de una LISTA DECLARADA de rendiciones (`SurrenderFact`, de la evidencia de
+// las confirmaciones manuales y de la automatica) y las MISMAS formulas de arriba (`driverNet`/`ownerNet`) la
+// convierten en total. Es independiente del GET `withoutLiquidations`: el spec compara lista == GET == pantalla.
+
+/** Una rendicion de la lista declarada (`driverId` null = automatica: sin chofer). Importes en la moneda del carrier. */
+export type SurrenderFact = {
+  id: number;
+  driverId: number | null;
+  /** COMMISSIONSUM (comision del chofer; en una automatica la atribuye el propietario, MX-4716). */
+  commissionSum: number;
+  /** OWNER_TOTALCOMMISSION. */
+  ownerTotalCommission: number;
+  /** TOTALCASHOTHERCOST_NOCOM: no comisionable en efectivo; NO entra en ningun total de liquidacion. */
+  nocom?: number;
+  tips?: number;
+  /** Peajes + estacionamiento. */
+  expenses?: number;
+  driverFinancialCost?: number;
+  ownerFinancialCost?: number;
+};
+
+const numOrNull = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isFinite(v) ? v : null;
+
+/** Valida el JSON declarado (`F5_SETTLEMENT_FACTS`); lanza con el id de la fila invalida. Lista vacia = error. */
+export function parseSurrenderFacts(raw: unknown): SurrenderFact[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error('[settlement-oracle] la lista de rendiciones debe ser un arreglo no vacio');
+  }
+  const seen = new Set<number>();
+  return raw.map((item, i) => {
+    const o = (item ?? {}) as Record<string, unknown>;
+    const id = numOrNull(o.id);
+    if (id === null || !Number.isInteger(id) || id <= 0)
+      throw new Error(`[settlement-oracle] rendicion #${i}: id invalido`);
+    if (seen.has(id)) throw new Error(`[settlement-oracle] rendicion ${id} repetida`);
+    seen.add(id);
+    const driverId = o.driverId === null ? null : numOrNull(o.driverId);
+    if (o.driverId !== null && (driverId === null || !Number.isInteger(driverId) || driverId <= 0))
+      throw new Error(
+        `[settlement-oracle] rendicion ${id}: driverId debe ser entero o null (automatica)`
+      );
+    const commissionSum = numOrNull(o.commissionSum);
+    const ownerTotalCommission = numOrNull(o.ownerTotalCommission);
+    if (commissionSum === null || ownerTotalCommission === null)
+      throw new Error(
+        `[settlement-oracle] rendicion ${id}: commissionSum y ownerTotalCommission son obligatorios (numero)`
+      );
+    const fact: SurrenderFact = { id, driverId, commissionSum, ownerTotalCommission };
+    for (const key of [
+      'nocom',
+      'tips',
+      'expenses',
+      'driverFinancialCost',
+      'ownerFinancialCost'
+    ] as const) {
+      if (o[key] === undefined) continue;
+      const v = numOrNull(o[key]);
+      if (v === null)
+        throw new Error(`[settlement-oracle] rendicion ${id}: ${key} debe ser numero`);
+      fact[key] = v;
+    }
+    return fact;
+  });
+}
+
+/** Convierte la lista en filas de `SettlementSurrenderRow` (campos no declarados = 0) para reusar las formulas. */
+export function factsToRows(facts: readonly SurrenderFact[]): SettlementSurrenderRow[] {
+  return facts.map((f) => ({
+    ID: f.id,
+    IDFORCARRIER: null,
+    DRIVER_ID: f.driverId,
+    VEHICLEOWNERID: null,
+    VEHICLE_ID: null,
+    COMMISSIONSUM: f.commissionSum,
+    OWNER_TOTALCOMMISSION: f.ownerTotalCommission,
+    AGENCY_TOTALCOMMISSION: null,
+    CHECKINGACCOUNTTIPS: f.tips ?? 0,
+    CREDITCARDTIPS: 0,
+    DRIVER_CA_FINANCIAL_COST: f.driverFinancialCost ?? 0,
+    DRIVER_TC_FINANCIAL_COST: 0,
+    OWNER_CA_FINANCIAL_COST: f.ownerFinancialCost ?? 0,
+    OWNER_TC_FINANCIAL_COST: 0,
+    TOTALROADTOLL: f.expenses ?? 0,
+    TOTALPARKING: 0,
+    FUELAMOUNT: null,
+    MISCELLANYAMOUNT: null,
+    AGENCY_FIXED_COMM: null,
+    OWNER_FIXED_COMM: null,
+    FIX_CONCEPT_COST_CASH: null,
+    TAXES_COST_CASH: null,
+    SETTLEMENT_DRIVER: null,
+    SETTLEMENT_OWNER: null,
+    FUELEXPENSEOWNER: null,
+    MISCELLANEOUSEXPENSEOWNER: null
+  }));
+}
+
+/**
+ * Chofer: suma de la comision del chofer de SUS rendiciones manuales (`DRIVER_ID` = chofer). Las automaticas
+ * (`DRIVER_ID` null) no entran al pendiente del chofer.
+ */
+export function driverTotalFromList(
+  facts: readonly SurrenderFact[],
+  driverId: number
+): { total: number; surrenderIds: number[] } {
+  const own = facts.filter((f) => f.driverId === driverId);
+  return {
+    total: driverCreateTotal(factsToRows(own)),
+    surrenderIds: own.map((f) => f.id).sort((a, b) => a - b)
+  };
+}
+
+/**
+ * Propietario: OWNER_TOTALCOMMISSION de las manuales + (OWNER + COMMISSIONSUM) de las automaticas (MX-4716).
+ * `NOCOM` queda fuera. Caso de referencia FR 2021 UAT (10/11): 82,40 + 90,64 + 2 x (90,64 + 90,64) = 535,60.
+ */
+export function ownerTotalFromList(facts: readonly SurrenderFact[]): {
+  total: number;
+  surrenderIds: number[];
+  autoIds: number[];
+} {
+  return {
+    total: ownerCreateTotal(factsToRows(facts)),
+    surrenderIds: facts.map((f) => f.id).sort((a, b) => a - b),
+    autoIds: facts
+      .filter((f) => f.driverId === null)
+      .map((f) => f.id)
+      .sort((a, b) => a - b)
+  };
+}
+
+/**
+ * Oraculo del chofer SIN lista declarada ni DB: recompone `comNeta` desde los COMPONENTES de cada fila del GET
+ * `withoutLiquidations` (comision del chofer - costo financiero + propinas). Devuelve null si alguna fila no trae
+ * `driverCommission` numerico (entonces hace falta la lista declarada). No incluye peajes/estacionamiento: si el
+ * lote los tiene el total difiere de `comNeta` y el spec ABORTA antes del Accept (lado seguro).
+ */
+export function driverTotalFromGet(
+  rows: ReadonlyArray<{
+    driverCommission?: number | null;
+    totalFinancialCost?: number | null;
+    totalTip?: number | null;
+  }>
+): number | null {
+  if (rows.length === 0) return 0;
+  let total = 0;
+  for (const r of rows) {
+    if (typeof r.driverCommission !== 'number') return null;
+    total += r.driverCommission - n(r.totalFinancialCost) + n(r.totalTip);
+  }
+  return round2(total);
+}
+
+/**
+ * Cuenta a liquidar segun el perfil: el propietario del perfil, o el chofer unico / el de `F5_SETTLEMENT_ACCOUNT`
+ * (obligatorio con varios choferes). Lanza si el id declarado no es de un chofer propio del perfil.
+ */
+export function resolveSettlementAccount(
+  settle: Pick<PrepSettlement, 'driverIds' | 'ownerId'>,
+  profileId: string,
+  kind: LiquidationKind,
+  env: NodeJS.ProcessEnv = process.env
+): number {
+  if (kind === 'owner') return settle.ownerId;
+  const raw = env.F5_SETTLEMENT_ACCOUNT?.trim();
+  if (raw) {
+    const id = Number(raw);
+    if (!settle.driverIds.includes(id)) {
+      throw new Error(
+        `F5_SETTLEMENT_ACCOUNT=${raw} no pertenece al perfil "${profileId}" (choferes propios: ${settle.driverIds.join(', ')})`
+      );
+    }
+    return id;
+  }
+  if (settle.driverIds.length === 1) return settle.driverIds[0];
+  throw new Error(
+    `El perfil "${profileId}" tiene varios choferes (${settle.driverIds.join(', ')}): definir F5_SETTLEMENT_ACCOUNT=<DRIVER.ID>`
+  );
+}
+
+/** Suma del no comisionable en efectivo de las rendiciones indicadas (lo declarado en la lista). */
+export function nocomSumOf(facts: readonly SurrenderFact[]): number {
+  return round2(facts.reduce((acc, f) => acc + (f.nocom ?? 0), 0));
+}
+
+/**
+ * Cadena de igualdades previa al Accept: total declarado (`F5_EXPECT_*_TOTAL`) == oraculo == pantalla ==
+ * suma de `comNeta` del GET. Cualquier diferencia ABORTA antes de confirmar (la liquidacion no se repite).
+ */
+export function evaluateDeclaredTotal(input: {
+  declared: number;
+  oracle: number;
+  shown: number;
+  apiSum: number;
+}): Mismatch[] {
+  return compareAmounts([
+    { what: 'oraculo vs total declarado', expected: input.declared, actual: input.oracle },
+    {
+      what: 'pantalla «Settlement Total» vs total declarado',
+      expected: input.declared,
+      actual: input.shown
+    },
+    {
+      what: 'suma de comNeta del GET vs total declarado',
+      expected: input.declared,
+      actual: input.apiSum
+    }
+  ]);
+}
+
+/**
+ * «NOCOM fuera del total»: el total liquidado debe ser el del oraculo (que NO suma NOCOM). `proven` = true solo si
+ * el lote tiene NOCOM > 0 (con 0 la igualdad se cumple en vacio: no prueba nada).
+ */
+export function evaluateNocomOutsideTotal(input: {
+  total: number;
+  oracleTotal: number;
+  nocomSum: number;
+}): { mismatches: Mismatch[]; proven: boolean } {
+  const mismatches = compareAmounts([
+    {
+      what: 'total liquidado vs oraculo sin NOCOM',
+      expected: input.oracleTotal,
+      actual: input.total
+    }
+  ]);
+  if (
+    input.nocomSum > 0.005 &&
+    Math.abs(input.total - round2(input.oracleTotal + input.nocomSum)) <= 0.005
+  ) {
+    mismatches.push({
+      field: 'NOCOM incluido en el total',
+      expected: input.oracleTotal,
+      actual: input.total
+    });
+  }
+  return { mismatches, proven: input.nocomSum > 0.005 };
+}
+
+/** La automatica (sin chofer) entra al pendiente del PROPIETARIO y no al del chofer. */
+export function evaluateAutoPlacement(input: {
+  autoIds: readonly number[];
+  driverPendingIds: readonly number[];
+  ownerPendingIds: readonly number[];
+}): Mismatch[] {
+  const out: Mismatch[] = [];
+  for (const id of input.autoIds) {
+    if (!input.ownerPendingIds.includes(id))
+      out.push({
+        field: `automatica ${id} en pendientes del propietario`,
+        expected: true,
+        actual: false
+      });
+    if (input.driverPendingIds.includes(id))
+      out.push({
+        field: `automatica ${id} en pendientes del chofer`,
+        expected: false,
+        actual: true
+      });
+  }
+  return out;
+}
+
+/** Precondicion «lote de terceros = FAIL»: todo pendiente debe estar en la lista propia declarada. */
+export function evaluateForeignSurrenders(input: {
+  pendingIds: readonly number[];
+  ownIds: readonly number[];
+}): Mismatch[] {
+  const foreign = input.pendingIds.filter((id) => !input.ownIds.includes(id));
+  return foreign.length === 0
+    ? []
+    : [{ field: 'rendiciones pendientes ajenas al lote propio', expected: [], actual: foreign }];
+}
+
 // ───────────────────────── consultas (solo lectura) ─────────────────────────
 
 const SURRENDER_COLUMNS = [
@@ -414,4 +691,25 @@ export async function bookStatusCounts(
       ? 'SELECT STATUS, COUNT(*) N FROM CHECKINGACCOUNTFORDRIVER WHERE DRIVERACCOUNT_ID = :id GROUP BY STATUS'
       : 'SELECT STATUS, COUNT(*) N FROM CHECKINGACCOUNTFOROWNER WHERE VEHICLEOWNER_ID = :id GROUP BY STATUS';
   return db.query<{ STATUS: number | null; N: number }>(sql, { id: accountId });
+}
+
+/** TOTALCASHOTHERCOST_NOCOM acumulado de las rendiciones (solo lectura; TEST con DB). Ids enteros validados. */
+export async function nocomSumFromDb(
+  db: OracleDb,
+  carrierId: number,
+  ids: readonly number[]
+): Promise<number> {
+  if (ids.length === 0) return 0;
+  const binds: Record<string, number> = { carrierId };
+  const names = ids.map((id, i) => {
+    if (!Number.isInteger(id)) throw new Error(`[settlement-oracle] id invalido: ${id}`);
+    binds[`id${i}`] = id;
+    return `:id${i}`;
+  });
+  const rows = await db.query<{ N: number | null }>(
+    `SELECT NVL(SUM(TOTALCASHOTHERCOST_NOCOM), 0) N FROM TRAVELSSURRENDER
+      WHERE CARRIER_ID = :carrierId AND ID IN (${names.join(', ')})`,
+    binds
+  );
+  return round2(Number(rows[0]?.N ?? 0));
 }

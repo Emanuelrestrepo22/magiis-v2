@@ -71,14 +71,17 @@ import {
   splitSaleCostMismatches
 } from '../../helpers/fr-ac-eval-circuit.js';
 import {
-  DEFAULT_CARRIER_ID,
-  DEFAULT_OWNER_ID,
+  circuitCarrierId,
+  circuitOwnerId,
   frConfigOrNull,
-  optionalInt,
   PCT,
   readBooks,
-  requireNumberField
+  requireNumberField,
+  circuitCcPaymentMethod,
+  circuitCityTaxFraction,
+  thousandsSeparatorKnownIssueNote
 } from '../../helpers/fr-circuit.js';
+import { currencyMatcher, loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { TripEditPage } from '../../pages/carrier-v2/trips/TripEditPage.js';
 import {
   movementsOfTravel,
@@ -96,7 +99,6 @@ import type { Page } from '@playwright/test';
 
 const ROUTE = '/carrier/#/travel/create';
 const TS_KEY = FR_1901_KEYS.S2;
-const PAYMENT_METHOD = process.env.FR_CC_PAYMENT_METHOD?.trim() || 'Credit Account';
 const STATE_DONE = /^DONE$/i;
 const STATE_CANCELLED = /^(CANCELL?ED|7)$/i;
 const TRIP_CONCEPT = /TIVR$/;
@@ -110,11 +112,8 @@ const PART_FIELDS = {
   parking: FR_FACTS.detailFields.parking.value,
   total: FR_FACTS.detailFields.total.value
 } as const;
-const CITY_TAX_PCT = 0.1;
 const EDIT_DELTA = 10;
 const MONEY_TOL = 0.011;
-const KNOWN_ISSUE_NOTE =
-  'TEST FR THOUSANDS_SEPARATOR SPACE -> surrender PDF 500 (rendicion persistida)';
 // Contenedores donde la app muestra alertas/avisos/dialogos (toast, swal, modal, alert bootstrap).
 const MESSAGE_SELECTOR =
   '.swal2-popup, [role="alert"], [role="alertdialog"], [role="dialog"], ngb-modal-window, .modal.show, .toast, .toast-message, .alert, .ngx-toastr';
@@ -188,8 +187,8 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
     const oracle = requireOracle(db, 'FR S2');
     const cfg = frGate.config as FrCircuitConfig;
     makeAnnotate(TS_KEY, ROUTE)('FR-S2', 'HP');
-    const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
-    const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const ownerId = circuitOwnerId();
+    const expectedCarrier = circuitCarrierId();
     // MAGIIS "driverUserId" de los endpoints de rendicion = DRIVER.ID (no USER_ID).
     const batch = { driverUserId: cfg.driverId, vehicleId: cfg.vehicleId };
     const surrenderClient = new SurrenderClient(carrierApi, carrierSession);
@@ -256,6 +255,8 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
       }
     });
 
+    const cityTaxPresent = loadCarrierProfile().cityTax.present;
+
     // ---- 2. Alta por UI: Luis, pago CC, otro costo «QA City Taxes» ----
     // assertBeforeSubmit es guarda de creacion (falla ANTES de crear el viaje permanente); las
     // aserciones de negocio de la cotizacion viven en AC-FR-01/03 tras el alta.
@@ -264,9 +265,9 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
         flow.createViaUi({
           page,
           client: cfg.clientQuery,
-          paymentMethod: PAYMENT_METHOD,
-          otherCostName: cfg.otherCostName,
-          region: 'FR',
+          paymentMethod: circuitCcPaymentMethod(),
+          otherCostName: cityTaxPresent ? cfg.otherCostName : undefined,
+          circuitProfile: loadCarrierProfile(),
           assertBeforeSubmit: ({ simulatedAmount, resolvedOrigin, resolvedDestination }) => {
             expect(
               resolvedOrigin !== resolvedDestination,
@@ -280,9 +281,11 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
         }));
 
     const base = parseMoney(summary.subtotal);
-    const cityTaxLine = summary.lines.find((l) => l.label.startsWith(cfg.otherCostName));
+    const cityTaxLine = cityTaxPresent
+      ? summary.lines.find((l) => l.label.startsWith(cfg.otherCostName))
+      : undefined;
     const cityTax = cityTaxLine === undefined ? 0 : parseMoney(cityTaxLine.amount);
-    const expectedCityTax = round2(CITY_TAX_PCT * base);
+    const expectedCityTax = round2(circuitCityTaxFraction() * base);
     const otherCostsHeader = parseMoney(summary.otherCosts);
     const fixedFees = summary.fixedFees === null ? 0 : parseMoney(summary.fixedFees);
     const taxes = summary.taxes === null ? 0 : parseMoney(summary.taxes);
@@ -301,7 +304,7 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
     });
     await attachXrayEvidence(testInfo, page, {
       name: `fr-s2-quote-${travelId}`,
-      comment: `FR S2 viaje ${travelId}: alta CC con «${cfg.otherCostName}», base ${base}, city taxes ${cityTax} (esperado 10 % = ${expectedCityTax}), total ${simulatedAmount}.`
+      comment: `FR S2 viaje ${travelId}: alta CC con «${cfg.otherCostName}», base ${base}, city taxes ${cityTax} (esperado ${circuitCityTaxFraction() * 100} % = ${expectedCityTax}), total ${simulatedAmount}.`
     });
     await verifyAc(testInfo, 'AC-FR-01', async () => {
       expect(
@@ -317,13 +320,20 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
       return { simulatedAmount, expectedQuote: expectedQuote ?? null };
     });
     await verifyAc(testInfo, 'AC-FR-03', async () => {
-      expect(
-        cityTaxLine,
-        `el resumen debe listar la linea del otro costo «${cfg.otherCostName}» (lineas: ${JSON.stringify(summary.lines.map((l) => l.label))})`
-      ).toBeDefined();
+      if (cityTaxPresent) {
+        expect(
+          cityTaxLine,
+          `el resumen debe listar la linea del otro costo «${cfg.otherCostName}» (lineas: ${JSON.stringify(summary.lines.map((l) => l.label))})`
+        ).toBeDefined();
+      } else {
+        expect(
+          cityTaxLine,
+          `perfil sin city tax: el resumen no debe listar un otro costo de impuesto de ciudad`
+        ).toBeUndefined();
+      }
       expect(
         Math.abs(cityTax - expectedCityTax),
-        `otro costo «${cfg.otherCostName}» debe ser 10 % de la base ${base} = ${expectedCityTax} (recibido ${cityTax})`
+        `otro costo «${cfg.otherCostName}» debe ser ${circuitCityTaxFraction() * 100} % de la base ${base} = ${expectedCityTax} (recibido ${cityTax})`
       ).toBeLessThanOrEqual(MONEY_TOL);
       expect(
         Math.abs(otherCostsHeader - cityTax),
@@ -344,7 +354,10 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
         created.simulationPrice as Record<string, unknown> | null | undefined
       )?.currencyCode;
       if (createdCurrency !== undefined && createdCurrency !== null) {
-        expect(String(createdCurrency), 'moneda de la cotizacion debe ser EUR').toMatch(/EUR|€/i);
+        expect(
+          String(createdCurrency),
+          `moneda de la cotizacion debe ser ${loadCarrierProfile().currency.code}`
+        ).toMatch(currencyMatcher(loadCarrierProfile().currency));
       }
       return {
         currencyCode: createdCurrency ?? null,
@@ -449,7 +462,7 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
         detailDriverId: driverMeasured,
         core: doneDb
       });
-      expect(v.ok, formatMismatches('chofer 4965 (DRIVER.ID)', v.mismatches)).toBe(true);
+      expect(v.ok, formatMismatches(`chofer ${cfg.driverId} (DRIVER.ID)`, v.mismatches)).toBe(true);
       return { detailDriverId: driverMeasured, dbDriverId: doneDb.DRIVER_ID, notes: v.notes };
     });
     const costSale = evaluateCostEqualsSale({
@@ -670,7 +683,11 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
           persisted.settled,
           `POST toTravelsSurrender respondio ${confirmStatus} y el viaje ${travelId} sigue pendiente tras ${persisted.elapsedMs} ms: la rendicion NO se persistio (fallo real, no el known-issue del PDF)`
         ).toBe(true);
-        knownIssue(testInfo, 'AC-FR-90', `POST ${confirmStatus}: ${KNOWN_ISSUE_NOTE}`);
+        knownIssue(
+          testInfo,
+          'AC-FR-90',
+          `POST ${confirmStatus}: ${thousandsSeparatorKnownIssueNote()}`
+        );
       } else {
         expect(confirmStatus, 'POST toTravelsSurrender debe responder 2xx').toBeGreaterThanOrEqual(
           200
@@ -691,7 +708,9 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
       name: `fr-s2-confirmed-${travelId}`,
       comment:
         `FR S2 viaje ${travelId}: rendicion confirmada, POST status ${confirmStatus}.` +
-        (confirmStatus >= 500 ? ` Rendicion persistida (lote vacio). ${KNOWN_ISSUE_NOTE}.` : '')
+        (confirmStatus >= 500
+          ? ` Rendicion persistida (lote vacio). ${thousandsSeparatorKnownIssueNote()}.`
+          : '')
     });
 
     const driverAfterConfirm = await checkingAccountApi.driverMovements({
@@ -712,7 +731,7 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
     const clientDeltaConfirm = deltaMovements(booksBefore.client, booksConfirm.client);
     await attachJson('6-books-after-surrender', {
       confirmStatus,
-      knownIssue: confirmStatus >= 500 ? KNOWN_ISSUE_NOTE : null,
+      knownIssue: confirmStatus >= 500 ? thousandsSeparatorKnownIssueNote() : null,
       surrenderId,
       driverBook: {
         added: mapRows(driverNew),
@@ -1144,7 +1163,7 @@ test.describe('Circuito Francia S2 (CC + otro costo · cierre admin · rendicion
       commissionBase,
       commissionBasis: 'con city taxes (regla confirmada)',
       confirmStatus,
-      knownIssue: confirmStatus >= 500 ? KNOWN_ISSUE_NOTE : null,
+      knownIssue: confirmStatus >= 500 ? thousandsSeparatorKnownIssueNote() : null,
       ccDeltas: {
         create: { rows: ccRowsCreate.length, balanceDeltaDb: clientDeltaCreate.balanceDelta },
         finalize: { rows: ccRowsDone.length, balanceDeltaDb: clientDeltaDone.balanceDelta },

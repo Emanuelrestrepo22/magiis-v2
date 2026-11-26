@@ -24,7 +24,7 @@
 //   se ve si el detalle cargado quedo viejo.
 //
 // IRREVERSIBLE: `confirm()` crea la liquidacion PAID (bloquea editar los viajes); exige
-// FR_CONFIRM_SETTLEMENT=1 y lanza antes de tocar la pantalla si el gate esta cerrado.
+// F5_CONFIRM_SETTLEMENT=1 (alias FR_CONFIRM_SETTLEMENT) y lanza antes de tocar la pantalla si el gate esta cerrado.
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { BasePage } from '../../shared/BasePage.js';
@@ -126,17 +126,35 @@ export class SettlementPage extends BasePage {
     const rows = await this.dataRows.count();
     const totalBeforeSelect = await this.shownTotal();
     if (rows === 0) return { rows, total: totalBeforeSelect, totalBeforeSelect };
-    await this.selectAllCheckbox.check();
-    await expect(this.dataRows.first().locator('input[type="checkbox"]')).toBeChecked();
-    // El total se recalcula en el handler (change); esperar a que deje de ser el inicial.
+    // Receta UAT 10/11 (r20-liq): si el `thead` no trae el checkbox «todas», se tilda fila por fila.
+    if ((await this.selectAllCheckbox.count()) > 0) {
+      await this.selectAllCheckbox.check();
+    } else {
+      for (const box of await this.dataRows.locator('input[type="checkbox"]').all()) {
+        if (!(await box.isChecked())) await box.check();
+      }
+    }
+    await expect(this.dataRows.locator('input[type="checkbox"]:not(:checked)')).toHaveCount(0);
+    // El total se recalcula en el handler (change). No se exige que cambie: si las filas suman 0 (p. ej. chofer
+    // con 0 % de comision, AR 1040 UAT) el total sigue en 0 legitimamente. Se espera a que se estabilice
+    // (dos lecturas iguales seguidas) y el oraculo del spec juzga el valor.
+    let previous = Number.NaN;
     await expect
-      .poll(async () => this.shownTotal(), { timeout: 10_000 })
-      .not.toBe(totalBeforeSelect);
+      .poll(
+        async () => {
+          const current = await this.shownTotal();
+          const stable = current === previous;
+          previous = current;
+          return stable;
+        },
+        { timeout: 10_000, intervals: [500] }
+      )
+      .toBe(true);
     return { rows, total: await this.shownTotal(), totalBeforeSelect };
   }
 
   /**
-   * IRREVERSIBLE (gate FR_CONFIRM_SETTLEMENT=1): acepta la liquidacion con las filas tildadas.
+   * IRREVERSIBLE (gate F5_CONFIRM_SETTLEMENT=1): acepta la liquidacion con las filas tildadas.
    * Exige que `expectedTotal` coincida con lo mostrado ANTES de enviar (el BE no recalcula) y que
    * el cuerpo del POST lleve ese total. Devuelve lo observado en red + total del detalle posterior.
    */

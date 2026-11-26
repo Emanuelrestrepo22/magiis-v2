@@ -48,18 +48,19 @@ export class TravelDashboardPage extends BaseListPage {
     this.tabInProgress = page.getByRole('tab', {
       name: /in progress\s*\(\d+\)|en curso\s*\(\d+\)/i
     });
+    // v2.0.23 (release 2026-11-19, i18n en-us) renombró tabs: Scheduled / Canceled / Completed.
     this.tabProgrammed = page.getByRole('tab', {
-      name: /programmed\s*\(\d+\)|programados?\s*\(\d+\)/i
+      name: /(programmed|scheduled)\s*\(\d+\)|programados?\s*\(\d+\)/i
     });
     this.tabInConflict = page.getByRole('tab', {
       name: /in conflict\s*\(\d+\)|en conflicto\s*\(\d+\)/i
     });
     this.tabLost = page.getByRole('tab', { name: /^lost\s*\(\d+\)|perdidos?\s*\(\d+\)/i });
     this.tabCancelled = page.getByRole('tab', {
-      name: /cancelled\s*\(\d+\)|cancelados?\s*\(\d+\)/i
+      name: /cancell?ed\s*\(\d+\)|cancelados?\s*\(\d+\)/i
     });
     this.tabFinalized = page.getByRole('tab', {
-      name: /finalized\s*\(\d+\)|finalizados?\s*\(\d+\)/i
+      name: /(finalized|completed)\s*\(\d+\)|finalizados?\s*\(\d+\)/i
     });
   }
 

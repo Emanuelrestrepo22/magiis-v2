@@ -19,7 +19,7 @@ import {
   type SurrenderRow
 } from './db-oracle-eval.js';
 import { expectedEditEffects, type EditDiffs } from './edit-matrix.js';
-import { PCT } from './fr-circuit.js';
+import { COMMISSION_FIXED, PCT } from './fr-circuit.js';
 import { pollUntil, type PollResult } from './poll.js';
 import { formatMismatches, type Mismatch, type OracleVerdict } from './oracle-result.js';
 
@@ -486,19 +486,33 @@ export function evaluateSurrenderHeader(
  * base comisionable `base` (final − peajes − estacionamiento, city tax incluido): comisiones 40/20
  * (formula verificada 56/56 en el baseline 2001) y total por medio de pago = base.
  */
-export function expectedManualSurrender(kind: 'cash' | 'cc', base: number): SurrenderExpected {
+export function expectedManualSurrender(
+  kind: 'cash' | 'cc',
+  base: number,
+  options: { noCom?: number; fixedDays?: number } = {}
+): SurrenderExpected {
+  // F5: `base` llega con el NC DENTRO (final − peaje − estacionamiento); el NC no entra a TOTALCASH ni a la
+  // base de comision (14181: TOTALCASH 3000,80 = 3015,80 − 15; comision sobre 3000,80).
+  const noCom = options.noCom ?? 0;
+  const commissionBase = Math.round((base - noCom) * 100) / 100;
+  // `fixedDays` = dias a cobrar (0 si la ultima rendicion del chofer ya cubre el dia del viaje).
+  const fixedDays = options.fixedDays ?? 1;
   const commissions = expectedCommissions({
-    cashBase: kind === 'cash' ? base : 0,
-    checkingAccountBase: kind === 'cc' ? base : 0,
+    cashBase: kind === 'cash' ? commissionBase : 0,
+    checkingAccountBase: kind === 'cc' ? commissionBase : 0,
     creditCardBase: 0,
     pctOwner: PCT.owner,
-    pctAgency: PCT.agency
+    pctAgency: PCT.agency,
+    pctDriver: PCT.driver,
+    // Un viaje = un dia de viaje: la fija (si el carrier la tiene) entra una vez por dia no cubierto.
+    ownerFixed: Math.round(COMMISSION_FIXED.owner * fixedDays * 100) / 100,
+    agencyFixed: Math.round(COMMISSION_FIXED.agency * fixedDays * 100) / 100
   });
   return {
     ...commissions,
-    TOTALCASH: kind === 'cash' ? base : 0,
+    TOTALCASH: kind === 'cash' ? commissionBase : 0,
     TOTALCASHQTY: kind === 'cash' ? 1 : 0,
-    TOTALCHECKINGACCOUNT: kind === 'cc' ? base : 0,
+    TOTALCHECKINGACCOUNT: kind === 'cc' ? commissionBase : 0,
     TOTALCHECKACCQTY: kind === 'cc' ? 1 : 0,
     TOTALCREDITCARD: 0,
     TOTALCREDCARDQTY: 0
@@ -642,4 +656,40 @@ export function evaluateSurrenderEditDeltas(
     }
   }
   return { ...verdict(m), observed, expected };
+}
+
+/** Tamano minimo de un comprobante PDF valido (mismo umbral que AC-FR-88). */
+export const RECEIPT_MIN_BYTES = 1024;
+
+/**
+ * AC-FR-97: el comprobante de la rendicion manual es un PDF valido (%PDF-, > 1 KB) tanto en la
+ * respuesta del confirm (`file` en base64) como en la copia guardada (POST surrender?surrenderId).
+ * El BE responde 200 con cuerpo vacio si la copia no existe: se juzga por los bytes, no por el status.
+ */
+export function evaluateSurrenderReceipt(input: {
+  inline: Buffer | null;
+  stored: { status: number; contentType: string | null; body: Buffer };
+}): OracleVerdict & { inlineBytes: number | null; storedBytes: number } {
+  const m: Mismatch[] = [];
+  const pdfOk = (b: Buffer): boolean =>
+    b.length > RECEIPT_MIN_BYTES && b.subarray(0, 5).toString('latin1') === '%PDF-';
+  if (input.inline === null || !pdfOk(input.inline)) {
+    m.push({
+      field: 'comprobante en la respuesta del confirm (file base64)',
+      expected: `PDF (%PDF-, > ${RECEIPT_MIN_BYTES} bytes)`,
+      actual: input.inline === null ? 'sin campo file' : `${input.inline.length} bytes`
+    });
+  }
+  if (input.stored.status !== 200 || !pdfOk(input.stored.body)) {
+    m.push({
+      field: 'copia guardada del comprobante (POST surrender?surrenderId)',
+      expected: `200 con PDF (%PDF-, > ${RECEIPT_MIN_BYTES} bytes)`,
+      actual: `${input.stored.status} ${input.stored.contentType ?? 'sin content-type'}, ${input.stored.body.length} bytes`
+    });
+  }
+  return {
+    ...verdict(m),
+    inlineBytes: input.inline?.length ?? null,
+    storedBytes: input.stored.body.length
+  };
 }

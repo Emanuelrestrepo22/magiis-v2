@@ -24,6 +24,17 @@ import {
   formatSlowLoadDescription
 } from '../../../utils/envAvailability.js';
 import { parseDistance, type DistanceReading } from '../../../utils/units.js';
+import type { AutocompleteItem } from '../../../api/clients/places.client.js';
+import { watchPlacesTraffic } from '../../../utils/networkWatch.js';
+import {
+  clickGoogleMapAndWaitForCheckPlace,
+  type GoogleClickAck,
+  type GoogleMapPoint
+} from '../../../utils/googleMap.js';
+
+// Tipos de campo/opcion de lugar: fuente unica en PlaceFields (MG-1132, unificados en la integracion).
+import type { PlaceField, PlaceOption } from './PlaceFields.js';
+export type { PlaceField, PlaceOption };
 
 /** Wait budget for data driven by the selected client (typeahead, cascaded origin). */
 const CLIENT_DATA_TIMEOUT_MS = 20_000;
@@ -287,7 +298,7 @@ export class NewTripPage extends BasePage {
 
     this.originInput = page.getByRole('combobox', { name: /pick-?up|origen/i }).first();
     this.firstDestinationInput = page
-      .getByRole('combobox', { name: /^(to|destino)\s*\*?$/i })
+      .getByRole('combobox', { name: /^(to|destino|drop-?off)\s*\*?$/i })
       .first();
     // ARREGLADO 2026-09-09. La version anterior
     // (`.locator('.btn nt-tool-btn ng-tns-c1233886022-0')`) no encontraba nada por dos motivos:
@@ -476,11 +487,11 @@ export class NewTripPage extends BasePage {
    * servidor), y verifica el EFECTO observable — origen habilitado — no el texto del combo.
    * Detalle de ambos fallos medidos: docs/qa/mg19-new-trip/IMPLEMENTATION-NOTES.md.
    */
-  async selectClient(query: string): Promise<void> {
+  async selectClient(query: string, optionText: string = query): Promise<void> {
     await this.clientSelect.click();
     await this.clientInput.fill(query);
 
-    const option = this.dropdownOptions.filter({ hasText: query }).first();
+    const option = this.dropdownOptions.filter({ hasText: optionText }).first();
     await expect(
       option,
       `el typeahead de cliente debe devolver al menos una opcion para "${query}"`
@@ -490,6 +501,24 @@ export class NewTripPage extends BasePage {
     await expect(
       this.originInput,
       'elegir cliente debe habilitar el origen (efecto en cascada de idClient)'
+    ).toBeEnabled({ timeout: CLIENT_DATA_TIMEOUT_MS });
+  }
+
+  /**
+   * Atajo de pasajero frecuente: boton de la pantalla con el nombre exacto (p. ej. «Seba» en el carrier AR de
+   * UAT). Elegirlo habilita el origen igual que elegir un cliente (efecto en cascada).
+   */
+  async pickPassengerShortcut(name: string): Promise<void> {
+    const button = this.page
+      .getByRole('button', { name: new RegExp(`^${escapeRegExp(name)}$`) })
+      .first();
+    await expect(button, `debe existir el atajo de pasajero «${name}»`).toBeVisible({
+      timeout: CLIENT_DATA_TIMEOUT_MS
+    });
+    await button.click();
+    await expect(
+      this.originInput,
+      'elegir el atajo de pasajero debe habilitar el origen (efecto en cascada)'
     ).toBeEnabled({ timeout: CLIENT_DATA_TIMEOUT_MS });
   }
 
@@ -831,7 +860,14 @@ export class NewTripPage extends BasePage {
     dropOff?: string;
     private?: string;
   }): Promise<void> {
-    await this.openNotes();
+    // Con notas ya cargadas (p. ej. la nota privada por defecto del cliente) el boton «Add Note» no esta en el
+    // DOM: se reabre desde el lapiz de la tarjeta (medido en UAT 1481, cliente «Pax Venta»).
+    await expect(
+      this.addNoteButton.or(this.notesCardEditButton).first(),
+      'debe estar el boton «Add Note» o el lapiz de la tarjeta de notas'
+    ).toBeVisible({ timeout: 15_000 });
+    if ((await this.addNoteButton.count()) > 0) await this.openNotes();
+    else await this.editNotesFromCard();
     for (const kind of ['general', 'pickUp', 'dropOff', 'private'] as const) {
       const value = notes[kind];
       if (value !== undefined) await this.noteField(kind).fill(value);
@@ -1392,5 +1428,269 @@ export class NewTripPage extends BasePage {
         .textContent()
         .catch(() => null)) ?? '';
     return text.match(/v(\d+\.\d+\.\d+)/)?.[1] ?? null;
+  }
+  // === MG-1132 PK-2: buscador de puntos de referencia en Nuevo Viaje ===
+  // Medido en TEST v2.0.22 (19/11/2026): cada opcion del desplegable es `.place-option` con
+  // `.place-option__label` y, si es punto propio del carrier, `.place-option__badge` («Reference point»).
+  // Las indicaciones del lugar se leen en DOS sitios: (A) modal del reloj `.btn-wait-time` (textarea
+  // `#instructions`) y (B) tarjeta NOTE (`app-trip-notes-display`).
+
+  /** Badge «Reference point» de las opciones del desplegable abierto. */
+  readonly referenceBadge: Locator = this.page.locator('.place-option__badge');
+
+  /** Opciones reales del desplegable abierto (sin el aviso deshabilitado «Type at least 3…»). */
+  private get placeOptions(): Locator {
+    return this.page.locator('.ng-dropdown-panel .ng-option:not(.ng-option-disabled)');
+  }
+
+  placeRow(field: PlaceField): Locator {
+    if (field === 'origin') return this.page.locator('.trip-address-row.origin');
+    if (field === 'destination') return this.page.locator('.trip-address-row.destiny').first();
+    return this.page.locator('.trip-address-row.stop').nth(field.stop - 1);
+  }
+
+  private placeInput(field: PlaceField): Locator {
+    return this.placeRow(field).getByRole('combobox').first();
+  }
+
+  /** Texto del chip resuelto del campo (vacio si no hay valor). */
+  async placeValue(field: PlaceField): Promise<string> {
+    const chip = this.placeRow(field).locator('.ng-value-label');
+    return (await chip.count()) === 0 ? '' : ((await chip.first().textContent()) ?? '').trim();
+  }
+
+  /**
+   * Escribe `text` en el campo y espera la RESPUESTA de `places/autocomplete` de ese texto (no un
+   * timeout). Devuelve las opciones pintadas, la respuesta cruda y la URL del request (para asertar
+   * `address` y `carrierId`).
+   */
+  async typeInPlaceField(
+    field: PlaceField,
+    text: string
+  ): Promise<{ options: PlaceOption[]; autocomplete: AutocompleteItem[]; requestUrl: string }> {
+    const input = this.placeInput(field);
+    await input.click();
+    // ng-select ignora un termino igual al anterior (distinctUntilChanged) aunque el input se haya cerrado:
+    // un caracter intermedio (bajo el minimo, sin request) garantiza que `text` sea un termino nuevo.
+    await input.fill('x');
+    const [response] = await Promise.all([
+      this.page.waitForResponse(
+        (res) =>
+          res.request().method() === 'GET' &&
+          /\/places\/autocomplete\?/.test(res.url()) &&
+          new URL(res.url()).searchParams.get('address') === text,
+        { timeout: 25_000 }
+      ),
+      input.fill(text)
+    ]);
+    const autocomplete = (await response.json()) as AutocompleteItem[];
+    if (autocomplete.length > 0) {
+      await expect(
+        this.placeOptions.first(),
+        'el desplegable debe pintar las opciones'
+      ).toBeVisible({
+        timeout: 15_000
+      });
+      await expect(this.placeOptions).toHaveCount(autocomplete.length, { timeout: 15_000 });
+    }
+    return { options: await this.optionsOf(field), autocomplete, requestUrl: response.url() };
+  }
+
+  /** Opciones del desplegable abierto, en orden: texto de la etiqueta y si lleva el badge. */
+  async optionsOf(_field: PlaceField): Promise<PlaceOption[]> {
+    return this.placeOptions.evaluateAll((els) =>
+      els.map((el) => ({
+        text: (
+          el.querySelector('.place-option__label')?.textContent ??
+          el.textContent ??
+          ''
+        ).trim(),
+        hasBadge: el.querySelector('.place-option__badge') !== null
+      }))
+    );
+  }
+
+  /**
+   * Escribe `text` en el campo y elige el punto propio cuyo `placeId` devolvio el alta (la opcion se
+   * identifica por su etiqueta = `mainText` del item con ese placeId, nunca por posicion). Devuelve las
+   * llamadas a Google / getPlace observadas desde el clic hasta que el campo queda cargado, el item de
+   * la respuesta y el `title` (texto emergente) de la opcion leido antes del clic.
+   */
+  async pickReferencePoint(
+    field: PlaceField,
+    text: string,
+    placeId: string
+  ): Promise<{
+    outboundCalls: string[];
+    autocomplete: AutocompleteItem[];
+    item: AutocompleteItem;
+    optionTitle: string | null;
+  }> {
+    const { autocomplete } = await this.typeInPlaceField(field, text);
+    const item = autocomplete.find((i) => i.placeId === placeId);
+    if (!item) {
+      throw new Error(`la respuesta de autocomplete no trae el placeId propio ${placeId}`);
+    }
+    const label = item.mainText;
+    const option = this.placeOptions.filter({
+      has: this.page.locator('.place-option__label', { hasText: label })
+    });
+    const optionTitle = await option.first().locator('.place-option').getAttribute('title');
+    const outboundCalls = await this.clickOptionAndSettle(field, option, label);
+    return { outboundCalls, autocomplete, item, optionTitle };
+  }
+
+  /**
+   * Elige la primera opcion SIN badge (direccion de Google) cuyo texto contiene `text`. Una direccion de
+   * Google SIEMPRE resuelve por `places/getPlace?placeId=`: el asentado espera su RESPUESTA 200, el chip
+   * con el texto nuevo y que no quede ningun spinner de resolucion.
+   */
+  async pickGoogleAddress(field: PlaceField, text: string): Promise<{ outboundCalls: string[] }> {
+    await this.typeInPlaceField(field, text);
+    const option = this.placeOptions
+      .filter({ hasNot: this.page.locator('.place-option__badge') })
+      .filter({ hasText: new RegExp(escapeRegExp(text), 'i') })
+      .first();
+    await expect(option, `debe haber una opcion de Google para «${text}»`).toBeVisible();
+    const resolved = this.page.waitForResponse(
+      (r) => /\/places\/getPlace\?placeId=/.test(r.url()),
+      { timeout: 30_000 }
+    );
+    resolved.catch(() => undefined);
+    const outboundCalls = await this.clickOptionAndSettle(
+      field,
+      option,
+      new RegExp(escapeRegExp(text), 'i'),
+      resolved
+    );
+    return { outboundCalls };
+  }
+
+  private async clickOptionAndSettle(
+    field: PlaceField,
+    option: Locator,
+    expectedChip: string | RegExp,
+    resolved?: Promise<Response>
+  ): Promise<string[]> {
+    const watch = watchPlacesTraffic(this.page);
+    try {
+      const mark = watch.mark();
+      await option.first().click();
+      if (resolved) {
+        const response = await resolved;
+        if (response.status() !== 200) {
+          throw new Error(`places/getPlace respondio ${response.status()} al elegir la direccion`);
+        }
+      }
+      // El chip tiene que mostrar el valor NUEVO (no solo existir: al reemplazar un lugar ya existia).
+      await expect(this.placeRow(field).locator('.ng-value-label')).toHaveText(expectedChip, {
+        timeout: 15_000
+      });
+      // Estado observable del producto: mientras un campo resuelve, su fila muestra el spinner.
+      await expect(this.page.locator('.trip-address-row .ng-spinner-loader')).toHaveCount(0, {
+        timeout: 20_000
+      });
+      return watch.since(mark);
+    } finally {
+      watch.dispose();
+    }
+  }
+
+  /** (A) Indicaciones del lugar en el modal del reloj. Abre y cancela el modal. */
+  async readInstruction(field: PlaceField): Promise<string> {
+    await this.placeRow(field).locator('.btn-wait-time').click();
+    await expect(this.notesDialog).toBeVisible({ timeout: 15_000 });
+    const value = await this.notesDialog.locator('#instructions').inputValue();
+    await this.notesDialog.getByRole('button', { name: /^(cancel|cancelar)$/i }).click();
+    await expect(this.notesDialog).toBeHidden({ timeout: 15_000 });
+    return value;
+  }
+
+  /** (A) Espera (web-first, con reintento) que el modal del reloj muestre `expected`; abre y cancela. */
+  async expectInstruction(field: PlaceField, expected: string): Promise<void> {
+    await this.placeRow(field).locator('.btn-wait-time').click();
+    await expect(this.notesDialog).toBeVisible({ timeout: 15_000 });
+    await expect(this.notesDialog.locator('#instructions')).toHaveValue(expected, {
+      timeout: 10_000
+    });
+    await this.notesDialog.getByRole('button', { name: /^(cancel|cancelar)$/i }).click();
+    await expect(this.notesDialog).toBeHidden({ timeout: 15_000 });
+  }
+
+  /** Escribe las indicaciones del lugar en el modal del reloj y acepta. */
+  async writeInstruction(field: PlaceField, text: string): Promise<void> {
+    await this.placeRow(field).locator('.btn-wait-time').click();
+    await expect(this.notesDialog).toBeVisible({ timeout: 15_000 });
+    await this.notesDialog.locator('#instructions').fill(text);
+    await this.notesDialog.getByRole('button', { name: /^(accept|aceptar)$/i }).click();
+    await expect(this.notesDialog).toBeHidden({ timeout: 15_000 });
+  }
+
+  /** Fila de la tarjeta NOTE (B) del campo; 0 filas = sin indicacion. */
+  noteCardRow(field: PlaceField): Locator {
+    const rows = this.page.locator('app-trip-notes-display .tnc-row');
+    if (field === 'origin') return rows.filter({ has: this.page.locator('.tnc-label--origin') });
+    if (field === 'destination') {
+      return rows.filter({
+        has: this.page.locator('.tnc-label', { hasText: /drop-?off|destino/i })
+      });
+    }
+    return rows.filter({
+      has: this.page.locator('.tnc-label--stop', {
+        hasText: new RegExp(`(stop|parada)\\s*${field.stop}\\b`, 'i')
+      })
+    });
+  }
+
+  /** (B) Espera (web-first) que la tarjeta NOTE del campo muestre `expected` (espacios normalizados). */
+  async expectNoteCard(field: PlaceField, expected: string): Promise<void> {
+    await expect(this.noteCardRow(field).locator('.tnc-value')).toHaveText(expected.trim(), {
+      timeout: 10_000
+    });
+  }
+
+  /** (B) Valor de la tarjeta NOTE del campo; cadena vacia si la fila no existe. */
+  async readNoteCard(field: PlaceField): Promise<string> {
+    const row = this.noteCardRow(field);
+    return (await row.count()) === 0 ? '' : await row.locator('.tnc-value').first().innerText();
+  }
+
+  // === MG-1132 PK-3: puntero de mapa (Google Maps) ===
+  /** Contenedor del mapa de Nuevo Viaje (Google Maps; el hook va por `installGoogleMapHook`). */
+  readonly pointerMap: Locator = this.page.locator('.nt-map-wrapper .map-container');
+
+  /** Spinners de resolucion de los campos de ruta (ng-select cargando). */
+  readonly fieldSpinners: Locator = this.page.locator('.trip-address-row .ng-spinner-loader');
+
+  /** Chip con el texto resuelto del campo (web-first: `toContainText` / `toHaveCount(0)`). */
+  placeChip(field: PlaceField): Locator {
+    return this.placeRow(field).locator('.ng-value-label');
+  }
+
+  /** Boton «Select on Map» (puntero) de la fila. */
+  pointerButtonFor(field: PlaceField): Locator {
+    return this.placeRow(field).getByRole('button', { name: 'Select on Map' });
+  }
+
+  /**
+   * Arma el puntero del campo y hace UN click en el mapa sobre `point`; devuelve el ack
+   * (`checkPlace?waypoint=true`) y lo que el servidor vio en el `getPlace` del click. El boton del campo
+   * es un CONMUTADOR (si ya estaba armado, lo apaga): se asevera el estado real con la clase
+   * `selecting-place` del mapa (medida en TEST v2.0.22): 0 antes de tocar el boton, 1 despues y 1 justo
+   * antes del click (tras centrar el mapa).
+   */
+  async armPointerAndClick(field: PlaceField, point: GoogleMapPoint): Promise<GoogleClickAck> {
+    const armed = this.page.locator('.nt-map-wrapper.selecting-place');
+    await expect(this.fieldSpinners).toHaveCount(0, { timeout: 20_000 });
+    await expect(
+      armed,
+      'el puntero no debe estar armado: el boton del campo es un conmutador'
+    ).toHaveCount(0);
+    await this.pointerButtonFor(field).click();
+    await expect(armed, 'puntero armado tras tocar el boton').toHaveCount(1);
+    return clickGoogleMapAndWaitForCheckPlace(this.page, this.pointerMap, point, {
+      beforeClick: () =>
+        expect(armed, 'el puntero sigue armado tras centrar el mapa').toHaveCount(1)
+    });
   }
 }

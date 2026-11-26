@@ -25,6 +25,7 @@ import { join, resolve } from 'node:path';
 import type { Locator, Page, Response, TestInfo } from '@playwright/test';
 import { test, expect } from '../../fixtures/carrierApiFixture.js';
 import { getCurrentEnv } from '../../config/runtime.js';
+import { COMMISSION_SPLIT, loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { requireOracle } from '../../helpers/db-gate.js';
 import { knownIssue, observation, verifyAc, type AcId } from '../../helpers/acceptance.js';
 import { FR_1901_KEYS } from '../../data/xray/fr-1901-keys.js';
@@ -82,11 +83,13 @@ import { round2 } from '../../utils/money.js';
 
 const FROM = process.env.FR_REPORT_FROM?.trim() || '2026-10-19';
 const TO = process.env.FR_REPORT_TO?.trim() || '2026-10-21';
-const CARRIER_ID = Number(process.env.FR_CARRIER_ID?.trim() || 1901);
+// Spec atado a 1901 (ids historicos de rendicion): el perfil da los fixtures; un perfil esqueleto lanza aqui.
+const PROFILE = loadCarrierProfile();
+const CARRIER_ID = Number(process.env.FR_CARRIER_ID?.trim() || PROFILE.carrierId);
 const OUT_DIR = resolve(process.env.FR_REPORT_DIR?.trim() || 'evidence/test/reports');
-const OWNER_ID = 2927;
-const DRIVER_ID = 4965;
-const CLIENT_CC_ID = 5614;
+const OWNER_ID = PROFILE.fixtures.ownerId;
+const DRIVER_ID = PROFILE.fixtures.driverDbId;
+const CLIENT_CC_ID = PROFILE.fixtures.clientCcId;
 const TASK_SURRENDERS = [13840, 13858, 13859, 13860, 13878];
 
 const ddmmyyyy = (iso: string): string => iso.split('-').reverse().join('/');
@@ -841,12 +844,12 @@ test.describe('@read-only @db FR 1901 reportes financieros: UI + descarga vs DB'
             }
           }
           const pct = /Commission Percentage:\s*(\d+)%/.exec(text)?.[1];
-          if (pct !== undefined && Number(pct) !== 40) {
+          if (pct !== undefined && Number(pct) !== Math.round(COMMISSION_SPLIT.driver * 100)) {
             disc88.push({
               report: 'surrenders-closed (Driver Report PDF)',
               key: String(surrenderId),
               field: 'Commission Percentage impreso',
-              expected: 40,
+              expected: Math.round(COMMISSION_SPLIT.driver * 100),
               actual: Number(pct)
             });
           }

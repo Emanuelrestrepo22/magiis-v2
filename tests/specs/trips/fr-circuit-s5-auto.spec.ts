@@ -71,18 +71,20 @@ import {
   formatMismatches
 } from '../../helpers/db-oracle-eval.js';
 import {
-  DEFAULT_CARRIER_ID,
-  DEFAULT_OWNER_ID,
+  circuitCarrierId,
+  circuitOwnerId,
   frConfigOrNull,
-  optionalInt,
   readBooks,
   requireNumberField,
-  type FrGateName
+  type FrGateName,
+  circuitVehicleDomain
 } from '../../helpers/fr-circuit.js';
+import { loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { FR_FACTS } from '../../helpers/fr-facts.js';
 import { OwnerEditPage } from '../../pages/carrier-v2/owners/OwnerEditPage.js';
 import { noChargeCheck } from '../../helpers/no-charge.js';
 import { AdminCircuitFlow } from '../../steps/trips/adminCircuit.steps.js';
+import { verifyF5Surrender } from './f5-verify.js';
 import { readSaleCostData } from '../../steps/trips/dbOracles.steps.js';
 import {
   movementsOfTravel,
@@ -100,7 +102,6 @@ const ROUTE = '/carrier/#/travel/create';
 const TS_KEY = FR_1901_KEYS.S5_AUTO_VERIFY;
 const PAYMENT_METHOD = 'Cash';
 // Patente de la fila del vehiculo en Owners > Edit (QA lead 2026-10-21: Code 1, DNS207 = vehiculo 3765).
-const VEHICLE_DOMAIN = (process.env.FR_VEHICLE_DOMAIN?.trim() || 'DNS207').toUpperCase();
 const STATE_DONE = /^DONE$/i;
 const STATE_CANCELLED = /^(CANCELL?ED|7)$/i;
 
@@ -208,8 +209,8 @@ test.describe('Circuito Francia S5 auto (cash · cierre admin · rendicion autom
     } else {
       testInfo.annotations.push({ type: 'tc', description: `FR-S5-auto-${phase}` });
     }
-    const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
-    const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const ownerId = circuitOwnerId();
+    const expectedCarrier = circuitCarrierId();
     const flow = new AdminCircuitFlow(travelsApi, checkingAccountApi);
     const surrenderClient = new SurrenderClient(carrierApi, carrierSession);
     const isolationOf = (ownTripIds: readonly number[]): Promise<IsolationReading> =>
@@ -281,7 +282,7 @@ test.describe('Circuito Francia S5 auto (cash · cierre admin · rendicion autom
         page,
         client: cfg.clientQuery,
         paymentMethod: PAYMENT_METHOD,
-        region: 'FR',
+        circuitProfile: loadCarrierProfile(),
         assertBeforeSubmit: ({ simulatedAmount, resolvedOrigin, resolvedDestination }) => {
           expect(
             resolvedOrigin !== resolvedDestination,
@@ -313,7 +314,10 @@ test.describe('Circuito Francia S5 auto (cash · cierre admin · rendicion autom
         return { simulatedAmount, expectedQuote: process.env.FR_EXPECTED_QUOTE?.trim() ?? null };
       });
       await verifyAc(testInfo, 'AC-FR-02', async () => {
-        const cur = evaluateCurrencyEur(await flow.readDetail({ travelId }));
+        const cur = evaluateCurrencyEur(
+          await flow.readDetail({ travelId }),
+          loadCarrierProfile().currency
+        );
         expect(cur.ok, formatMismatches('moneda S5', cur.mismatches)).toBe(true);
         if (!cur.verified) {
           observation(
@@ -493,73 +497,102 @@ test.describe('Circuito Francia S5 auto (cash · cierre admin · rendicion autom
 
     // ============================== fire =============================
     if (phase === 'fire') {
-      await verifyAc(testInfo, 'AC-FR-41', () => {
+      // F5 (M11): el flag «Collects Cash» queda en 1 desde `arm`; si fire o su aislamiento fallan, el
+      // cron de las 13:10 UTC barreria el vehiculo. El `finally` lo revierte siempre (fase gateada por
+      // FR_TOGGLE_AUTO_SURRENDER=1) y falla si el flag no quedo en 0.
+      let fireFailed = false;
+      try {
+        await verifyAc(testInfo, 'AC-FR-41', () => {
+          expect(
+            open,
+            `viajes del lote sin cerrar: ${open.map((t) => `${t.scenario}:${t.travelId}`).join(', ')}`
+          ).toEqual([]);
+          return { closedTrips: tripIds };
+        });
+        const iso = await isolationOf(tripIds);
+        await verifyAutoIsolation(testInfo, iso, {
+          ownerId,
+          vehicleId: cfg.vehicleId,
+          expectedFlag: 1
+        });
+        if (mode === 'cron') {
+          await expect
+            .poll(
+              async () =>
+                [...(await surrenderIdsOfTrips(oracle, tripIds)).values()].every((v) => v !== null),
+              {
+                timeout: waitMs(),
+                intervals: [30_000],
+                message: `la rendicion automatica no corrio todavia; el job corre ~13:10 UTC (en ${minutesToNextCron(new Date())} min). Reintentar con FR_AUTO_WAIT_MS o correr verify mas tarde.`
+              }
+            )
+            .toBe(true);
+          return;
+        }
+        const pending = await pendingTripIdsOfVehicle(oracle, cfg.vehicleId);
+        await verifyAc(testInfo, 'AC-FR-32', () => {
+          expect(
+            [...pending].sort(),
+            `el lote pendiente del vehiculo debe ser exactamente el del handoff (${tripIds.join(', ')})`
+          ).toEqual([...tripIds].sort());
+          return { pending, handoffBatch: tripIds };
+        });
+        const firedAt = new Date().toISOString();
+        const editPage = await ownerEdit();
         expect(
-          open,
-          `viajes del lote sin cerrar: ${open.map((t) => `${t.scenario}:${t.travelId}`).join(', ')}`
-        ).toEqual([]);
-        return { closedTrips: tripIds };
-      });
-      const iso = await isolationOf(tripIds);
-      await verifyAutoIsolation(testInfo, iso, {
-        ownerId,
-        vehicleId: cfg.vehicleId,
-        expectedFlag: 1
-      });
-      if (mode === 'cron') {
-        await expect
-          .poll(
-            async () =>
-              [...(await surrenderIdsOfTrips(oracle, tripIds)).values()].every((v) => v !== null),
-            {
-              timeout: waitMs(),
-              intervals: [30_000],
-              message: `la rendicion automatica no corrio todavia; el job corre ~13:10 UTC (en ${minutesToNextCron(new Date())} min). Reintentar con FR_AUTO_WAIT_MS o correr verify mas tarde.`
-            }
-          )
-          .toBe(true);
+          await editPage.readCollectsCash(),
+          'el editor debe cargar «Collects Cash» = Vehicle Owner (armar primero con FR_AUTO_PHASE=arm)'
+        ).toBe('owner');
+        const result = await editPage.triggerVehicleSurrender({
+          vehicleId: cfg.vehicleId,
+          carrierId: expectedCarrier,
+          domain: circuitVehicleDomain()
+        });
+        await attachJson('fire-result', result);
+        await attachXrayEvidence(testInfo, page, {
+          name: `fr-auto-surrender-vehicle-${cfg.vehicleId}`,
+          comment: `FR auto: papelera del vehiculo ${circuitVehicleDomain()} (${cfg.vehicleId}) en Owners > Edit, modal ${result.modalVariant}, PUT travelsSurrender ${result.putStatus}.`
+        });
+        await verifyAc(testInfo, 'AC-FR-33', () => {
+          expect(result.blocked, 'el firewall no debe haber abortado ningun request').toEqual([]);
+          expect(result.putStatus, 'PUT travelsSurrender debe responder 200').toBe(200);
+          expect(result.putBody, 'el PUT devuelve `true`').toBe(true);
+          return { putStatus: result.putStatus, putBody: result.putBody, blocked: result.blocked };
+        });
+        const linkAfterFire = await readVehicleLink(oracle, cfg.vehicleId);
+        observation(
+          testInfo,
+          'AC-FR-45',
+          `modal ${result.modalVariant}: «${result.modalText}»; accion real: PUT travelsSurrender ${result.putStatus} (rinde sin desvincular); ` +
+            `vinculos DRIVER_VEHICLES del vehiculo ${cfg.vehicleId} tras el PUT: ${JSON.stringify(linkAfterFire.links)}. Pregunta abierta al PO (texto del modal vs accion).`
+        );
+        await editPage.leaveWithoutSaving();
+        writeAutoHandoff({ ...handoff, mode: 'desvincular', armedAt: firedAt });
         return;
+      } catch (error) {
+        fireFailed = true;
+        throw error;
+      } finally {
+        const disarmFailure = await (async (): Promise<string | null> => {
+          try {
+            await (await ownerEdit()).setCollectsCash('company', { persist: true, ownerId });
+            const flag = await readOwnerCashCollector(oracle, ownerId);
+            return flag === 0
+              ? null
+              : `CASHCOLLECTOR del propietario ${ownerId} sigue en ${flag} tras el disarm`;
+          } catch (error) {
+            return `disarm fallo: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        })();
+        testInfo.annotations.push({
+          type: 'disarm',
+          description:
+            disarmFailure ??
+            `CASHCOLLECTOR del propietario ${ownerId} revertido a 0 (finally de fire)`
+        });
+        // Si fire ya fallo, no se enmascara su error; el estado del flag queda en la anotacion.
+        if (disarmFailure !== null && !fireFailed) throw new Error(disarmFailure);
       }
-      const pending = await pendingTripIdsOfVehicle(oracle, cfg.vehicleId);
-      await verifyAc(testInfo, 'AC-FR-32', () => {
-        expect(
-          [...pending].sort(),
-          `el lote pendiente del vehiculo debe ser exactamente el del handoff (${tripIds.join(', ')})`
-        ).toEqual([...tripIds].sort());
-        return { pending, handoffBatch: tripIds };
-      });
-      const firedAt = new Date().toISOString();
-      const editPage = await ownerEdit();
-      expect(
-        await editPage.readCollectsCash(),
-        'el editor debe cargar «Collects Cash» = Vehicle Owner (armar primero con FR_AUTO_PHASE=arm)'
-      ).toBe('owner');
-      const result = await editPage.triggerVehicleSurrender({
-        vehicleId: cfg.vehicleId,
-        carrierId: expectedCarrier,
-        domain: VEHICLE_DOMAIN
-      });
-      await attachJson('fire-result', result);
-      await attachXrayEvidence(testInfo, page, {
-        name: `fr-auto-surrender-vehicle-${cfg.vehicleId}`,
-        comment: `FR auto: papelera del vehiculo ${VEHICLE_DOMAIN} (${cfg.vehicleId}) en Owners > Edit, modal ${result.modalVariant}, PUT travelsSurrender ${result.putStatus}.`
-      });
-      await verifyAc(testInfo, 'AC-FR-33', () => {
-        expect(result.blocked, 'el firewall no debe haber abortado ningun request').toEqual([]);
-        expect(result.putStatus, 'PUT travelsSurrender debe responder 200').toBe(200);
-        expect(result.putBody, 'el PUT devuelve `true`').toBe(true);
-        return { putStatus: result.putStatus, putBody: result.putBody, blocked: result.blocked };
-      });
-      const linkAfterFire = await readVehicleLink(oracle, cfg.vehicleId);
-      observation(
-        testInfo,
-        'AC-FR-45',
-        `modal ${result.modalVariant}: «${result.modalText}»; accion real: PUT travelsSurrender ${result.putStatus} (rinde sin desvincular); ` +
-          `vinculos DRIVER_VEHICLES del vehiculo ${cfg.vehicleId} tras el PUT: ${JSON.stringify(linkAfterFire.links)}. Pregunta abierta al PO (texto del modal vs accion).`
-      );
-      await editPage.leaveWithoutSaving();
-      writeAutoHandoff({ ...handoff, mode: 'desvincular', armedAt: firedAt });
-      return;
     }
 
     // ============================= verify ============================
@@ -727,6 +760,18 @@ test.describe('Circuito Francia S5 auto (cash · cierre admin · rendicion autom
       });
     }
 
+    // F5 (MG-1024/MG-1027): columnas nuevas de no comisionables y TDOC al propietario (solo automatica).
+    // NO se asevera SURRENDERED/OPERATIVEDIFFERENCE: en la automatica incluyen el NC y la definicion de
+    // negocio esta pendiente (no codificar un defecto abierto como contrato).
+    await verifyF5Surrender({
+      testInfo,
+      oracle,
+      trips: closed.map((t) => ({ travelId: t.travelId, paymentMethod: t.paymentMethod })),
+      surrender: { surrenderId },
+      automatic: true,
+      ownerRows: ownerBookRows
+    });
+
     // Observaciones al PO (no se aseveran) y known issue del reporte Closed.
     const obsColumns = await readSurrenderObsColumns(oracle, surrenderId);
     observation(
@@ -757,7 +802,14 @@ test.describe('Circuito Francia S5 auto (cash · cierre admin · rendicion autom
       tddc
     };
     const flagAfter = await readOwnerCashCollector(oracle, ownerId);
-    // El flag queda en 1 hasta correr `disarm` (se informa en verify-summary, no se afirma aqui).
+    // F5 (M11): `fire` revierte el flag en su `finally`; si sigue en 1 el cron barreria el vehiculo.
+    await verifyAc(testInfo, 'AC-FR-40', () => {
+      expect(
+        flagAfter,
+        `CASHCOLLECTOR del propietario ${ownerId} debe estar en 0 tras fire (sigue armado: correr FR_AUTO_PHASE=disarm)`
+      ).toBe(0);
+      return { ownerId, flagAfter };
+    });
     await attachJson('verify-summary', {
       surrenderId: verification.surrenderId,
       idForCarrier: verification.idForCarrier,

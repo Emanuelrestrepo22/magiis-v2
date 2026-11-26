@@ -25,12 +25,12 @@ import {
   readTravelCoreDb
 } from '../../helpers/fr-ac-eval-circuit.js';
 import {
-  DEFAULT_CARRIER_ID,
-  DEFAULT_OWNER_ID,
+  circuitCarrierId,
+  circuitOwnerId,
   frConfigOrNull,
-  optionalInt,
   readBooks
 } from '../../helpers/fr-circuit.js';
+import { loadCarrierProfile } from '../../config/carrier-profiles.js';
 import { requireOracle } from '../../helpers/db-gate.js';
 import { readIsolation } from '../../helpers/fr-preflight.js';
 import { noChargeCheck } from '../../helpers/no-charge.js';
@@ -63,8 +63,8 @@ test.describe('Circuito Francia S6 (cancelacion sin cargo)', () => {
     const cfg = frGate.config as FrCircuitConfig;
     makeAnnotate(TS_KEY, ROUTE)('FR-S6', 'NEG');
     testInfo.annotations.push({ type: 'xray_comment', description: FR_1901_SCOPE_NOTES.S6 });
-    const ownerId = optionalInt('FR_OWNER_ID', DEFAULT_OWNER_ID);
-    const expectedCarrier = optionalInt('FR_CARRIER_ID', DEFAULT_CARRIER_ID);
+    const ownerId = circuitOwnerId();
+    const expectedCarrier = circuitCarrierId();
     const batch = { driverUserId: cfg.driverId, vehicleId: cfg.vehicleId }; // DRIVER.ID
     const surrenderClient = new SurrenderClient(carrierApi, carrierSession);
     const flow = new AdminCircuitFlow(travelsApi, checkingAccountApi);
@@ -112,7 +112,7 @@ test.describe('Circuito Francia S6 (cancelacion sin cargo)', () => {
       page,
       client: cfg.clientQuery,
       paymentMethod: PAYMENT_METHOD,
-      region: 'FR',
+      circuitProfile: loadCarrierProfile(),
       assertBeforeSubmit: ({ simulatedAmount, resolvedOrigin, resolvedDestination }) => {
         expect(
           resolvedOrigin !== resolvedDestination,
